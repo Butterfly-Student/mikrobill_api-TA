@@ -1,0 +1,10 @@
+# Ignore temporary build binaries
+tmp/
+tmp/*
+*.exe
+*.out
+*.bin
+
+# Go build output
+*.log
+*.test
