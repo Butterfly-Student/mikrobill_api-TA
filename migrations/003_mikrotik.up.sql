@@ -1,8 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TYPE mikrotik_status AS ENUM ('online', 'offline', 'error', 'maintenance');
-
 CREATE TABLE mikrotik (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
@@ -16,12 +14,6 @@ CREATE TABLE mikrotik (
     description TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     status mikrotik_status NOT NULL DEFAULT 'offline',
-    version VARCHAR(50),
-    uptime VARCHAR(50),
-    cpu_usage INTEGER,
-    memory_usage INTEGER,
-    last_sync TIMESTAMPTZ,
-    sync_interval INTEGER DEFAULT 300,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (host, port)
@@ -35,5 +27,10 @@ CREATE TRIGGER set_updated_at_mikrotik
     BEFORE UPDATE ON mikrotik
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- +goose StatementEnd
 
+-- Insert sample MikroTik device for testing
+INSERT INTO mikrotik (name, host, port, api_username, api_encrypted_password, location, status)
+VALUES 
+    ('MikroTik Main', '192.168.100.1', 8728, 'admin', 'r00t', 'Data Center', 'online')
+ON CONFLICT DO NOTHING;
+-- +goose StatementEnd

@@ -39,6 +39,17 @@ func MonitorTraffic(
 		"=interface=" + iface,
 	})
 	if err != nil {
+		if mikrotik.IsConnectionError(err) {
+			// Try to reconnect once
+			if recErr := client.Reconnect(); recErr == nil {
+				reply, err = client.ListenArgsContext(ctx, []string{
+					"/interface/monitor-traffic",
+					"=interface=" + iface,
+				})
+			}
+		}
+	}
+	if err != nil {
 		return nil, err
 	}
 

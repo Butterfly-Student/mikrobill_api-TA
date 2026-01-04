@@ -56,7 +56,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) (*Router, error) {
 
 	// Setup middlewares
 	r.setupGlobalMiddlewares()
-	
+
 	// Setup swagger and health check
 	r.setupSwaggerAndHealth()
 
@@ -70,10 +70,10 @@ func NewRouter(db *gorm.DB, cfg *config.Config) (*Router, error) {
 func (r *Router) setupGlobalMiddlewares() {
 	r.engine.Use(
 		middleware.RecoveryMiddleware(),
-		middleware.LoggerMiddleware(),
+		// middleware.LoggerMiddleware(),
 		middleware.CORSMiddleware(),
 		middleware.ErrorHandler(),
-		middleware.RateLimitMiddleware(100),
+		middleware.RateLimitMiddleware(300),
 	)
 }
 
@@ -89,7 +89,10 @@ func (r *Router) setupSwaggerAndHealth() {
 func (r *Router) setupRoutes() {
 	// Setup auth routes
 	r.setupAuthRoutes()
-	
+
+	// Setup application routes
+	r.setupAppRoutes()
+
 	// Add more route groups here as your application grows
 	// r.setupUserRoutes()
 	// r.setupProductRoutes()
@@ -97,11 +100,11 @@ func (r *Router) setupRoutes() {
 }
 
 // Accessor methods
-func (r *Router) DB() *gorm.DB               { return r.db }
-func (r *Router) Config() *config.Config     { return r.config }
-func (r *Router) Enforcer() *casbin.Enforcer { return r.enforcer }
-func (r *Router) Engine() *gin.Engine        { return r.engine }
-func (r *Router) GetEngine() *gin.Engine     { return r.engine }
+func (r *Router) DB() *gorm.DB                  { return r.db }
+func (r *Router) Config() *config.Config        { return r.config }
+func (r *Router) Enforcer() *casbin.Enforcer    { return r.enforcer }
+func (r *Router) Engine() *gin.Engine           { return r.engine }
+func (r *Router) GetEngine() *gin.Engine        { return r.engine }
 func (r *Router) GetEnforcer() *casbin.Enforcer { return r.enforcer }
 
 // Helper middleware methods

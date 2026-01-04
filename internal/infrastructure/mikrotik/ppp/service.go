@@ -1,8 +1,6 @@
 package ppp
 
-import (
-	"mikrobill/internal/infrastructure/mikrotik"
-)
+import "mikrobill/internal/infrastructure/mikrotik"
 
 // Service adalah service untuk operasi MikroTik PPP
 type Service struct {

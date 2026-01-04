@@ -1,75 +1,95 @@
 package entity
 
-import "time"
-
-
-type CustomerStatus string
-
-const (
-	CustomerStatusActive    CustomerStatus = "active"
-	CustomerStatusSuspended CustomerStatus = "suspended"
-	CustomerStatusInactive  CustomerStatus = "inactive"
+import (
+	"fmt"
+	"time"
 )
 
-// Customer represents the customers table
+// Customer represents a customer in the system
 type Customer struct {
-	ID                  string         `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	MikrotikID          string         `gorm:"column:mikrotik_id;type:uuid;not null"`
-	Username            string         `gorm:"column:username;type:varchar(100);not null"`
-	Name                string         `gorm:"column:name;type:varchar(255);not null"`
-	Phone               string         `gorm:"column:phone;type:varchar(20);not null"`
-	Email               string         `gorm:"column:email;type:varchar(255)"`
-	Address             string         `gorm:"column:address;type:text"`
-	Latitude            float64        `gorm:"column:latitude;type:decimal(10,8)"`
-	Longitude           float64        `gorm:"column:longitude;type:decimal(11,8)"`
-	ServiceType         ServiceType    `gorm:"column:service_type;type:service_type;not null"`
-	PackageID           *string        `gorm:"column:package_id;type:uuid"`
-	PPPoEUsername       string         `gorm:"column:pppoe_username;type:varchar(100)"`
-	PPPoEPassword       string         `gorm:"column:pppoe_password;type:varchar(100)"`
-	PPPoEProfileID      *string        `gorm:"column:pppoe_profile_id;type:uuid"`
-	HotspotUsername     string         `gorm:"column:hotspot_username;type:varchar(100)"`
-	HotspotPassword     string         `gorm:"column:hotspot_password;type:varchar(100)"`
-	HotspotProfileID    *string        `gorm:"column:hotspot_profile_id;type:uuid"`
-	HotspotMACAddress   string         `gorm:"column:hotspot_mac_address;type:macaddr"`
-	HotspotIPAddress    string         `gorm:"column:hotspot_ip_address;type:inet"`
-	StaticIP            string         `gorm:"column:static_ip;type:inet"`
-	StaticIPNetmask     string         `gorm:"column:static_ip_netmask;type:varchar(20)"`
-	StaticIPGateway     string         `gorm:"column:static_ip_gateway;type:inet"`
-	StaticIPDNS1        string         `gorm:"column:static_ip_dns1;type:inet"`
-	StaticIPDNS2        string         `gorm:"column:static_ip_dns2;type:inet"`
-	AssignedIP          string         `gorm:"column:assigned_ip;type:inet"`
-	MACAddress          string         `gorm:"column:mac_address;type:macaddr"`
-	LastOnline          *time.Time     `gorm:"column:last_online;type:timestamptz"`
-	LastIP              string         `gorm:"column:last_ip;type:inet"`
-	ODPID               *string        `gorm:"column:odp_id;type:uuid"`
-	Status              CustomerStatus `gorm:"column:status;type:customer_status;default:'active'"`
-	AutoSuspension      bool           `gorm:"column:auto_suspension;default:true"`
-	BillingDay          int            `gorm:"column:billing_day;default:15"`
-	JoinDate            time.Time      `gorm:"column:join_date;type:timestamptz;default:CURRENT_TIMESTAMP"`
-	CableType           string         `gorm:"column:cable_type;type:varchar(50)"`
-	CableLength         int            `gorm:"column:cable_length"`
-	PortNumber          int            `gorm:"column:port_number"`
-	CableStatus         CableStatus    `gorm:"column:cable_status;type:cable_status;default:'connected'"`
-	CableNotes          string         `gorm:"column:cable_notes;type:text"`
-	FUPQuotaUsed        int            `gorm:"column:fup_quota_used;default:0"`
-	FUPResetDate        *time.Time     `gorm:"column:fup_reset_date;type:date"`
-	IsFUPActive         bool           `gorm:"column:is_fup_active;default:false"`
-	CustomerNotes       string         `gorm:"column:customer_notes;type:text"`
-	CreatedAt           time.Time      `gorm:"column:created_at;type:timestamptz;default:CURRENT_TIMESTAMP"`
-	UpdatedAt           time.Time      `gorm:"column:updated_at;type:timestamptz;default:CURRENT_TIMESTAMP"`
+	ID          string  `json:"id" gorm:"primaryKey"`
+	MikrotikID  string  `json:"mikrotik_id" gorm:"column:mikrotik_id"`
+	Username    string  `json:"username" gorm:"column:username"`
+	Name        string  `json:"name" gorm:"column:name"`
+	Phone       *string `json:"phone" gorm:"column:phone"`
+	Email       *string `json:"email" gorm:"column:email"`
+	ServiceType string  `json:"service_type" gorm:"column:service_type"` // pppoe, hotspot, static_ip
 
-	// Relations
-	Mikrotik       *Mikrotik        `gorm:"foreignKey:MikrotikID"`
-	Package        *Package         `gorm:"foreignKey:PackageID"`
-	PPPoEProfile   *MikrotikProfile `gorm:"foreignKey:PPPoEProfileID"`
-	HotspotProfile *MikrotikProfile `gorm:"foreignKey:HotspotProfileID"`
-	ODP            *ODP             `gorm:"foreignKey:ODPID"`
-	Invoices       []Invoice        `gorm:"foreignKey:CustomerID"`
-	CollectorPayments []CollectorPayment `gorm:"foreignKey:CustomerID"`
-	AgentMonthlyPayments []AgentMonthlyPayment `gorm:"foreignKey:CustomerID"`
-	AgentPayments       []AgentPayment        `gorm:"foreignKey:CustomerID"`
-	CableRoutes         []CableRoute          `gorm:"foreignKey:CustomerID"`
-	ONUDevices          []ONUDevice           `gorm:"foreignKey:CustomerID"`
+	// PPPoE specific
+	PPPoEUsername  *string `json:"pppoe_username" gorm:"column:pppoe_username"`
+	PPPoEPassword  *string `json:"pppoe_password" gorm:"column:pppoe_password"`
+	PPPoEProfileID *string `json:"pppoe_profile_id" gorm:"column:pppoe_profile_id"`
+
+	// Hotspot specific
+	HotspotUsername  *string `json:"hotspot_username" gorm:"column:hotspot_username"`
+	HotspotPassword  *string `json:"hotspot_password" gorm:"column:hotspot_password"`
+	HotspotProfileID *string `json:"hotspot_profile_id" gorm:"column:hotspot_profile_id"`
+	HotspotMacAddr   *string `json:"hotspot_mac_address" gorm:"column:hotspot_mac_address"`
+	HotspotIPAddress *string `json:"hotspot_ip_address" gorm:"column:hotspot_ip_address"`
+
+	// Static IP
+	StaticIP *string `json:"static_ip" gorm:"column:static_ip"`
+
+	// Network info
+	AssignedIP *string    `json:"assigned_ip" gorm:"column:assigned_ip"`
+	MacAddress *string    `json:"mac_address" gorm:"column:mac_address"`
+	LastOnline *time.Time `json:"last_online" gorm:"column:last_online"`
+	Interface  *string    `json:"interface" gorm:"column:interface"`
+
+	Status    string    `json:"status"` // active, suspended, inactive, pending
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (Customer) TableName() string { return "customers" }
+// CustomerTrafficData represents traffic data for a customer
+type CustomerTrafficData struct {
+	CustomerID         string    `json:"customer_id"`
+	CustomerName       string    `json:"customer_name"`
+	Username           string    `json:"username"`
+	ServiceType        string    `json:"service_type"`
+	InterfaceName      string    `json:"interface_name"`
+	RxBitsPerSecond    string    `json:"rx_bits_per_second"`
+	TxBitsPerSecond    string    `json:"tx_bits_per_second"`
+	RxPacketsPerSecond string    `json:"rx_packets_per_second"`
+	TxPacketsPerSecond string    `json:"tx_packets_per_second"`
+	DownloadSpeed      string    `json:"download_speed"`
+	UploadSpeed        string    `json:"upload_speed"`
+	Timestamp          time.Time `json:"timestamp"`
+}
+
+// CustomerRepository defines database operations for customers
+type CustomerRepository interface {
+	GetActivePPPoECustomers() ([]*Customer, error)
+	GetCustomerByID(id string) (*Customer, error)
+	GetCustomerByPPPoEUsername(username string) (*Customer, error)
+	UpdateCustomerStatus(id string, status string, ipAddress *string, macAddress *string, interfaceName *string) error
+
+	// CRUD operations
+	CreateCustomer(customer *Customer) error
+	UpdateCustomer(customer *Customer) error
+	DeleteCustomer(id string) error
+	ListCustomers(page, limit int) ([]*Customer, int, error)
+}
+
+// RedisPublisher defines interface for publishing to Redis
+type RedisPublisher interface {
+	Publish(channel string, message string) error
+	PublishStream(streamKey string, data string) error
+}
+
+// GetInterfaceNameForCustomer returns the interface name for monitoring
+func (c *Customer) GetInterfaceNameForCustomer() (string, error) {
+	switch c.ServiceType {
+	case "pppoe":
+		if c.PPPoEUsername != nil && *c.PPPoEUsername != "" {
+			return fmt.Sprintf("<%s>", *c.PPPoEUsername), nil
+		}
+		return "", fmt.Errorf("pppoe username not set for customer %s", c.ID)
+	case "hotspot":
+		return "", fmt.Errorf("hotspot interface monitoring not implemented yet")
+	case "static_ip":
+		return "", fmt.Errorf("static IP interface monitoring not implemented yet")
+	default:
+		return "", fmt.Errorf("unsupported service type: %s", c.ServiceType)
+	}
+}

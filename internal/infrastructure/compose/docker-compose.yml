@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: app_postgres
+    environment:
+      POSTGRES_DB: mikrobill
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: r00t
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_:/var/lib/postgresql/data:Z
+      # - ./migrations:/docker-entrypoint-initdb.d:ro,Z
+    restart: unless-stopped
+
+volumes:
+  postgres_: {}

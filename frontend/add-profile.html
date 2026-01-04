@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Profile - MikroBill</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+                <a href="/" style="text-decoration: none; color: inherit;">
+                    <div class="app-title">MikroBill</div>
+                    <div class="app-subtitle">Traffic Monitor</div>
+                </a>
+            </div>
+        </div>
+
+        <div style="padding: 0 16px; margin-bottom: 16px;">
+            <div
+                style="color: var(--gray-500); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">
+                Menu</div>
+            <a href="/" class="btn-secondary"
+                style="display: block; width: 100%; text-align: left; margin-bottom: 8px; border: none; background: transparent;">
+                <i class="fa-solid fa-users" style="margin-right: 8px;"></i> Customers
+            </a>
+            <a href="/profiles.html" class="btn-secondary"
+                style="display: block; width: 100%; text-align: left; border: none;">
+                <i class="fa-solid fa-tags" style="margin-right: 8px;"></i> Profiles
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <div>
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--gray-900);">Add Profile</h1>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="add-profile-form">
+                <div class="form-group">
+                    <label class="form-label">MikroTik Router</label>
+                    <select name="mikrotik_id" class="form-select" id="mikrotik-select" required>
+                        <option value="">Select Router</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Profile Name</label>
+                    <input type="text" name="name" class="form-input" required placeholder="e.g. 10Mbps_Package">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Profile Type</label>
+                    <select name="profile_type" class="form-select" id="profile-type">
+                        <option value="pppoe">PPPoE</option>
+                        <option value="hotspot" disabled>Hotspot (Soon)</option>
+                    </select>
+                </div>
+
+                <!-- Limits -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Rate Limit Up</label>
+                        <input type="text" name="rate_limit_up" class="form-input" placeholder="e.g. 2M">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rate Limit Down</label>
+                        <input type="text" name="rate_limit_down" class="form-input" placeholder="e.g. 10M">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Price (Monthly)</label>
+                    <input type="number" name="price" class="form-input" placeholder="0">
+                </div>
+
+                <!-- PPPoE Specifics -->
+                <div id="pppoe-details"
+                    style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-top: 16px;">
+                    <h3 style="font-size: 1rem; margin-bottom: 12px;">PPPoE Configuration</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Local Address</label>
+                        <input type="text" name="local_address" class="form-input" required placeholder="e.g. 10.0.0.1">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Remote Address Pool</label>
+                        <input type="text" name="address_pool" class="form-input" required
+                            placeholder="e.g. pppoe-pool-1">
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 24px;">
+                    <a href="/profiles.html" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="./js/common.js"></script>
+    <script>
+        const form = document.getElementById('add-profile-form');
+        const mikrotikSelect = document.getElementById('mikrotik-select');
+
+        // Fetch routers
+        async function fetchRouters() {
+            try {
+                const res = await fetch(`${API_BASE}/api/mikrotiks`);
+                const result = await res.json();
+                if (result.status === 'success') {
+                    result.data.forEach(mk => {
+                        const option = document.createElement('option');
+                        option.value = mk.id;
+                        option.textContent = mk.name;
+                        mikrotikSelect.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const payload = {
+                mikrotik_id: data.mikrotik_id,
+                name: data.name,
+                profile_type: data.profile_type,
+                rate_limit_up: data.rate_limit_up || null,
+                rate_limit_down: data.rate_limit_down || null,
+                price: data.price ? parseFloat(data.price) : 0,
+                sync_with_mikrotik: true,
+                pppoe_details: {
+                    local_address: data.local_address,
+                    address_pool: data.address_pool
+                }
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/profiles`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert('Profile created!');
+                    window.location.href = '/profiles.html';
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                alert('Submit failed');
+            }
+        });
+
+        fetchRouters();
+    </script>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-package service
+package utils
 
 import (
 	"crypto/aes"
@@ -9,12 +9,9 @@ import (
 	"io"
 )
 
-// EncryptionService handles AES encryption operations
-type EncryptionService struct{}
-
-// Encrypt encrypts plaintext using AES-GCM
-func (s *EncryptionService) Encrypt(plaintext, key string) (string, error) {
-	keyBytes := s.normalizeKey([]byte(key))
+// EncryptAES encrypts plaintext using AES-GCM
+func EncryptAES(plaintext, key string) (string, error) {
+	keyBytes := normalizeKey([]byte(key))
 
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
@@ -35,9 +32,9 @@ func (s *EncryptionService) Encrypt(plaintext, key string) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-// Decrypt decrypts ciphertext using AES-GCM
-func (s *EncryptionService) Decrypt(ciphertext, key string) (string, error) {
-	keyBytes := s.normalizeKey([]byte(key))
+// DecryptAES decrypts ciphertext using AES-GCM
+func DecryptAES(ciphertext, key string) (string, error) {
+	keyBytes := normalizeKey([]byte(key))
 
 	data, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
@@ -69,7 +66,7 @@ func (s *EncryptionService) Decrypt(ciphertext, key string) (string, error) {
 }
 
 // normalizeKey ensures key is 32 bytes for AES-256
-func (s *EncryptionService) normalizeKey(key []byte) []byte {
+func normalizeKey(key []byte) []byte {
 	if len(key) < 32 {
 		paddedKey := make([]byte, 32)
 		copy(paddedKey, key)
