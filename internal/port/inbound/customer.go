@@ -15,5 +15,12 @@ type CustomerDomain interface {
 	GetCustomer(ctx any, id string) (*model.CustomerWithService, error)
 	ListCustomers(ctx any) ([]model.CustomerWithService, error)
 	UpdateCustomer(ctx any, id string, input model.CustomerInput) (*model.CustomerWithService, error)
+	// DeleteCustomer deletes a customer by ID
 	DeleteCustomer(ctx any, id string) error
+
+	// HandlePPPoEUp handles on-up callback from MikroTik
+	HandlePPPoEUp(ctx any, input model.PPPoEUpInput) error
+
+	// HandlePPPoEDown handles on-down callback from MikroTik
+	HandlePPPoEDown(ctx any, input model.PPPoEDownInput) error
 }

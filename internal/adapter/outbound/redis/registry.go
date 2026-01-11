@@ -14,3 +14,7 @@ func NewAdapter() outbound_port.CachePort {
 func (s *adapter) Client() outbound_port.ClientCachePort {
 	return NewClientAdapter()
 }
+
+func (s *adapter) PubSub() outbound_port.RedisPubSubPort {
+	return NewPubSubAdapter()
+}

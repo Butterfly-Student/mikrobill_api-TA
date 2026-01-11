@@ -74,5 +74,5 @@ func (d *domain) Profile() inbound_port.ProfileDomain {
 }
 
 func (d *domain) Customer() inbound_port.CustomerDomain {
-	return customer.NewCustomerDomain(d.databasePort, d.mikrotikClientFactory)
+	return customer.NewCustomerDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort)
 }

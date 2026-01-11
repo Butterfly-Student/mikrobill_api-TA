@@ -11,4 +11,5 @@ type HttpPort interface {
 	Monitor() MonitorPort
 	Profile() ProfilePort
 	Customer() CustomerPort
+	Callback() CallbackHttpPort
 }

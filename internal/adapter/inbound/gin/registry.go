@@ -56,3 +56,7 @@ func (s *adapter) Profile() inbound_port.ProfilePort {
 func (s *adapter) Customer() inbound_port.CustomerPort {
 	return NewCustomerAdapter(s.domain)
 }
+
+func (s *adapter) Callback() inbound_port.CallbackHttpPort {
+	return NewCallbackAdapter(s.domain)
+}

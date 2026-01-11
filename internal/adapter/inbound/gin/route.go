@@ -145,6 +145,16 @@ func InitRoute(
 		port.Customer().DeleteCustomer(c)
 	})
 
+	callbacks := engine.Group("/callbacks")
+	// Callbacks might need auth or be whitelisted IPs. For now open or use middleware if needed.
+	// User request showed no auth middleware on callback handler logic but typically it's open for Mikrotik to push.
+	callbacks.POST("/pppoe/up", func(c *gin.Context) {
+		port.Callback().HandlePPPoEUp(c)
+	})
+	callbacks.POST("/pppoe/down", func(c *gin.Context) {
+		port.Callback().HandlePPPoEDown(c)
+	})
+
 	client := engine.Group("/v1")
 	client.Use(func(c *gin.Context) {
 		middlewareAdapter.ClientAuth(c)

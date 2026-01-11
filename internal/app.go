@@ -117,6 +117,7 @@ func cacheOutbound(ctx context.Context) outbound_port.CachePort {
 	switch outboundCacheDriver {
 	case "redis":
 		redis.InitDatabase()
+		redis.InitPubsub()
 		return redis_outbound_adapter.NewAdapter()
 	}
 	return nil
