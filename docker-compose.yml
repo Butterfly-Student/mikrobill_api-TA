@@ -1,0 +1,40 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "r00t"]
+
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - 5540:5540
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/apps/mikrotik_billing:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=r00t
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=mikrotik_billing
+
+  rabbitmq:
+    image: rabbitmq:4.0-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: r00t
+
+volumes:
+  redis_data:
