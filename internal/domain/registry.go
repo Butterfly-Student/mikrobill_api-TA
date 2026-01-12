@@ -66,7 +66,7 @@ func (d *domain) PPP() inbound_port.PPPDomain {
 }
 
 func (d *domain) Monitor() inbound_port.MonitorDomain {
-	return monitor.NewMonitorDomain(d.databasePort, d.mikrotikClientFactory)
+	return monitor.NewMonitorDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort)
 }
 
 func (d *domain) Profile() inbound_port.ProfileDomain {

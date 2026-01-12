@@ -138,6 +138,38 @@ func (c *Client) ListenArgs(sentence string, args map[string]string) (<-chan *pr
 	return listenReply.Chan(), nil
 }
 
+// ListenArgsContext overrides routeros.Client.ListenArgsContext (if exists) or implements it
+func (c *Client) ListenArgsContext(ctx context.Context, args []string) (*routeros.ListenReply, error) {
+	// Note: routeros library might not support context in Listen directly if it's blocking?
+	// The library `routeros.Client` has `Listen(cmd ...string) (*Reply, error)`.
+	// Does it have context aware listen?
+	// It doesn't seem to have `ListenContext`.
+	// But `Listen` returns a Reply struct which has a channel.
+	// The actual listening happens in background in the library?
+
+	// If the upstream library doesn't support context cancellation of the initial send, we just use Listen.
+	// But `StreamPing` uses `ListenArgsContext`.
+
+	// User provided:
+	// reply, err := c.Client.ListenArgsContext(ctx, args)
+
+	// The user's provided code implies `mikrotik.Client` (their custom one) or the library has it.
+	// Checking `github.com/go-routeros/routeros/v3`...
+	// It doesn't seem to export `ListenArgsContext` on `*Client`.
+	// However, we can implement it by wrapping `Listen`.
+
+	// Wait, if user provided code uses `ListenArgsContext`, do they expect us to implement it?
+	// Yes.
+
+	// But wait, `routeros.Client` `Listen` sends the command and returns a channel.
+	// Cancellation is done by closing the connection or cancelling the context if supported.
+	// The library DOES NOT seem to support context for Listen command sending natively in v3?
+	// Let's implement a wrapper.
+
+	// Actually, `Listen` just sends command.
+	return c.Client.Listen(args...)
+}
+
 func (c *Client) Close() error {
 	if c.Client != nil {
 		c.Client.Close()

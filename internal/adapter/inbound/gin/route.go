@@ -144,6 +144,15 @@ func InitRoute(
 	internal.DELETE("/customer/:id", func(c *gin.Context) {
 		port.Customer().DeleteCustomer(c)
 	})
+	internal.GET("/customer/:id/traffic/stream", func(c *gin.Context) {
+		port.Monitor().StreamTraffic(c)
+	})
+	internal.GET("/customer/:id/ping", func(c *gin.Context) {
+		port.Monitor().PingCustomer(c)
+	})
+	internal.GET("/customer/:id/ping/stream", func(c *gin.Context) {
+		port.Monitor().StreamPing(c)
+	})
 
 	callbacks := engine.Group("/callbacks")
 	// Callbacks might need auth or be whitelisted IPs. For now open or use middleware if needed.
