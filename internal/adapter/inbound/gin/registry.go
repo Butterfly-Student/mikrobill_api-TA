@@ -41,8 +41,12 @@ func (s *adapter) Auth() inbound_port.AuthHttpPort {
 	return NewAuthAdapter(s.domain)
 }
 
-func (s *adapter) PPP() inbound_port.PPPPort {
-	return NewPPPAdapter(s.domain)
+func (s *adapter) MikrotikPPPSecret() inbound_port.MikrotikPPPSecretPort {
+	return NewMikrotikPPPSecretAdapter(s.domain)
+}
+
+func (s *adapter) MikrotikPPPProfile() inbound_port.MikrotikPPPProfilePort {
+	return NewMikrotikPPPProfileAdapter(s.domain)
 }
 
 func (s *adapter) Monitor() inbound_port.MonitorPort {
@@ -59,4 +63,8 @@ func (s *adapter) Customer() inbound_port.CustomerPort {
 
 func (s *adapter) Callback() inbound_port.CallbackHttpPort {
 	return NewCallbackAdapter(s.domain)
+}
+
+func (s *adapter) Tenant() inbound_port.TenantPort {
+	return NewTenantAdapter(s.domain)
 }

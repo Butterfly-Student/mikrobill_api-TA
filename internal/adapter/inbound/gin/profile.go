@@ -35,17 +35,11 @@ func (a *profileAdapter) CreateProfile(ctx any) error {
 
 	profile, err := a.domainRegistry.Profile().CreateProfile(c, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to create profile",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to create profile")
 		return stacktrace.Propagate(err, "failed to create profile")
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "profile created successfully",
-		"data":    profile,
-	})
+	SendResponse(c, http.StatusCreated, profile, nil)
 
 	return nil
 }
@@ -56,16 +50,11 @@ func (a *profileAdapter) GetProfile(ctx any) error {
 
 	profile, err := a.domainRegistry.Profile().GetProfile(c, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to get profile",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to get profile")
 		return stacktrace.Propagate(err, "failed to get profile")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": profile,
-	})
+	SendResponse(c, http.StatusOK, profile, nil)
 
 	return nil
 }
@@ -75,15 +64,12 @@ func (a *profileAdapter) ListProfiles(ctx any) error {
 
 	profiles, err := a.domainRegistry.Profile().ListProfiles(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to list profiles",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to list profiles")
 		return stacktrace.Propagate(err, "failed to list profiles")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": profiles,
+	SendResponse(c, http.StatusOK, profiles, &model.Metadata{
+		Total: int64(len(profiles)),
 	})
 
 	return nil
@@ -104,17 +90,11 @@ func (a *profileAdapter) UpdateProfile(ctx any) error {
 
 	profile, err := a.domainRegistry.Profile().UpdateProfile(c, id, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to update profile",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to update profile")
 		return stacktrace.Propagate(err, "failed to update profile")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "profile updated successfully",
-		"data":    profile,
-	})
+	SendResponse(c, http.StatusOK, profile, nil)
 
 	return nil
 }
@@ -125,16 +105,11 @@ func (a *profileAdapter) DeleteProfile(ctx any) error {
 
 	err := a.domainRegistry.Profile().DeleteProfile(c, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to delete profile",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to delete profile")
 		return stacktrace.Propagate(err, "failed to delete profile")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "profile deleted successfully",
-	})
+	SendResponse(c, http.StatusOK, nil, nil)
 
 	return nil
 }

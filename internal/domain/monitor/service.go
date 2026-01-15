@@ -13,6 +13,7 @@ import (
 
 	mikrotik_adapter "prabogo/internal/adapter/outbound/mikrotik"
 	"prabogo/internal/model"
+	contextutil "prabogo/utils/context"
 )
 
 // Global state for active monitors
@@ -33,25 +34,7 @@ type CustomerMonitor struct {
 	restartCount  int // Track restart attempts
 }
 
-func (d *monitorDomain) StreamTraffic(ctx any, customerID string) (<-chan model.CustomerTrafficData, error) {
-	// Parse/Validate Customer ID
-	// Note: ctx is generic any, in gin it's *gin.Context but we might need context.Context for cancellation.
-	// The incoming ctx is likely from HTTP request.
-	// We need a context that lives as long as the REQUEST for the observer.
-	stdCtx, ok := ctx.(context.Context)
-	if !ok {
-		// Try to cast to interface with Context() method (Gin)
-		if c, ok := ctx.(interface{ RequestContext() context.Context }); ok {
-			stdCtx = c.RequestContext()
-		} else if c, ok := ctx.(interface{ Done() <-chan struct{} }); ok {
-			// It is a context
-			stdCtx = c.(context.Context)
-		} else {
-			// Fallback or error?
-			stdCtx = context.Background()
-		}
-	}
-
+func (d *monitorDomain) StreamTraffic(ctx context.Context, customerID string) (<-chan model.CustomerTrafficData, error) {
 	// 1. Get lock for this customer to prevent race conditions
 	locksMu.Lock()
 	if _, ok := monitorLocks[customerID]; !ok {
@@ -72,7 +55,7 @@ func (d *monitorDomain) StreamTraffic(ctx any, customerID string) (<-chan model.
 		log.Printf("[OnDemand] Customer %s: Client count incremented to %d", customerID, custMonitor.Clients)
 
 		// Subscribe to existing monitor
-		return d.addObserver(stdCtx, customerID)
+		return d.addObserver(ctx, customerID)
 	}
 	mu.Unlock()
 
@@ -83,7 +66,7 @@ func (d *monitorDomain) StreamTraffic(ctx any, customerID string) (<-chan model.
 		return nil, stacktrace.Propagate(err, "invalid customer id")
 	}
 
-	customer, err := d.databasePort.Customer().GetByID(id)
+	customer, err := d.databasePort.Customer().GetByID(ctx, id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "customer not found: %s", customerID)
 	}
@@ -94,8 +77,14 @@ func (d *monitorDomain) StreamTraffic(ctx any, customerID string) (<-chan model.
 	}
 	interfaceName := *customer.Interface
 
-	// Create monitor context - independent of the request context
-	monitorCtx, cancel := context.WithCancel(context.Background())
+	// Extract tenant info for background loop
+	tenantID, _ := contextutil.GetTenantID(ctx)
+	user, _ := contextutil.GetUser(ctx)
+	isSuper := contextutil.IsSuperAdmin(ctx)
+
+	// Create monitor context - independent of the request context but with same tenant info
+	monitorCtx := contextutil.WithTenantContext(context.Background(), tenantID, user, isSuper)
+	monitorCtx, cancel := context.WithCancel(monitorCtx)
 
 	custMonitor = &CustomerMonitor{
 		CustomerID:    customerID,
@@ -116,7 +105,7 @@ func (d *monitorDomain) StreamTraffic(ctx any, customerID string) (<-chan model.
 	log.Printf("[OnDemand] Started monitoring for customer %s (%s) on interface %s",
 		customer.Name, customer.Username, interfaceName)
 
-	return d.addObserver(stdCtx, customerID)
+	return d.addObserver(ctx, customerID)
 }
 
 func (d *monitorDomain) StopMonitoring(customerID string) {
@@ -168,7 +157,7 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 			return
 		default:
 			// check active mikrotik first
-			activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+			activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 			if err != nil || activeMikrotik == nil {
 				log.Errorf("failed to get active mikrotik for monitor: %v", err)
 				time.Sleep(restartDelay)
@@ -359,14 +348,13 @@ func formatSpeed(bps string) string {
 	return bps + " bps"
 }
 
-func (d *monitorDomain) PingCustomer(ctx any, customerID string) (map[string]interface{}, error) {
-	// Parse/Validate Customer ID
+func (d *monitorDomain) PingCustomer(ctx context.Context, customerID string) (map[string]interface{}, error) { // Parse/Validate Customer ID
 	id, err := uuid.Parse(customerID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid customer id")
 	}
 
-	customer, err := d.databasePort.Customer().GetByID(id)
+	customer, err := d.databasePort.Customer().GetByID(ctx, id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "customer not found: %s", customerID)
 	}
@@ -377,7 +365,7 @@ func (d *monitorDomain) PingCustomer(ctx any, customerID string) (map[string]int
 	}
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -425,25 +413,13 @@ func (d *monitorDomain) PingCustomer(ctx any, customerID string) (map[string]int
 	return stats, nil
 }
 
-func (d *monitorDomain) StreamPing(ctx any, customerID string) (<-chan model.PingResponse, error) {
-	// Parse/Validate Customer ID
-	// Note: ctx is likely *gin.Context
-	stdCtx, ok := ctx.(context.Context)
-	if !ok {
-		if c, ok := ctx.(interface{ RequestContext() context.Context }); ok {
-			stdCtx = c.RequestContext()
-		} else {
-			// Fallback
-			stdCtx = context.Background()
-		}
-	}
-
+func (d *monitorDomain) StreamPing(ctx context.Context, customerID string) (<-chan model.PingResponse, error) {
 	id, err := uuid.Parse(customerID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid customer id")
 	}
 
-	customer, err := d.databasePort.Customer().GetByID(id)
+	customer, err := d.databasePort.Customer().GetByID(ctx, id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "customer not found: %s", customerID)
 	}
@@ -454,7 +430,7 @@ func (d *monitorDomain) StreamPing(ctx any, customerID string) (<-chan model.Pin
 	}
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -490,7 +466,7 @@ func (d *monitorDomain) StreamPing(ctx any, customerID string) (<-chan model.Pin
 	// We'll trust that we can't close client here immediately because StreamPing needs it.
 	// We need to wrap the output channel to close the client when the channel closes.
 
-	outChan, err := concreteClient.StreamPing(stdCtx, target, "56", "1")
+	outChan, err := concreteClient.StreamPing(ctx, target, "56", "1")
 	if err != nil {
 		client.Close()
 		return nil, err

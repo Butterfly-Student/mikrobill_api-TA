@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -26,12 +27,11 @@ func NewProfileDomain(
 	}
 }
 
-func (d *profileDomain) CreateProfile(ctx any, input model.ProfileInput) (*model.ProfileWithPPPoE, error) {
-	// Validate and prepare input
+func (d *profileDomain) CreateProfile(ctx context.Context, input model.ProfileInput) (*model.ProfileWithPPPoE, error) { // Validate and prepare input
 	model.PrepareProfileInput(&input)
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -40,15 +40,15 @@ func (d *profileDomain) CreateProfile(ctx any, input model.ProfileInput) (*model
 	}
 
 	// Begin database transaction
-	result, err := d.databasePort.DoInTransaction(func(txDB outbound_port.DatabasePort) (interface{}, error) {
+	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Insert to mikrotik_profiles
-		profile, err := txDB.Profile().CreateProfile(input, activeMikrotik.ID)
+		profile, err := txDB.Profile().CreateProfile(ctx, input, activeMikrotik.ID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to create profile")
 		}
 
 		// 2. Insert to mikrotik_profile_pppoe
-		err = txDB.Profile().CreateProfilePPPoE(profile.ID, input)
+		err = txDB.Profile().CreateProfilePPPoE(ctx, profile.ID, input)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to create profile pppoe")
 		}
@@ -122,13 +122,13 @@ func (d *profileDomain) CreateProfile(ctx any, input model.ProfileInput) (*model
 		}
 
 		// 7. Update mikrotik_object_id in database
-		err = txDB.Profile().UpdateMikrotikObjectID(profile.ID, mikrotikObjectID)
+		err = txDB.Profile().UpdateMikrotikObjectID(ctx, profile.ID, mikrotikObjectID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to update mikrotik object id")
 		}
 
 		// 8. Get complete profile with PPPoE settings
-		profileWithPPPoE, err := txDB.Profile().GetByID(profile.ID)
+		profileWithPPPoE, err := txDB.Profile().GetByID(ctx, profile.ID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to get created profile")
 		}
@@ -143,13 +143,13 @@ func (d *profileDomain) CreateProfile(ctx any, input model.ProfileInput) (*model
 	return result.(*model.ProfileWithPPPoE), nil
 }
 
-func (d *profileDomain) GetProfile(ctx any, id string) (*model.ProfileWithPPPoE, error) {
+func (d *profileDomain) GetProfile(ctx context.Context, id string) (*model.ProfileWithPPPoE, error) {
 	profileID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid profile id")
 	}
 
-	profile, err := d.databasePort.Profile().GetByID(profileID)
+	profile, err := d.databasePort.Profile().GetByID(ctx, profileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get profile")
 	}
@@ -157,9 +157,8 @@ func (d *profileDomain) GetProfile(ctx any, id string) (*model.ProfileWithPPPoE,
 	return profile, nil
 }
 
-func (d *profileDomain) ListProfiles(ctx any) ([]model.ProfileWithPPPoE, error) {
-	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+func (d *profileDomain) ListProfiles(ctx context.Context) ([]model.ProfileWithPPPoE, error) { // Get active mikrotik
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -167,7 +166,7 @@ func (d *profileDomain) ListProfiles(ctx any) ([]model.ProfileWithPPPoE, error) 
 		return nil, fmt.Errorf("no active mikrotik found")
 	}
 
-	profiles, err := d.databasePort.Profile().List(activeMikrotik.ID)
+	profiles, err := d.databasePort.Profile().List(ctx, activeMikrotik.ID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list profiles")
 	}
@@ -175,7 +174,7 @@ func (d *profileDomain) ListProfiles(ctx any) ([]model.ProfileWithPPPoE, error) 
 	return profiles, nil
 }
 
-func (d *profileDomain) UpdateProfile(ctx any, id string, input model.ProfileInput) (*model.ProfileWithPPPoE, error) {
+func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input model.ProfileInput) (*model.ProfileWithPPPoE, error) {
 	profileID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid profile id")
@@ -184,7 +183,7 @@ func (d *profileDomain) UpdateProfile(ctx any, id string, input model.ProfileInp
 	model.PrepareProfileInput(&input)
 
 	// Get profile to get mikrotik_object_id
-	existing, err := d.databasePort.Profile().GetByID(profileID)
+	existing, err := d.databasePort.Profile().GetByID(ctx, profileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get existing profile")
 	}
@@ -194,14 +193,14 @@ func (d *profileDomain) UpdateProfile(ctx any, id string, input model.ProfileInp
 	}
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
 
-	result, err := d.databasePort.DoInTransaction(func(txDB outbound_port.DatabasePort) (interface{}, error) {
+	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Update database
-		err := txDB.Profile().Update(profileID, input)
+		err := txDB.Profile().Update(ctx, profileID, input)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to update profile in database")
 		}
@@ -255,7 +254,7 @@ func (d *profileDomain) UpdateProfile(ctx any, id string, input model.ProfileInp
 		}
 
 		// 3. Get updated profile
-		updated, err := txDB.Profile().GetByID(profileID)
+		updated, err := txDB.Profile().GetByID(ctx, profileID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to get updated profile")
 		}
@@ -270,14 +269,14 @@ func (d *profileDomain) UpdateProfile(ctx any, id string, input model.ProfileInp
 	return result.(*model.ProfileWithPPPoE), nil
 }
 
-func (d *profileDomain) DeleteProfile(ctx any, id string) error {
+func (d *profileDomain) DeleteProfile(ctx context.Context, id string) error {
 	profileID, err := uuid.Parse(id)
 	if err != nil {
 		return stacktrace.Propagate(err, "invalid profile id")
 	}
 
 	// Get profile to get mikrotik_object_id
-	existing, err := d.databasePort.Profile().GetByID(profileID)
+	existing, err := d.databasePort.Profile().GetByID(ctx, profileID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get existing profile")
 	}
@@ -287,12 +286,12 @@ func (d *profileDomain) DeleteProfile(ctx any, id string) error {
 	}
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
 
-	_, err = d.databasePort.DoInTransaction(func(txDB outbound_port.DatabasePort) (interface{}, error) {
+	_, err = d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Delete from MikroTik first
 		client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
 		if err != nil {
@@ -308,7 +307,7 @@ func (d *profileDomain) DeleteProfile(ctx any, id string) error {
 		}
 
 		// 2. Delete from database
-		err = txDB.Profile().Delete(profileID)
+		err = txDB.Profile().Delete(ctx, profileID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to delete profile from database")
 		}
@@ -318,3 +317,4 @@ func (d *profileDomain) DeleteProfile(ctx any, id string) error {
 
 	return err
 }
+

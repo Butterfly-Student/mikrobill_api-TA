@@ -35,17 +35,11 @@ func (a *customerAdapter) CreateCustomer(ctx any) error {
 
 	customer, err := a.domainRegistry.Customer().CreateCustomer(c, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to create customer",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to create customer")
 		return stacktrace.Propagate(err, "failed to create customer")
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "customer created successfully",
-		"data":    customer,
-	})
+	SendResponse(c, http.StatusCreated, customer, nil)
 
 	return nil
 }
@@ -56,16 +50,11 @@ func (a *customerAdapter) GetCustomer(ctx any) error {
 
 	customer, err := a.domainRegistry.Customer().GetCustomer(c, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to get customer",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to get customer")
 		return stacktrace.Propagate(err, "failed to get customer")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": customer,
-	})
+	SendResponse(c, http.StatusOK, customer, nil)
 
 	return nil
 }
@@ -75,15 +64,12 @@ func (a *customerAdapter) ListCustomers(ctx any) error {
 
 	customers, err := a.domainRegistry.Customer().ListCustomers(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to list customers",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to list customers")
 		return stacktrace.Propagate(err, "failed to list customers")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": customers,
+	SendResponse(c, http.StatusOK, customers, &model.Metadata{
+		Total: int64(len(customers)),
 	})
 
 	return nil
@@ -104,17 +90,11 @@ func (a *customerAdapter) UpdateCustomer(ctx any) error {
 
 	customer, err := a.domainRegistry.Customer().UpdateCustomer(c, id, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to update customer",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to update customer")
 		return stacktrace.Propagate(err, "failed to update customer")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "customer updated successfully",
-		"data":    customer,
-	})
+	SendResponse(c, http.StatusOK, customer, nil)
 
 	return nil
 }
@@ -125,16 +105,11 @@ func (a *customerAdapter) DeleteCustomer(ctx any) error {
 
 	err := a.domainRegistry.Customer().DeleteCustomer(c, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "failed to delete customer",
-			"details": err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, "Failed to delete customer")
 		return stacktrace.Propagate(err, "failed to delete customer")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "customer deleted successfully",
-	})
+	SendResponse(c, http.StatusOK, nil, nil)
 
 	return nil
 }

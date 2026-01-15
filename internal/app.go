@@ -47,7 +47,7 @@ type App struct {
 }
 
 func NewApp() *App {
-	ctx := activity.NewContext("init")
+	ctx := activity.NewContext(context.Background(), "app_start")
 	ctx = activity.WithClientID(ctx, "system")
 	godotenv.Load(".env")
 	configureLogging()

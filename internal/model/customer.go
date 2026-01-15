@@ -38,7 +38,9 @@ const (
 // Customer represents customers table
 type Customer struct {
 	ID               uuid.UUID      `json:"id" db:"id"`
+	TenantID         uuid.UUID      `json:"tenant_id" db:"tenant_id"`
 	MikrotikID       uuid.UUID      `json:"mikrotik_id" db:"mikrotik_id"`
+	PackageID        *uuid.UUID     `json:"package_id,omitempty" db:"package_id"`
 	Username         string         `json:"username" db:"username"`
 	Name             string         `json:"name" db:"name"`
 	Phone            string         `json:"phone" db:"phone"`
@@ -64,6 +66,7 @@ type Customer struct {
 // Keeping this as is for now, but strictly relying on Customer for core Mikrotik sync
 type CustomerService struct {
 	ID         uuid.UUID     `json:"id" db:"id"`
+	TenantID   uuid.UUID     `json:"tenant_id" db:"tenant_id"`
 	CustomerID uuid.UUID     `json:"customer_id" db:"customer_id"`
 	ProfileID  uuid.UUID     `json:"profile_id" db:"profile_id"`
 	Price      float64       `json:"price" db:"price"`
@@ -91,8 +94,6 @@ type CustomerInput struct {
 	Password       string      `json:"password" binding:"required"`
 	ProfileID      uuid.UUID   `json:"profile_id" binding:"required"`
 	ServiceType    ServiceType `json:"service_type" binding:"required"`
-	Price          float64     `json:"price" binding:"required"`
-	TaxRate        *float64    `json:"tax_rate"`
 	BillingDay     int         `json:"billing_day"`
 	AutoSuspension bool        `json:"auto_suspension"`
 	StartDate      *time.Time  `json:"start_date"`
@@ -101,10 +102,6 @@ type CustomerInput struct {
 
 // PrepareCustomerInput sets default values for optional fields
 func PrepareCustomerInput(input *CustomerInput) {
-	if input.TaxRate == nil {
-		taxRate := 11.00
-		input.TaxRate = &taxRate
-	}
 	if input.StartDate == nil {
 		now := time.Now()
 		input.StartDate = &now

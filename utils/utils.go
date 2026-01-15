@@ -110,5 +110,5 @@ func GetDatabaseString() string {
 }
 
 func GetMigrationDir() string {
-	return fmt.Sprintf("./internal/migration/%s", os.Getenv("OUTBOUND_DB_DRIVER"))
+	return fmt.Sprintf("./internal/migration/%s", os.Getenv("OUTBOUND_DATABASE_DRIVER"))
 }

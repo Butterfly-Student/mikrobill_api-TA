@@ -880,3 +880,17 @@ generate-mocks:
 	@echo "[INFO] Successfully generated mock for outbound CachePort."
 	@go generate ./internal/port/outbound/registry_message.go
 	@echo "[INFO] Successfully generated mock for outbound MessagePort."
+	@go generate ./internal/port/outbound/tenant.go
+	@echo "[INFO] Successfully generated mock for outbound TenantPort."
+	@go generate ./internal/port/outbound/auth.go
+	@echo "[INFO] Successfully generated mock for outbound AuthPort."
+	@go generate ./internal/port/outbound/customer.go
+	@echo "[INFO] Successfully generated mock for outbound CustomerPort."
+	@go generate ./internal/port/outbound/mikrotik.go
+	@echo "[INFO] Successfully generated mock for outbound MikrotikPort."
+	@go generate ./internal/port/outbound/profile.go
+	@echo "[INFO] Successfully generated mock for outbound ProfilePort."
+	@go generate ./internal/port/outbound/mikrotik_client.go
+	@echo "[INFO] Successfully generated mock for outbound MikrotikClientPort."
+	@go generate ./internal/port/outbound/redis_pubsub.go
+	@echo "[INFO] Successfully generated mock for outbound RedisPubSubPort."

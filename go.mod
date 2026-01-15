@@ -13,6 +13,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/joonix/log v0.0.0-20171025142558-9f489441df72
 	github.com/lib/pq v1.10.9
@@ -23,6 +24,7 @@ require (
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/smartystreets/goconvey v1.8.1
+	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.38.0
 	google.golang.org/api v0.234.0
 )

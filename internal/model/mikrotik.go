@@ -16,6 +16,7 @@ const (
 
 type Mikrotik struct {
 	ID                   uuid.UUID      `json:"id" db:"id"`
+	TenantID             uuid.UUID      `json:"tenant_id" db:"tenant_id"`
 	Name                 string         `json:"name" db:"name"`
 	Host                 string         `json:"host" db:"host"`
 	Port                 int            `json:"port" db:"port"`

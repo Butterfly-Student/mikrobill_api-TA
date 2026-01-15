@@ -1,0 +1,66 @@
+### Base URL
+@baseUrl = http://localhost:8080
+@clientKey = internal
+@mikrotikId = e5a065c0-1d00-41e9-b4c3-c87ef7f8da28
+@profileId = c5a9e294-2917-4530-b56b-164b2e145e30
+@customerId =876ec438-173d-4543-9068-623823259b0b
+
+### 1. Create Customer
+# @name createCustomer
+POST {{baseUrl}}/v1/internal/customer
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "username": "testcustomer",
+  "name": "Test Customer",
+  "phone": "081234567890",
+  "email": "customer@test.com",
+  "address": "Test Address 123",
+  "password": "customerpass123",
+  "profile_id": "{{profileId}}",
+  "service_type": "pppoe",
+  "billing_day": 1,
+  "auto_suspension": true,
+  "start_date": "2023-11-01T00:00:00Z",
+  "customer_notes": "Test customer notes"
+}
+
+> {%
+    client.global.set("customerId", response.body.data.id);
+%}
+
+### 2. Get All Customers
+GET {{baseUrl}}/v1/internal/customer/list
+X-Client-Key: {{clientKey}}
+
+### 3. Get Customer by ID
+GET {{baseUrl}}/v1/internal/customer/{{customerId}}
+X-Client-Key: {{clientKey}}
+
+### 4. Update Customer
+PUT {{baseUrl}}/v1/internal/customer/{{customerId}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "username": "testcustomer_updated",
+  "name": "Test Customer Updated",
+  "phone": "089876543210",
+  "email": "updated@test.com",
+  "address": "Updated Address 456",
+  "password": "newpassword456",
+  "profile_id": "{{profileId}}",
+  "service_type": "pppoe",
+  "billing_day": 15,
+  "auto_suspension": false,
+  "customer_notes": "Updated customer notes"
+}
+
+### 5. Ping Customer (One-time)
+GET {{baseUrl}}/v1/internal/customer/{{customerId}}/ping
+X-Client-Key: {{clientKey}}
+
+### 6. Delete Customer
+DELETE {{baseUrl}}/v1/internal/customer/{{customerId}}
+X-Client-Key: {{clientKey}}

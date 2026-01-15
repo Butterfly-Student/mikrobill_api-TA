@@ -9,17 +9,27 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserRole string
+// UserRole Scan and Value methods for database compatibility
+func (r *UserRole) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
 
-const (
-	UserRoleSuperAdmin UserRole = "superadmin"
-	UserRoleAdmin      UserRole = "admin"
-	UserRoleTechnician UserRole = "technician"
-	UserRoleSales      UserRole = "sales"
-	UserRoleCS         UserRole = "cs"
-	UserRoleFinance    UserRole = "finance"
-	UserRoleViewer     UserRole = "viewer"
-)
+	switch v := value.(type) {
+	case string:
+		*r = UserRole(v)
+		return nil
+	case []byte:
+		*r = UserRole(v)
+		return nil
+	default:
+		return errors.New("incompatible type for UserRole")
+	}
+}
+
+func (r UserRole) Value() (driver.Value, error) {
+	return string(r), nil
+}
 
 type UserStatus string
 
@@ -46,6 +56,7 @@ func (p *Permissions) Scan(value interface{}) error {
 
 type Role struct {
 	ID          uuid.UUID   `json:"id" db:"id"`
+	TenantID    *uuid.UUID  `json:"tenant_id" db:"tenant_id"`
 	Name        string      `json:"name" db:"name"`
 	DisplayName string      `json:"display_name" db:"display_name"`
 	Description string      `json:"description" db:"description"`
@@ -58,6 +69,7 @@ type Role struct {
 
 type User struct {
 	ID                  uuid.UUID  `json:"id" db:"id"`
+	TenantID            *uuid.UUID `json:"tenant_id" db:"tenant_id"`
 	Username            string     `json:"username" db:"username"`
 	Email               string     `json:"email" db:"email"`
 	EncryptedPassword   string     `json:"-" db:"encrypted_password"`
@@ -67,7 +79,8 @@ type User struct {
 	RoleID              *uuid.UUID `json:"role_id" db:"role_id"`
 	UserRole            UserRole   `json:"user_role" db:"user_role"`
 	Status              UserStatus `json:"status" db:"status"`
-	LastLogin           *time.Time `json:"last_login" db:"last_login"`
+	IsSuperadmin        bool       `json:"is_superadmin" db:"is_superadmin"`
+	LastLoginAt         *time.Time `json:"last_login_at" db:"last_login_at"`
 	LastIP              *string    `json:"last_ip" db:"last_ip"`
 	FailedLoginAttempts int        `json:"failed_login_attempts" db:"failed_login_attempts"`
 	LockedUntil         *time.Time `json:"locked_until" db:"locked_until"`
@@ -75,12 +88,11 @@ type User struct {
 	ForcePasswordChange bool       `json:"force_password_change" db:"force_password_change"`
 	TwoFactorEnabled    bool       `json:"two_factor_enabled" db:"two_factor_enabled"`
 	TwoFactorSecret     *string    `json:"-" db:"two_factor_secret"`
-	APIToken            *string    `json:"api_token" db:"api_token"`
-	APITokenExpiresAt   *time.Time `json:"api_token_expires_at" db:"api_token_expires_at"`
 	CreatedBy           *uuid.UUID `json:"created_by" db:"created_by"`
 	UpdatedBy           *uuid.UUID `json:"updated_by" db:"updated_by"`
 	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt           *time.Time `json:"deleted_at" db:"deleted_at"`
 }
 
 type UserInput struct {
@@ -89,7 +101,6 @@ type UserInput struct {
 	Password string `json:"password"`
 	Fullname string `json:"fullname"`
 	Phone    string `json:"phone"`
-	RoleID   string `json:"role_id"`
 }
 
 type UserFilter struct {

@@ -7,9 +7,11 @@ type HttpPort interface {
 	Ping() PingHttpPort
 	Client() ClientHttpPort
 	Auth() AuthHttpPort
-	PPP() PPPPort
+	MikrotikPPPSecret() MikrotikPPPSecretPort
+	MikrotikPPPProfile() MikrotikPPPProfilePort
 	Monitor() MonitorPort
 	Profile() ProfilePort
 	Customer() CustomerPort
 	Callback() CallbackHttpPort
+	Tenant() TenantPort
 }

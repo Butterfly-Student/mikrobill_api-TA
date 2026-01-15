@@ -1,6 +1,7 @@
 package postgres_outbound_adapter
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/doug-martin/goqu/v9"
@@ -10,6 +11,7 @@ import (
 
 	"prabogo/internal/model"
 	outbound_port "prabogo/internal/port/outbound"
+	contextutil "prabogo/utils/context"
 )
 
 const (
@@ -29,10 +31,16 @@ func NewProfileAdapter(
 	}
 }
 
-func (a *profileAdapter) CreateProfile(input model.ProfileInput, mikrotikID uuid.UUID) (*model.Profile, error) {
+func (a *profileAdapter) CreateProfile(ctx context.Context, input model.ProfileInput, mikrotikID uuid.UUID) (*model.Profile, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	model.PrepareProfileInput(&input)
 
 	record := goqu.Record{
+		"tenant_id":                 tenantID,
 		"mikrotik_id":               mikrotikID,
 		"name":                      input.Name,
 		"profile_type":              "pppoe",
@@ -47,6 +55,8 @@ func (a *profileAdapter) CreateProfile(input model.ProfileInput, mikrotikID uuid
 		"dns_server":                input.DNSServer,
 		"is_active":                 true,
 		"sync_with_mikrotik":        true,
+		"price":                     input.Price,
+		"tax_rate":                  *input.TaxRate,
 	}
 
 	query, _, err := goqu.Dialect("postgres").
@@ -59,7 +69,7 @@ func (a *profileAdapter) CreateProfile(input model.ProfileInput, mikrotikID uuid
 	}
 
 	var result model.Profile
-	err = a.db.QueryRow(query).Scan(
+	err = a.db.QueryRowContext(ctx, query).Scan(
 		&result.ID,
 		&result.MikrotikID,
 		&result.Name,
@@ -75,6 +85,8 @@ func (a *profileAdapter) CreateProfile(input model.ProfileInput, mikrotikID uuid
 		&result.DNSServer,
 		&result.IsActive,
 		&result.SyncWithMikrotik,
+		&result.Price,
+		&result.TaxRate,
 		&result.LastSync,
 		&result.CreatedAt,
 		&result.UpdatedAt,
@@ -86,10 +98,16 @@ func (a *profileAdapter) CreateProfile(input model.ProfileInput, mikrotikID uuid
 	return &result, nil
 }
 
-func (a *profileAdapter) CreateProfilePPPoE(profileID uuid.UUID, input model.ProfileInput) error {
+func (a *profileAdapter) CreateProfilePPPoE(ctx context.Context, profileID uuid.UUID, input model.ProfileInput) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	model.PrepareProfileInput(&input)
 
 	record := goqu.Record{
+		"tenant_id":       tenantID,
 		"profile_id":      profileID,
 		"local_address":   input.LocalAddress,
 		"remote_address":  input.RemoteAddress,
@@ -109,7 +127,7 @@ func (a *profileAdapter) CreateProfilePPPoE(profileID uuid.UUID, input model.Pro
 		return stacktrace.Propagate(err, "failed to build insert pppoe query")
 	}
 
-	_, err = a.db.Exec(query)
+	_, err = a.db.ExecContext(ctx, query)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to insert profile pppoe")
 	}
@@ -117,17 +135,22 @@ func (a *profileAdapter) CreateProfilePPPoE(profileID uuid.UUID, input model.Pro
 	return nil
 }
 
-func (a *profileAdapter) UpdateMikrotikObjectID(profileID uuid.UUID, objectID string) error {
+func (a *profileAdapter) UpdateMikrotikObjectID(ctx context.Context, profileID uuid.UUID, objectID string) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	query, _, err := goqu.Dialect("postgres").
 		Update(tableProfiles).
 		Set(goqu.Record{"mikrotik_object_id": objectID}).
-		Where(goqu.Ex{"id": profileID}).
+		Where(goqu.Ex{"id": profileID, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build update query")
 	}
 
-	result, err := a.db.Exec(query)
+	result, err := a.db.ExecContext(ctx, query)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update mikrotik object id")
 	}
@@ -144,18 +167,23 @@ func (a *profileAdapter) UpdateMikrotikObjectID(profileID uuid.UUID, objectID st
 	return nil
 }
 
-func (a *profileAdapter) GetByID(id uuid.UUID) (*model.ProfileWithPPPoE, error) {
+func (a *profileAdapter) GetByID(ctx context.Context, id uuid.UUID) (*model.ProfileWithPPPoE, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Query profile
 	profileQuery, _, err := goqu.Dialect("postgres").
 		From(tableProfiles).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build profile query")
 	}
 
 	var profile model.Profile
-	err = a.db.QueryRow(profileQuery).Scan(
+	err = a.db.QueryRowContext(ctx, profileQuery).Scan(
 		&profile.ID,
 		&profile.MikrotikID,
 		&profile.Name,
@@ -171,6 +199,8 @@ func (a *profileAdapter) GetByID(id uuid.UUID) (*model.ProfileWithPPPoE, error) 
 		&profile.DNSServer,
 		&profile.IsActive,
 		&profile.SyncWithMikrotik,
+		&profile.Price,
+		&profile.TaxRate,
 		&profile.LastSync,
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
@@ -185,14 +215,14 @@ func (a *profileAdapter) GetByID(id uuid.UUID) (*model.ProfileWithPPPoE, error) 
 	// Query PPPoE settings
 	pppoeQuery, _, err := goqu.Dialect("postgres").
 		From(tableProfilesPPPoE).
-		Where(goqu.Ex{"profile_id": id}).
+		Where(goqu.Ex{"profile_id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build pppoe query")
 	}
 
 	var pppoe model.ProfilePPPoE
-	err = a.db.QueryRow(pppoeQuery).Scan(
+	err = a.db.QueryRowContext(ctx, pppoeQuery).Scan(
 		&pppoe.ProfileID,
 		&pppoe.LocalAddress,
 		&pppoe.RemoteAddress,
@@ -218,18 +248,23 @@ func (a *profileAdapter) GetByID(id uuid.UUID) (*model.ProfileWithPPPoE, error) 
 	return result, nil
 }
 
-func (a *profileAdapter) GetByMikrotikID(mikrotikID uuid.UUID, profileID uuid.UUID) (*model.ProfileWithPPPoE, error) {
+func (a *profileAdapter) GetByMikrotikID(ctx context.Context, mikrotikID, profileID uuid.UUID) (*model.ProfileWithPPPoE, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Query profile
 	profileQuery, _, err := goqu.Dialect("postgres").
 		From(tableProfiles).
-		Where(goqu.Ex{"id": profileID, "mikrotik_id": mikrotikID}).
+		Where(goqu.Ex{"id": profileID, "mikrotik_id": mikrotikID, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build profile query")
 	}
 
 	var profile model.Profile
-	err = a.db.QueryRow(profileQuery).Scan(
+	err = a.db.QueryRowContext(ctx, profileQuery).Scan(
 		&profile.ID,
 		&profile.MikrotikID,
 		&profile.Name,
@@ -245,6 +280,8 @@ func (a *profileAdapter) GetByMikrotikID(mikrotikID uuid.UUID, profileID uuid.UU
 		&profile.DNSServer,
 		&profile.IsActive,
 		&profile.SyncWithMikrotik,
+		&profile.Price,
+		&profile.TaxRate,
 		&profile.LastSync,
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
@@ -259,14 +296,14 @@ func (a *profileAdapter) GetByMikrotikID(mikrotikID uuid.UUID, profileID uuid.UU
 	// Query PPPoE settings
 	pppoeQuery, _, err := goqu.Dialect("postgres").
 		From(tableProfilesPPPoE).
-		Where(goqu.Ex{"profile_id": profileID}).
+		Where(goqu.Ex{"profile_id": profileID, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build pppoe query")
 	}
 
 	var pppoe model.ProfilePPPoE
-	err = a.db.QueryRow(pppoeQuery).Scan(
+	err = a.db.QueryRowContext(ctx, pppoeQuery).Scan(
 		&pppoe.ProfileID,
 		&pppoe.LocalAddress,
 		&pppoe.RemoteAddress,
@@ -292,18 +329,23 @@ func (a *profileAdapter) GetByMikrotikID(mikrotikID uuid.UUID, profileID uuid.UU
 	return result, nil
 }
 
-func (a *profileAdapter) List(mikrotikID uuid.UUID) ([]model.ProfileWithPPPoE, error) {
+func (a *profileAdapter) List(ctx context.Context, mikrotikID uuid.UUID) ([]model.ProfileWithPPPoE, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Query all profiles for this MikroTik
 	profilesQuery, _, err := goqu.Dialect("postgres").
 		From(tableProfiles).
-		Where(goqu.Ex{"mikrotik_id": mikrotikID}).
+		Where(goqu.Ex{"mikrotik_id": mikrotikID, "tenant_id": tenantID}).
 		Order(goqu.I("created_at").Desc()).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build profiles query")
 	}
 
-	rows, err := a.db.Query(profilesQuery)
+	rows, err := a.db.QueryContext(ctx, profilesQuery)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to query profiles")
 	}
@@ -328,6 +370,8 @@ func (a *profileAdapter) List(mikrotikID uuid.UUID) ([]model.ProfileWithPPPoE, e
 			&profile.DNSServer,
 			&profile.IsActive,
 			&profile.SyncWithMikrotik,
+			&profile.Price,
+			&profile.TaxRate,
 			&profile.LastSync,
 			&profile.CreatedAt,
 			&profile.UpdatedAt,
@@ -343,14 +387,14 @@ func (a *profileAdapter) List(mikrotikID uuid.UUID) ([]model.ProfileWithPPPoE, e
 	for _, profile := range profiles {
 		pppoeQuery, _, err := goqu.Dialect("postgres").
 			From(tableProfilesPPPoE).
-			Where(goqu.Ex{"profile_id": profile.ID}).
+			Where(goqu.Ex{"profile_id": profile.ID, "tenant_id": tenantID}).
 			ToSQL()
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to build pppoe query")
 		}
 
 		var pppoe model.ProfilePPPoE
-		err = a.db.QueryRow(pppoeQuery).Scan(
+		err = a.db.QueryRowContext(ctx, pppoeQuery).Scan(
 			&pppoe.ProfileID,
 			&pppoe.LocalAddress,
 			&pppoe.RemoteAddress,
@@ -376,7 +420,12 @@ func (a *profileAdapter) List(mikrotikID uuid.UUID) ([]model.ProfileWithPPPoE, e
 	return result, nil
 }
 
-func (a *profileAdapter) Update(id uuid.UUID, input model.ProfileInput) error {
+func (a *profileAdapter) Update(ctx context.Context, id uuid.UUID, input model.ProfileInput) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	model.PrepareProfileInput(&input)
 
 	// Update profile
@@ -390,18 +439,20 @@ func (a *profileAdapter) Update(id uuid.UUID, input model.ProfileInput) error {
 		"only_one":                  *input.OnlyOne,
 		"status_authentication":     *input.StatusAuthentication,
 		"dns_server":                input.DNSServer,
+		"price":                     input.Price,
+		"tax_rate":                  *input.TaxRate,
 	}
 
 	profileQuery, _, err := goqu.Dialect("postgres").
 		Update(tableProfiles).
 		Set(profileUpdate).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build profile update query")
 	}
 
-	result, err := a.db.Exec(profileQuery)
+	result, err := a.db.ExecContext(ctx, profileQuery)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update profile")
 	}
@@ -430,13 +481,13 @@ func (a *profileAdapter) Update(id uuid.UUID, input model.ProfileInput) error {
 	pppoeQuery, _, err := goqu.Dialect("postgres").
 		Update(tableProfilesPPPoE).
 		Set(pppoeUpdate).
-		Where(goqu.Ex{"profile_id": id}).
+		Where(goqu.Ex{"profile_id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build pppoe update query")
 	}
 
-	_, err = a.db.Exec(pppoeQuery)
+	_, err = a.db.ExecContext(ctx, pppoeQuery)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update pppoe settings")
 	}
@@ -444,17 +495,22 @@ func (a *profileAdapter) Update(id uuid.UUID, input model.ProfileInput) error {
 	return nil
 }
 
-func (a *profileAdapter) Delete(id uuid.UUID) error {
+func (a *profileAdapter) Delete(ctx context.Context, id uuid.UUID) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Delete profile (PPPoE settings will be cascade deleted)
 	query, _, err := goqu.Dialect("postgres").
 		Delete(tableProfiles).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build delete query")
 	}
 
-	result, err := a.db.Exec(query)
+	result, err := a.db.ExecContext(ctx, query)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete profile")
 	}

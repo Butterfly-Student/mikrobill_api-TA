@@ -16,17 +16,17 @@ func NewClientAdapter() outbound_port.ClientCachePort {
 	return &clientAdapter{}
 }
 
-func (adapter *clientAdapter) Set(data model.Client) error {
+func (adapter *clientAdapter) Set(ctx context.Context, data model.Client) error {
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	return redis.Set(context.Background(), data.BearerKey, string(bytes))
+	return redis.Set(ctx, data.BearerKey, string(bytes))
 }
 
-func (adapter *clientAdapter) Get(bearerKey string) (model.Client, error) {
+func (adapter *clientAdapter) Get(ctx context.Context, bearerKey string) (model.Client, error) {
 	var client model.Client
-	result, err := redis.Get(context.Background(), bearerKey)
+	result, err := redis.Get(ctx, bearerKey)
 	if err != nil {
 		return model.Client{}, err
 	}

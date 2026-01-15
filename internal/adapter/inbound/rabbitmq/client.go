@@ -24,7 +24,7 @@ func NewClientAdapter(
 
 func (h *clientAdapter) Upsert(a any) bool {
 	msg := a.([]byte)
-	ctx := activity.NewContext("message_client_upsert")
+	ctx := activity.NewContext(context.Background(), "rabbitmq_client_sync")
 	var payload []model.ClientInput
 	err := json.Unmarshal(msg, &payload)
 	if err != nil {

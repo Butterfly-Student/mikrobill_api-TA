@@ -1,0 +1,57 @@
+### Base URL
+@baseUrl = http://localhost:8000
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg1NzUzMTAsInJvbGUiOiJTVVBFUl9BRE1JTiIsInN1YiI6ImIyMmUwNDlkLWExYzAtNDczYy04M2ViLWQzZWY1YWE0ODViYiIsInVzZXJuYW1lIjoic3VwZXJhZG1pbiJ9.XN-USiv4NVCIAMGovHaOsIjtXHn7tuF-Izr4y_jS2QY
+@tenantId = 
+
+### 1. Create Tenant
+# @name createTenant
+POST {{baseUrl}}/v1/internal/tenant
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "Test Tenant",
+  "subdomain": "testtenant",
+  "company_name": "Test Corp",
+  "phone": "081234567890",
+  "address": "Jakarta, Indonesia",
+  "timezone": "Asia/Jakarta",
+  "max_mikrotiks": 10,
+  "max_network_users": 1000,
+  "max_staff_users": 10
+}
+
+
+
+### 2. Get All Tenants
+# @name listTenants
+GET {{baseUrl}}/v1/internal/tenant/list
+X-Client-Key: {{clientKey}}
+
+> {%
+    client.global.set("tenantId", response.body.data.id);
+%}
+
+### 3. Get Tenant by ID
+GET {{baseUrl}}/v1/internal/tenant/{{listTenants.response.body.data.0.id}}
+X-Client-Key: {{clientKey}}
+
+### 4. Update Tenant
+PUT {{baseUrl}}/v1/internal/tenant/{{listTenants.response.body.data.0.id}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "Test Tenant Updated",
+  "company_name": "Test Corp Updated",
+  "is_active": true,
+  "status": "active"
+}
+
+### 5. Get Tenant Stats
+GET {{baseUrl}}/v1/internal/tenant/{{listTenants.response.body.data.0.id}}/stats
+X-Client-Key: {{clientKey}}
+
+### 6. Delete Tenant
+DELETE {{baseUrl}}/v1/internal/tenant/{{listTenants.response.body.data.0.id}}
+X-Client-Key: {{clientKey}}

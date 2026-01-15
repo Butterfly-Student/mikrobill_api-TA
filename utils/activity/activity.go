@@ -16,9 +16,9 @@ const (
 	Result
 )
 
-func NewContext(action string) context.Context {
+func NewContext(ctx context.Context, action string) context.Context {
 	trxID := uuid.New().String()
-	ctx := context.WithValue(context.Background(), TransactionID, trxID)
+	ctx = context.WithValue(ctx, TransactionID, trxID)
 	return context.WithValue(ctx, Action, action)
 }
 

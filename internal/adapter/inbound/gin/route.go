@@ -15,7 +15,29 @@ func InitRoute(
 ) {
 	middlewareAdapter := port.Middleware()
 
-	auth := engine.Group("/auth")
+	// 1. Recovery (using Gin's default)
+	engine.Use(gin.Recovery())
+
+	// 2. Request ID
+	engine.Use(middlewareAdapter.RequestID())
+
+	// 3. Logging
+	engine.Use(middlewareAdapter.ZapLogger())
+
+	// 4. CORS
+	engine.Use(middlewareAdapter.CORS())
+
+	// 5. Rate Limiting (Global)
+	engine.Use(middlewareAdapter.RateLimit())
+
+	// 9. Request Validation (Global Validator)
+	engine.Use(middlewareAdapter.Validator())
+
+	// Versioning Group
+	v1 := engine.Group("/v1")
+
+	// Auth group
+	auth := v1.Group("/auth")
 	auth.POST("/login", func(c *gin.Context) {
 		port.Auth().Login(c)
 	})
@@ -23,152 +45,106 @@ func InitRoute(
 		port.Auth().Register(c)
 	})
 
-	internal := engine.Group("/internal")
+	// Internal group (Admin/Management)
+	internal := v1.Group("/internal")
 	internal.Use(func(c *gin.Context) {
+		// 6. Authentication (Internal & User support)
 		if err := middlewareAdapter.InternalAuth(c); err != nil {
 			return
 		}
 	})
-	internal.POST("/client-upsert", func(c *gin.Context) {
+
+	// 12. Tenant Management (GLOBAL - No tenant isolation needed)
+	tenant := internal.Group("/tenant")
+	{
+		tenant.POST("", func(c *gin.Context) { port.Tenant().CreateTenant(c) })
+		tenant.GET("/list", func(c *gin.Context) { port.Tenant().ListTenants(c) })
+		tenant.GET("/:id", func(c *gin.Context) { port.Tenant().GetTenant(c) })
+		tenant.PUT("/:id", func(c *gin.Context) { port.Tenant().UpdateTenant(c) })
+		tenant.DELETE("/:id", func(c *gin.Context) { port.Tenant().DeleteTenant(c) })
+		tenant.GET("/:id/stats", func(c *gin.Context) { port.Tenant().GetTenantStats(c) })
+	}
+
+	// Isolated Resources (Need Tenant Context)
+	resources := internal.Group("/")
+	resources.Use(middlewareAdapter.TenantContext())
+	resources.Use(middlewareAdapter.RequireTenantAccess())
+
+	// Resource routes
+	resources.POST("/client-upsert", func(c *gin.Context) {
 		port.Client().Upsert(c)
 	})
-	internal.POST("/client-find", func(c *gin.Context) {
+	resources.POST("/client-find", func(c *gin.Context) {
 		port.Client().Find(c)
 	})
-	internal.DELETE("/client-delete", func(c *gin.Context) {
+	resources.DELETE("/client-delete", func(c *gin.Context) {
 		port.Client().Delete(c)
 	})
 
 	// MikroTik routes
-	internal.POST("/mikrotik", func(c *gin.Context) {
-		port.Mikrotik().Create(c)
-	})
-	internal.POST("/mikrotik/list", func(c *gin.Context) {
-		port.Mikrotik().List(c)
-	})
-	internal.GET("/mikrotik/active", func(c *gin.Context) {
-		port.Mikrotik().GetActiveMikrotik(c)
-	})
-	internal.GET("/mikrotik/:id", func(c *gin.Context) {
-		port.Mikrotik().GetByID(c)
-	})
-	internal.PUT("/mikrotik/:id", func(c *gin.Context) {
-		port.Mikrotik().Update(c)
-	})
-	internal.DELETE("/mikrotik/:id", func(c *gin.Context) {
-		port.Mikrotik().Delete(c)
-	})
-	internal.PATCH("/mikrotik/:id/status", func(c *gin.Context) {
-		port.Mikrotik().UpdateStatus(c)
-	})
-	internal.PATCH("/mikrotik/:id/activate", func(c *gin.Context) {
-		port.Mikrotik().SetActive(c)
-	})
+	mikrotik := resources.Group("/mikrotik")
+	{
+		mikrotik.POST("", func(c *gin.Context) { port.Mikrotik().Create(c) })
+		mikrotik.POST("/list", func(c *gin.Context) { port.Mikrotik().List(c) })
+		mikrotik.GET("/active", func(c *gin.Context) { port.Mikrotik().GetActiveMikrotik(c) })
+		mikrotik.GET("/:id", func(c *gin.Context) { port.Mikrotik().GetByID(c) })
+		mikrotik.PUT("/:id", func(c *gin.Context) { port.Mikrotik().Update(c) })
+		mikrotik.DELETE("/:id", func(c *gin.Context) { port.Mikrotik().Delete(c) })
+		mikrotik.PATCH("/:id/status", func(c *gin.Context) { port.Mikrotik().UpdateStatus(c) })
+		mikrotik.PATCH("/:id/activate", func(c *gin.Context) { port.Mikrotik().SetActive(c) })
+	}
 
 	// PPP Routes
-	internal.POST("/ppp/secret", func(c *gin.Context) {
-		port.PPP().CreateSecret(c)
-	})
-	internal.GET("/ppp/secret/:id", func(c *gin.Context) {
-		port.PPP().GetSecret(c)
-	})
-	internal.PUT("/ppp/secret/:id", func(c *gin.Context) {
-		port.PPP().UpdateSecret(c)
-	})
-	internal.DELETE("/ppp/secret/:id", func(c *gin.Context) {
-		port.PPP().DeleteSecret(c)
-	})
-	internal.GET("/ppp/secret/list", func(c *gin.Context) {
-		port.PPP().ListSecrets(c)
-	})
+	ppp := resources.Group("/ppp")
+	{
+		ppp.POST("/secret", func(c *gin.Context) { port.MikrotikPPPSecret().MikrotikCreateSecret(c) })
+		ppp.GET("/secret/:id", func(c *gin.Context) { port.MikrotikPPPSecret().MikrotikGetSecret(c) })
+		ppp.PUT("/secret/:id", func(c *gin.Context) { port.MikrotikPPPSecret().MikrotikUpdateSecret(c) })
+		ppp.DELETE("/secret/:id", func(c *gin.Context) { port.MikrotikPPPSecret().MikrotikDeleteSecret(c) })
+		ppp.GET("/secret/list", func(c *gin.Context) { port.MikrotikPPPSecret().MikrotikListSecrets(c) })
 
-	internal.POST("/ppp/profile", func(c *gin.Context) {
-		port.PPP().CreateProfile(c)
-	})
-	internal.GET("/ppp/profile/:id", func(c *gin.Context) {
-		port.PPP().GetProfile(c)
-	})
-	internal.PUT("/ppp/profile/:id", func(c *gin.Context) {
-		port.PPP().UpdateProfile(c)
-	})
-	internal.DELETE("/ppp/profile/:id", func(c *gin.Context) {
-		port.PPP().DeleteProfile(c)
-	})
-	internal.GET("/ppp/profile/list", func(c *gin.Context) {
-		port.PPP().ListProfiles(c)
-	})
+		ppp.POST("/profile", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikCreateProfile(c) })
+		ppp.GET("/profile/:id", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikGetProfile(c) })
+		ppp.PUT("/profile/:id", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikUpdateProfile(c) })
+		ppp.DELETE("/profile/:id", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikDeleteProfile(c) })
+		ppp.GET("/profile/list", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikListProfiles(c) })
+	}
 
-	// Monitor Route (WebSocket)
-	// Monitor route requires traffic interface name, usually protected or internal.
-	// Placing in /api/v1/monitor or internal?
-	// User request said "monitor-traffic interface" -> likely needs auth.
-	// Internal seems safe for now or V1.
-	// Monitor traffic is usually real-time, maybe V1?
-	// But current requirement "routesnyaa.. websocket with gin".
-	// Let's put it in internal for consistency with management, or add a new monitor group.
-	// Given it's billing API, maybe /internal/monitor/traffic/:interface
-	internal.GET("/monitor/traffic/:interface", func(c *gin.Context) {
+	// Profile & Customer Routes
+	resources.POST("/profile", func(c *gin.Context) { port.Profile().CreateProfile(c) })
+	resources.GET("/profile/:id", func(c *gin.Context) { port.Profile().GetProfile(c) })
+	resources.GET("/profile/list", func(c *gin.Context) { port.Profile().ListProfiles(c) })
+	resources.PUT("/profile/:id", func(c *gin.Context) { port.Profile().UpdateProfile(c) })
+	resources.DELETE("/profile/:id", func(c *gin.Context) { port.Profile().DeleteProfile(c) })
+
+	customer := resources.Group("/customer")
+	{
+		customer.POST("", func(c *gin.Context) { port.Customer().CreateCustomer(c) })
+		customer.GET("/:id", func(c *gin.Context) { port.Customer().GetCustomer(c) })
+		customer.GET("/list", func(c *gin.Context) { port.Customer().ListCustomers(c) })
+		customer.PUT("/:id", func(c *gin.Context) { port.Customer().UpdateCustomer(c) })
+		customer.DELETE("/:id", func(c *gin.Context) { port.Customer().DeleteCustomer(c) })
+		customer.GET("/:id/traffic/stream", func(c *gin.Context) { port.Monitor().StreamTraffic(c) })
+		customer.GET("/:id/ping", func(c *gin.Context) { port.Monitor().PingCustomer(c) })
+		customer.GET("/:id/ping/stream", func(c *gin.Context) { port.Monitor().StreamPing(c) })
+	}
+
+	// Monitor
+	resources.GET("/monitor/traffic/:interface", func(c *gin.Context) {
 		port.Monitor().StreamTraffic(c)
 	})
 
-	// Profile Routes (One-way sync DB -> MikroTik)
-	internal.POST("/profile", func(c *gin.Context) {
-		port.Profile().CreateProfile(c)
-	})
-	internal.GET("/profile/:id", func(c *gin.Context) {
-		port.Profile().GetProfile(c)
-	})
-	internal.GET("/profile/list", func(c *gin.Context) {
-		port.Profile().ListProfiles(c)
-	})
-	internal.PUT("/profile/:id", func(c *gin.Context) {
-		port.Profile().UpdateProfile(c)
-	})
-	internal.DELETE("/profile/:id", func(c *gin.Context) {
-		port.Profile().DeleteProfile(c)
-	})
+	// Callbacks (Outside v1 potentially, but let's keep consistency for now)
+	callbacks := v1.Group("/callbacks")
+	callbacks.POST("/pppoe/up", func(c *gin.Context) { port.Callback().HandlePPPoEUp(c) })
+	callbacks.POST("/pppoe/down", func(c *gin.Context) { port.Callback().HandlePPPoEDown(c) })
 
-	// Customer Routes (One-way sync DB -> MikroTik)
-	internal.POST("/customer", func(c *gin.Context) {
-		port.Customer().CreateCustomer(c)
-	})
-	internal.GET("/customer/:id", func(c *gin.Context) {
-		port.Customer().GetCustomer(c)
-	})
-	internal.GET("/customer/list", func(c *gin.Context) {
-		port.Customer().ListCustomers(c)
-	})
-	internal.PUT("/customer/:id", func(c *gin.Context) {
-		port.Customer().UpdateCustomer(c)
-	})
-	internal.DELETE("/customer/:id", func(c *gin.Context) {
-		port.Customer().DeleteCustomer(c)
-	})
-	internal.GET("/customer/:id/traffic/stream", func(c *gin.Context) {
-		port.Monitor().StreamTraffic(c)
-	})
-	internal.GET("/customer/:id/ping", func(c *gin.Context) {
-		port.Monitor().PingCustomer(c)
-	})
-	internal.GET("/customer/:id/ping/stream", func(c *gin.Context) {
-		port.Monitor().StreamPing(c)
-	})
-
-	callbacks := engine.Group("/callbacks")
-	// Callbacks might need auth or be whitelisted IPs. For now open or use middleware if needed.
-	// User request showed no auth middleware on callback handler logic but typically it's open for Mikrotik to push.
-	callbacks.POST("/pppoe/up", func(c *gin.Context) {
-		port.Callback().HandlePPPoEUp(c)
-	})
-	callbacks.POST("/pppoe/down", func(c *gin.Context) {
-		port.Callback().HandlePPPoEDown(c)
-	})
-
-	client := engine.Group("/v1")
-	client.Use(func(c *gin.Context) {
+	// Legacy client compat if needed, but versioned is better
+	clientCompat := v1.Group("/client")
+	clientCompat.Use(func(c *gin.Context) {
 		middlewareAdapter.ClientAuth(c)
 	})
-	client.GET("/ping", func(c *gin.Context) {
+	clientCompat.GET("/ping", func(c *gin.Context) {
 		port.Ping().GetResource(c)
 	})
 }

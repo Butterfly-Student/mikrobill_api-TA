@@ -1,5 +1,7 @@
 package outbound_port
 
+//go:generate mockgen -source=mikrotik_client.go -destination=./../../../tests/mocks/port/mock_mikrotik_client.go
+
 import (
 	"prabogo/internal/model"
 

@@ -1,0 +1,21 @@
+### Base URL
+@baseUrl = {{baseUrl}}
+@clientKey = {{clientKey}}
+@interfaceName = {{interfaceName}}
+@customerId = {{customerId}}
+
+
+### Note: WebSocket endpoints cannot be tested with REST Client
+### These are included for documentation purposes only
+
+### 1. Monitor Traffic (WebSocket - Documentation Only)
+# WS {{baseUrl}}/v1/internal/monitor/traffic/{{interfaceName}}
+# X-API-Key: {{clientKey}}
+
+### 2. Customer Traffic Stream (WebSocket - Documentation Only)
+# WS {{baseUrl}}/v1/internal/customer/{{customerId}}/traffic/stream
+# X-API-Key: {{clientKey}}
+
+### 3. Customer Ping Stream (WebSocket - Documentation Only)
+# WS {{baseUrl}}/v1/internal/customer/{{customerId}}/ping/stream
+# X-API-Key: {{clientKey}}

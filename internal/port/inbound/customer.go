@@ -1,6 +1,9 @@
 package inbound_port
 
-import "prabogo/internal/model"
+import (
+	"context"
+	"prabogo/internal/model"
+)
 
 type CustomerPort interface {
 	CreateCustomer(a any) error
@@ -11,16 +14,16 @@ type CustomerPort interface {
 }
 
 type CustomerDomain interface {
-	CreateCustomer(ctx any, input model.CustomerInput) (*model.CustomerWithService, error)
-	GetCustomer(ctx any, id string) (*model.CustomerWithService, error)
-	ListCustomers(ctx any) ([]model.CustomerWithService, error)
-	UpdateCustomer(ctx any, id string, input model.CustomerInput) (*model.CustomerWithService, error)
+	CreateCustomer(ctx context.Context, input model.CustomerInput) (*model.CustomerWithService, error)
+	GetCustomer(ctx context.Context, id string) (*model.CustomerWithService, error)
+	ListCustomers(ctx context.Context) ([]model.CustomerWithService, error)
+	UpdateCustomer(ctx context.Context, id string, input model.CustomerInput) (*model.CustomerWithService, error)
 	// DeleteCustomer deletes a customer by ID
-	DeleteCustomer(ctx any, id string) error
+	DeleteCustomer(ctx context.Context, id string) error
 
 	// HandlePPPoEUp handles on-up callback from MikroTik
-	HandlePPPoEUp(ctx any, input model.PPPoEUpInput) error
+	HandlePPPoEUp(ctx context.Context, input model.PPPoEUpInput) error
 
 	// HandlePPPoEDown handles on-down callback from MikroTik
-	HandlePPPoEDown(ctx any, input model.PPPoEDownInput) error
+	HandlePPPoEDown(ctx context.Context, input model.PPPoEDownInput) error
 }

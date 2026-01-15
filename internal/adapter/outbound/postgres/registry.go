@@ -1,6 +1,7 @@
 package postgres_outbound_adapter
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/pkg/errors"
@@ -21,17 +22,29 @@ func (tx *txWrapper) Begin() (*sql.Tx, error) {
 	return nil, errors.New("cannot start a transaction within a transaction")
 }
 
+func (tx *txWrapper) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	return nil, errors.New("cannot start a transaction within a transaction")
+}
+
+func (tx *txWrapper) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return tx.Tx.PrepareContext(ctx, query)
+}
+
+func (tx *txWrapper) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return tx.Tx.QueryRowContext(ctx, query, args...)
+}
+
 func NewAdapter(db *sql.DB) outbound_port.DatabasePort {
 	return &adapter{
 		db: db,
 	}
 }
 
-func (s *adapter) DoInTransaction(txFunc outbound_port.InTransaction) (out interface{}, err error) {
+func (s *adapter) DoInTransaction(ctx context.Context, txFunc outbound_port.InTransaction) (out interface{}, err error) {
 	var tx *sql.Tx
 	reg := s
 	if s.dbexecutor == nil {
-		tx, err = s.db.Begin()
+		tx, err = s.db.BeginTx(ctx, nil)
 		if err != nil {
 			return
 		}
@@ -105,4 +118,18 @@ func (s *adapter) Customer() outbound_port.CustomerDatabasePort {
 		return NewCustomerAdapter(s.dbexecutor)
 	}
 	return NewCustomerAdapter(s.db)
+}
+
+func (s *adapter) Tenant() outbound_port.TenantDatabasePort {
+	if s.dbexecutor != nil {
+		return NewTenantAdapter(s.dbexecutor)
+	}
+	return NewTenantAdapter(s.db)
+}
+
+func (s *adapter) TenantUser() outbound_port.TenantUserDatabasePort {
+	if s.dbexecutor != nil {
+		return NewTenantUserAdapter(s.dbexecutor)
+	}
+	return NewTenantUserAdapter(s.db)
 }

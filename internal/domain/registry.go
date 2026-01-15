@@ -8,9 +8,11 @@ import (
 	"prabogo/internal/domain/monitor"
 	"prabogo/internal/domain/ppp"
 	"prabogo/internal/domain/profile"
+	"prabogo/internal/domain/tenant"
 	"prabogo/internal/domain/testing"
 	inbound_port "prabogo/internal/port/inbound"
 	outbound_port "prabogo/internal/port/outbound"
+	"prabogo/utils/logger"
 )
 
 type Domain interface {
@@ -18,10 +20,13 @@ type Domain interface {
 	Client() client.ClientDomain
 	Auth() auth.AuthDomain
 	Mikrotik() mikrotik.MikrotikDomain
-	PPP() inbound_port.PPPDomain
+	MikrotikPPPSecret() inbound_port.MikrotikPPPSecretDomain
+	MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain
 	Monitor() inbound_port.MonitorDomain
 	Profile() inbound_port.ProfileDomain
 	Customer() inbound_port.CustomerDomain
+	Tenant() inbound_port.TenantDomain
+	Database() outbound_port.DatabasePort // For direct queries in middleware
 }
 
 type domain struct {
@@ -61,7 +66,11 @@ func (d *domain) Mikrotik() mikrotik.MikrotikDomain {
 	return mikrotik.NewMikrotikDomain(d.databasePort)
 }
 
-func (d *domain) PPP() inbound_port.PPPDomain {
+func (d *domain) MikrotikPPPSecret() inbound_port.MikrotikPPPSecretDomain {
+	return ppp.NewPPPDomain(d.databasePort, d.mikrotikClientFactory)
+}
+
+func (d *domain) MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain {
 	return ppp.NewPPPDomain(d.databasePort, d.mikrotikClientFactory)
 }
 
@@ -75,4 +84,12 @@ func (d *domain) Profile() inbound_port.ProfileDomain {
 
 func (d *domain) Customer() inbound_port.CustomerDomain {
 	return customer.NewCustomerDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort)
+}
+
+func (d *domain) Tenant() inbound_port.TenantDomain {
+	return tenant.NewTenantDomain(d.databasePort, logger.GetLogger())
+}
+
+func (d *domain) Database() outbound_port.DatabasePort {
+	return d.databasePort
 }

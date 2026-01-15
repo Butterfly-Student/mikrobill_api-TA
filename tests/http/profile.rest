@@ -1,0 +1,62 @@
+### Base URL
+@baseUrl = http://localhost:8080
+@clientKey = internal
+@mikrotikId = e5a065c0-1d00-41e9-b4c3-c87ef7f8da28
+
+@profileId = c5a9e294-2917-4530-b56b-164b2e145e30
+
+### 1. Create System Profile
+# @name createProfile
+POST {{baseUrl}}/v1/internal/profile
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "Test Plan 50Mbps",
+  "rate_limit_up_kbps": 51200,
+  "rate_limit_down_kbps": 51200,
+  "idle_timeout_seconds": 0,
+  "session_timeout_seconds": 0,
+  "keepalive_timeout_seconds": 60,
+  "only_one": true,
+  "status_authentication": true,
+  "dns_server": "8.8.8.8",
+  "local_address": "10.0.0.1",
+  "remote_address": "10.0.0.2",
+  "address_pool": "pool-test",
+  "price": 150000,
+  "tax_rate": 11,
+  "mtu": 1480,
+  "mru": 1480,
+  "use_mpls": false,
+  "use_compression": false,
+  "use_encryption": false
+}
+
+> {%
+    client.global.set("profileId", response.body.data.id);
+%}
+
+### 2. Get All Profiles
+GET {{baseUrl}}/v1/internal/profile/list
+X-Client-Key: {{clientKey}}
+
+### 3. Get Profile by ID
+GET {{baseUrl}}/v1/internal/profile/{{profileId}}
+X-Client-Key: {{clientKey}}
+
+### 4. Update Profile
+PUT {{baseUrl}}/v1/internal/profile/{{profileId}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "Updated Test Plan 100Mbps",
+  "rate_limit_up_kbps": 102400,
+  "rate_limit_down_kbps": 102400,
+  "price": 250000
+}
+
+### 5. Delete Profile
+DELETE {{baseUrl}}/v1/internal/profile/{{profileId}}
+X-Client-Key: {{clientKey}}

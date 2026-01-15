@@ -23,6 +23,10 @@ func InitDatabase(ctx context.Context, outboundDatabaseDriver string) *sql.DB {
 		os.Exit(1)
 	}
 
+	if err := goose.SetDialect("postgres"); err != nil {
+		log.WithContext(ctx).Fatalf("failed to set goose dialect: %+v", err)
+	}
+
 	if err := goose.Up(db, utils.GetMigrationDir()); err != nil {
 		log.WithContext(ctx).Fatalf("failed to running migration: %+v", err)
 		os.Exit(1)

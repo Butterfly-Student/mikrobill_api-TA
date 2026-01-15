@@ -1,0 +1,7 @@
+### Base URL
+@baseUrl = http://localhost:8080
+@clientKey = internal
+
+### 1. Health Check (V1 Client Ping)
+GET {{baseUrl}}/v1/client/ping
+X-Client-Key: {{clientKey}}

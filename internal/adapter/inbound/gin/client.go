@@ -27,7 +27,7 @@ func NewClientAdapter(
 
 func (h *clientAdapter) Upsert(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_client_upsert")
+	ctx := activity.NewContext(c.Request.Context(), "http_client_upsert")
 	var payload []model.ClientInput
 	if err := c.BindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, model.Response{
@@ -56,7 +56,7 @@ func (h *clientAdapter) Upsert(a any) error {
 
 func (h *clientAdapter) Find(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_client_find_by_filter")
+	ctx := activity.NewContext(c.Request.Context(), "http_client_find_by_filter")
 	var payload model.ClientFilter
 	if err := c.BindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, model.Response{
@@ -85,7 +85,7 @@ func (h *clientAdapter) Find(a any) error {
 
 func (h *clientAdapter) Delete(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_client_delete_by_filter")
+	ctx := activity.NewContext(c.Request.Context(), "http_client_delete_by_filter")
 	var payload model.Request
 	payload.Data = model.ClientFilter{}
 	if err := c.BindJSON(&payload); err != nil {
@@ -111,3 +111,4 @@ func (h *clientAdapter) Delete(a any) error {
 	})
 	return nil
 }
+

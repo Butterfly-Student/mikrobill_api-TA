@@ -37,7 +37,7 @@ func NewMikrotikDomain(
 
 func (d *mikrotikDomain) Create(ctx context.Context, input model.MikrotikInput) (*model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
-	result, err := mikrotikPort.Create(input)
+	result, err := mikrotikPort.Create(ctx, input)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to create mikrotik")
 	}
@@ -46,7 +46,7 @@ func (d *mikrotikDomain) Create(ctx context.Context, input model.MikrotikInput) 
 
 func (d *mikrotikDomain) GetByID(ctx context.Context, id uuid.UUID) (*model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
-	result, err := mikrotikPort.GetByID(id)
+	result, err := mikrotikPort.GetByID(ctx, id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get mikrotik by id")
 	}
@@ -55,7 +55,7 @@ func (d *mikrotikDomain) GetByID(ctx context.Context, id uuid.UUID) (*model.Mikr
 
 func (d *mikrotikDomain) List(ctx context.Context, filter model.MikrotikFilter) ([]model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
-	results, err := mikrotikPort.List(filter)
+	results, err := mikrotikPort.List(ctx, filter)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list mikrotik")
 	}
@@ -64,7 +64,7 @@ func (d *mikrotikDomain) List(ctx context.Context, filter model.MikrotikFilter) 
 
 func (d *mikrotikDomain) Update(ctx context.Context, id uuid.UUID, input model.MikrotikUpdateInput) (*model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
-	result, err := mikrotikPort.Update(id, input)
+	result, err := mikrotikPort.Update(ctx, id, input)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to update mikrotik")
 	}
@@ -73,7 +73,7 @@ func (d *mikrotikDomain) Update(ctx context.Context, id uuid.UUID, input model.M
 
 func (d *mikrotikDomain) Delete(ctx context.Context, id uuid.UUID) error {
 	mikrotikPort := d.databasePort.Mikrotik()
-	err := mikrotikPort.Delete(id)
+	err := mikrotikPort.Delete(ctx, id)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete mikrotik")
 	}
@@ -82,7 +82,7 @@ func (d *mikrotikDomain) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (d *mikrotikDomain) UpdateStatus(ctx context.Context, id uuid.UUID, status model.MikrotikStatus) error {
 	mikrotikPort := d.databasePort.Mikrotik()
-	err := mikrotikPort.UpdateStatus(id, status)
+	err := mikrotikPort.UpdateStatus(ctx, id, status)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update mikrotik status")
 	}
@@ -91,7 +91,7 @@ func (d *mikrotikDomain) UpdateStatus(ctx context.Context, id uuid.UUID, status 
 
 func (d *mikrotikDomain) UpdateLastSync(ctx context.Context, id uuid.UUID) error {
 	mikrotikPort := d.databasePort.Mikrotik()
-	err := mikrotikPort.UpdateLastSync(id)
+	err := mikrotikPort.UpdateLastSync(ctx, id)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update mikrotik last sync")
 	}
@@ -100,7 +100,7 @@ func (d *mikrotikDomain) UpdateLastSync(ctx context.Context, id uuid.UUID) error
 
 func (d *mikrotikDomain) GetActiveMikrotik(ctx context.Context) (*model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
-	result, err := mikrotikPort.GetActiveMikrotik()
+	result, err := mikrotikPort.GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -109,7 +109,7 @@ func (d *mikrotikDomain) GetActiveMikrotik(ctx context.Context) (*model.Mikrotik
 
 func (d *mikrotikDomain) SetActive(ctx context.Context, id uuid.UUID) error {
 	mikrotikPort := d.databasePort.Mikrotik()
-	err := mikrotikPort.SetActive(id)
+	err := mikrotikPort.SetActive(ctx, id)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to set mikrotik active")
 	}
@@ -118,7 +118,7 @@ func (d *mikrotikDomain) SetActive(ctx context.Context, id uuid.UUID) error {
 
 func (d *mikrotikDomain) DeactivateAll(ctx context.Context) error {
 	mikrotikPort := d.databasePort.Mikrotik()
-	err := mikrotikPort.DeactivateAll()
+	err := mikrotikPort.DeactivateAll(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to deactivate all mikrotik")
 	}

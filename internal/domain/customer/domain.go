@@ -1,6 +1,7 @@
 package customer
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -29,12 +30,11 @@ func NewCustomerDomain(
 	}
 }
 
-func (d *customerDomain) CreateCustomer(ctx any, input model.CustomerInput) (*model.CustomerWithService, error) {
-	// Validate and prepare input
+func (d *customerDomain) CreateCustomer(ctx context.Context, input model.CustomerInput) (*model.CustomerWithService, error) { // Validate and prepare input
 	model.PrepareCustomerInput(&input)
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -43,7 +43,7 @@ func (d *customerDomain) CreateCustomer(ctx any, input model.CustomerInput) (*mo
 	}
 
 	// Validate profile exists
-	profile, err := d.databasePort.Profile().GetByMikrotikID(activeMikrotik.ID, input.ProfileID)
+	profile, err := d.databasePort.Profile().GetByMikrotikID(ctx, activeMikrotik.ID, input.ProfileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get profile")
 	}
@@ -52,7 +52,7 @@ func (d *customerDomain) CreateCustomer(ctx any, input model.CustomerInput) (*mo
 	}
 
 	// Check if customer already exists
-	existingCustomer, err := d.databasePort.Customer().GetByUsername(activeMikrotik.ID, input.Username)
+	existingCustomer, err := d.databasePort.Customer().GetByUsername(ctx, activeMikrotik.ID, input.Username)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to check existing customer")
 	}
@@ -123,19 +123,20 @@ func (d *customerDomain) CreateCustomer(ctx any, input model.CustomerInput) (*mo
 	}
 
 	// Begin database transaction
-	result, err := d.databasePort.DoInTransaction(func(txDB outbound_port.DatabasePort) (interface{}, error) {
+	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Insert to customers table with MikroTik ID
-		customer, err := txDB.Customer().CreateCustomer(input, activeMikrotik.ID, mikrotikObjectID)
+		customer, err := txDB.Customer().CreateCustomer(ctx, input, activeMikrotik.ID, mikrotikObjectID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to create customer")
 		}
 
 		// 2. Insert to customer_services table
 		_, err = txDB.Customer().CreateCustomerService(
+			ctx,
 			customer.ID,
 			input.ProfileID,
-			input.Price,
-			*input.TaxRate,
+			profile.Price,
+			profile.TaxRate,
 			*input.StartDate,
 		)
 		if err != nil {
@@ -143,7 +144,7 @@ func (d *customerDomain) CreateCustomer(ctx any, input model.CustomerInput) (*mo
 		}
 
 		// 3. Get complete customer with service
-		customerWithService, err := txDB.Customer().GetByID(customer.ID)
+		customerWithService, err := txDB.Customer().GetByID(ctx, customer.ID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to get created customer")
 		}
@@ -163,13 +164,13 @@ func (d *customerDomain) CreateCustomer(ctx any, input model.CustomerInput) (*mo
 	return result.(*model.CustomerWithService), nil
 }
 
-func (d *customerDomain) GetCustomer(ctx any, id string) (*model.CustomerWithService, error) {
+func (d *customerDomain) GetCustomer(ctx context.Context, id string) (*model.CustomerWithService, error) {
 	customerID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid customer id")
 	}
 
-	customer, err := d.databasePort.Customer().GetByID(customerID)
+	customer, err := d.databasePort.Customer().GetByID(ctx, customerID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get customer")
 	}
@@ -177,9 +178,8 @@ func (d *customerDomain) GetCustomer(ctx any, id string) (*model.CustomerWithSer
 	return customer, nil
 }
 
-func (d *customerDomain) ListCustomers(ctx any) ([]model.CustomerWithService, error) {
-	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+func (d *customerDomain) ListCustomers(ctx context.Context) ([]model.CustomerWithService, error) { // Get active mikrotik
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
@@ -187,7 +187,7 @@ func (d *customerDomain) ListCustomers(ctx any) ([]model.CustomerWithService, er
 		return nil, fmt.Errorf("no active mikrotik found")
 	}
 
-	customers, err := d.databasePort.Customer().List(activeMikrotik.ID)
+	customers, err := d.databasePort.Customer().List(ctx, activeMikrotik.ID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list customers")
 	}
@@ -195,7 +195,7 @@ func (d *customerDomain) ListCustomers(ctx any) ([]model.CustomerWithService, er
 	return customers, nil
 }
 
-func (d *customerDomain) UpdateCustomer(ctx any, id string, input model.CustomerInput) (*model.CustomerWithService, error) {
+func (d *customerDomain) UpdateCustomer(ctx context.Context, id string, input model.CustomerInput) (*model.CustomerWithService, error) {
 	customerID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid customer id")
@@ -204,7 +204,7 @@ func (d *customerDomain) UpdateCustomer(ctx any, id string, input model.Customer
 	model.PrepareCustomerInput(&input)
 
 	// Get existing customer to get mikrotik_object_id
-	existing, err := d.databasePort.Customer().GetByID(customerID)
+	existing, err := d.databasePort.Customer().GetByID(ctx, customerID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get existing customer")
 	}
@@ -217,13 +217,13 @@ func (d *customerDomain) UpdateCustomer(ctx any, id string, input model.Customer
 	}
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
 
 	// Validate profile exists if changed or needed
-	profile, err := d.databasePort.Profile().GetByMikrotikID(activeMikrotik.ID, input.ProfileID)
+	profile, err := d.databasePort.Profile().GetByMikrotikID(ctx, activeMikrotik.ID, input.ProfileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get profile")
 	}
@@ -231,9 +231,9 @@ func (d *customerDomain) UpdateCustomer(ctx any, id string, input model.Customer
 		return nil, fmt.Errorf("profile not found")
 	}
 
-	result, err := d.databasePort.DoInTransaction(func(txDB outbound_port.DatabasePort) (interface{}, error) {
+	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Update database
-		err := txDB.Customer().Update(customerID, input)
+		err := txDB.Customer().Update(ctx, customerID, input, profile.Price, profile.TaxRate)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to update customer in database")
 		}
@@ -263,7 +263,7 @@ func (d *customerDomain) UpdateCustomer(ctx any, id string, input model.Customer
 		}
 
 		// 3. Get updated customer
-		updated, err := txDB.Customer().GetByID(customerID)
+		updated, err := txDB.Customer().GetByID(ctx, customerID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to get updated customer")
 		}
@@ -278,14 +278,14 @@ func (d *customerDomain) UpdateCustomer(ctx any, id string, input model.Customer
 	return result.(*model.CustomerWithService), nil
 }
 
-func (d *customerDomain) DeleteCustomer(ctx any, id string) error {
+func (d *customerDomain) DeleteCustomer(ctx context.Context, id string) error {
 	customerID, err := uuid.Parse(id)
 	if err != nil {
 		return stacktrace.Propagate(err, "invalid customer id")
 	}
 
 	// Get existing customer to get mikrotik_object_id
-	existing, err := d.databasePort.Customer().GetByID(customerID)
+	existing, err := d.databasePort.Customer().GetByID(ctx, customerID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get existing customer")
 	}
@@ -297,12 +297,12 @@ func (d *customerDomain) DeleteCustomer(ctx any, id string) error {
 	}
 
 	// Get active mikrotik
-	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik()
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
 
-	_, err = d.databasePort.DoInTransaction(func(txDB outbound_port.DatabasePort) (interface{}, error) {
+	_, err = d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Delete from MikroTik if ID exists
 		if existing.MikrotikObjectID != "" {
 			client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
@@ -323,7 +323,7 @@ func (d *customerDomain) DeleteCustomer(ctx any, id string) error {
 		}
 
 		// 2. Delete from database
-		err = txDB.Customer().Delete(customerID)
+		err = txDB.Customer().Delete(ctx, customerID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to delete customer from database")
 		}
@@ -334,9 +334,8 @@ func (d *customerDomain) DeleteCustomer(ctx any, id string) error {
 	return err
 }
 
-func (d *customerDomain) HandlePPPoEUp(ctx any, input model.PPPoEUpInput) error {
-	// Find customer by username
-	customer, err := d.databasePort.Customer().GetByPPPoEUsername(input.User)
+func (d *customerDomain) HandlePPPoEUp(ctx context.Context, input model.PPPoEUpInput) error { // Find customer by username
+	customer, err := d.databasePort.Customer().GetByPPPoEUsername(ctx, input.User)
 	if err != nil {
 		// Log warning but don't error out completely if user not found?
 		// Or return error and let handler decide code.
@@ -345,7 +344,7 @@ func (d *customerDomain) HandlePPPoEUp(ctx any, input model.PPPoEUpInput) error 
 
 	// Update status
 	status := model.CustomerStatusActive
-	err = d.databasePort.Customer().UpdateStatus(customer.ID, status, &input.IPAddress, &input.MacAddress, &input.Interface)
+	err = d.databasePort.Customer().UpdateStatus(ctx, customer.ID, status, &input.IPAddress, &input.MacAddress, &input.Interface)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update customer status")
 	}
@@ -369,16 +368,15 @@ func (d *customerDomain) HandlePPPoEUp(ctx any, input model.PPPoEUpInput) error 
 	return nil
 }
 
-func (d *customerDomain) HandlePPPoEDown(ctx any, input model.PPPoEDownInput) error {
-	// Find customer by username
-	customer, err := d.databasePort.Customer().GetByPPPoEUsername(input.User)
+func (d *customerDomain) HandlePPPoEDown(ctx context.Context, input model.PPPoEDownInput) error { // Find customer by username
+	customer, err := d.databasePort.Customer().GetByPPPoEUsername(ctx, input.User)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to find customer for pppoe down callback")
 	}
 
 	// Update status to inactive
 	status := model.CustomerStatusInactive
-	err = d.databasePort.Customer().UpdateStatus(customer.ID, status, nil, nil, nil)
+	err = d.databasePort.Customer().UpdateStatus(ctx, customer.ID, status, nil, nil, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update customer status")
 	}
@@ -394,3 +392,4 @@ func (d *customerDomain) HandlePPPoEDown(ctx any, input model.PPPoEDownInput) er
 
 	return nil
 }
+

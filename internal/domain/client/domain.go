@@ -48,12 +48,12 @@ func (s *clientDomain) Upsert(ctx context.Context, inputs []model.ClientInput) (
 	}
 
 	databaseClientPort := s.databasePort.Client()
-	err := databaseClientPort.Upsert(inputs)
+	err := databaseClientPort.Upsert(ctx, inputs)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "upsert client error")
 	}
 
-	results, err := databaseClientPort.FindByFilter(filter, true)
+	results, err := databaseClientPort.FindByFilter(ctx, filter, true)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "find client by filter error")
 	}
@@ -67,7 +67,7 @@ func (s *clientDomain) FindByFilter(ctx context.Context, filter model.ClientFilt
 	}
 
 	databaseClientPort := s.databasePort.Client()
-	results, err := databaseClientPort.FindByFilter(filter, false)
+	results, err := databaseClientPort.FindByFilter(ctx, filter, false)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "find client by filter error")
 	}
@@ -81,7 +81,7 @@ func (s *clientDomain) DeleteByFilter(ctx context.Context, filter model.ClientFi
 	}
 
 	databaseClientPort := s.databasePort.Client()
-	err := databaseClientPort.DeleteByFilter(filter)
+	err := databaseClientPort.DeleteByFilter(ctx, filter)
 	if err != nil {
 		return stacktrace.Propagate(err, "delete client by filter error")
 	}
@@ -95,7 +95,7 @@ func (s *clientDomain) PublishUpsert(ctx context.Context, inputs []model.ClientI
 	}
 
 	messageClientPort := s.messagePort.Client()
-	err := messageClientPort.PublishUpsert(inputs)
+	err := messageClientPort.PublishUpsert(ctx, inputs)
 	if err != nil {
 		return stacktrace.Propagate(err, "publish upsert client error")
 	}
@@ -110,22 +110,22 @@ func (s *clientDomain) IsExists(ctx context.Context, bearerKey string) (bool, er
 
 	var exists bool
 	cacheClientPort := s.cachePort.Client()
-	_, err := cacheClientPort.Get(bearerKey)
+	_, err := cacheClientPort.Get(ctx, bearerKey)
 	if err != nil {
 		if err == redis.Nil {
 			databaseClientPort := s.databasePort.Client()
-			exists, err = databaseClientPort.IsExists(bearerKey)
+			exists, err = databaseClientPort.IsExists(ctx, bearerKey)
 			if err != nil {
 				return false, stacktrace.Propagate(err, "check if client exists error")
 			}
 
-			client, err := databaseClientPort.FindByFilter(model.ClientFilter{BearerKeys: []string{bearerKey}}, false)
+			client, err := databaseClientPort.FindByFilter(ctx, model.ClientFilter{BearerKeys: []string{bearerKey}}, false)
 			if err != nil {
 				return false, stacktrace.Propagate(err, "find client by filter error")
 			}
 
 			if len(client) > 0 {
-				err = cacheClientPort.Set(client[0])
+				err = cacheClientPort.Set(ctx, client[0])
 				if err != nil {
 					return false, stacktrace.Propagate(err, "set client to cache error")
 				}

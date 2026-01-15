@@ -1,0 +1,74 @@
+### Base URL
+@baseUrl = http://localhost:8000
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg1NzUzMTAsInJvbGUiOiJTVVBFUl9BRE1JTiIsInN1YiI6ImIyMmUwNDlkLWExYzAtNDczYy04M2ViLWQzZWY1YWE0ODViYiIsInVzZXJuYW1lIjoic3VwZXJhZG1pbiJ9.XN-USiv4NVCIAMGovHaOsIjtXHn7tuF-Izr4y_jS2QY
+
+@mikrotikId = e5a065c0-1d00-41e9-b4c3-c87ef7f8da28
+@tenantId = 82613431-a8aa-48a4-aa6c-1fa63ca1771d
+
+### 1. Create MikroTik Device
+# @name createMikrotik
+POST {{baseUrl}}/v1/internal/mikrotik
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "Test Router",
+  "host": "192.168.88.1",
+  "port": 8728,
+  "api_username": "admin",
+  "api_encrypted_password": "encrypted_password_here",
+  "keepalive": true,
+  "timeout": 300000,
+  "location": "Test Lab",
+  "description": "Test MikroTik device"
+}
+
+> {%
+    client.global.set("mikrotikId", response.body.data.id);
+%}
+
+### 2. List MikroTik Devices
+POST {{baseUrl}}/v1/internal/mikrotik/list
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+{
+  "is_active": true
+}
+
+### 3. Get Active MikroTik
+GET {{baseUrl}}/v1/internal/mikrotik/active
+X-Client-Key: {{clientKey}}
+
+### 4. Get MikroTik by ID
+GET {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}
+X-Client-Key: {{clientKey}}
+
+### 5. Update MikroTik
+PUT {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "Updated Router Name",
+  "host": "192.168.88.2",
+  "description": "Updated description"
+}
+
+### 6. Update MikroTik Status
+PATCH {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}/status
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "status": "online"
+}
+
+### 7. Activate MikroTik
+PATCH {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}/activate
+X-Client-Key: {{clientKey}}
+
+### 8. Delete MikroTik
+DELETE {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}
+X-Client-Key: {{clientKey}}

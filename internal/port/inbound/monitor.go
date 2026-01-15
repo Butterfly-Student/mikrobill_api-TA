@@ -1,6 +1,9 @@
 package inbound_port
 
-import "prabogo/internal/model"
+import (
+	"context"
+	"prabogo/internal/model"
+)
 
 type MonitorPort interface {
 	StreamTraffic(a any) error
@@ -9,7 +12,7 @@ type MonitorPort interface {
 }
 
 type MonitorDomain interface {
-	StreamTraffic(ctx any, customerID string) (<-chan model.CustomerTrafficData, error)
-	PingCustomer(ctx any, customerID string) (map[string]interface{}, error)
-	StreamPing(ctx any, customerID string) (<-chan model.PingResponse, error)
+	StreamTraffic(ctx context.Context, customerID string) (<-chan model.CustomerTrafficData, error)
+	PingCustomer(ctx context.Context, customerID string) (map[string]interface{}, error)
+	StreamPing(ctx context.Context, customerID string) (<-chan model.PingResponse, error)
 }

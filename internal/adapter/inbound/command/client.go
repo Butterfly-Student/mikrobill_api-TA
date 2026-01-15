@@ -22,7 +22,7 @@ func NewClientAdapter(
 }
 
 func (h *clientAdapter) PublishUpsert(name string) {
-	ctx := activity.NewContext("command_client_upsert")
+	ctx := activity.NewContext(context.Background(), "command_client_sync")
 	ctx = context.WithValue(ctx, activity.Payload, name)
 	payload := []model.ClientInput{{Name: name}}
 	err := h.domain.Client().PublishUpsert(ctx, payload)

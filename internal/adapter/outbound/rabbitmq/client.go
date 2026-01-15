@@ -14,8 +14,8 @@ func NewClientAdapter() outbound_port.ClientMessagePort {
 	return &clientAdapter{}
 }
 
-func (adapter *clientAdapter) PublishUpsert(datas []model.ClientInput) error {
-	err := rabbitmq.Publish(context.Background(), model.UpsertClientMessage, rabbitmq.KindFanOut, "", datas)
+func (adapter *clientAdapter) PublishUpsert(ctx context.Context, datas []model.ClientInput) error {
+	err := rabbitmq.Publish(ctx, model.UpsertClientMessage, rabbitmq.KindFanOut, "", datas)
 	if err != nil {
 		return err
 	}

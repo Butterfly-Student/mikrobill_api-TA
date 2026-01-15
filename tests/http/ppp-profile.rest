@@ -1,0 +1,47 @@
+### Base URL
+@baseUrl = http://localhost:8080
+@clientKey = internal
+@mikrotikId = e5a065c0-1d00-41e9-b4c3-c87ef7f8da28
+@pppProfileId = 
+
+### 1. Create PPP Profile
+# @name createPppProfile
+POST {{baseUrl}}/v1/internal/ppp/profile
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "name": "test-profile",
+  "local_address": "10.0.0.1",
+  "remote_address": "pool-test",
+  "rate_limit": "10M/10M",
+  "only_one": "yes",
+  "comment": "Test PPP profile"
+}
+
+> {%
+    client.global.set("pppProfileId", response.body.data.id);
+%}
+
+### 2. Get PPP Profile by ID
+GET {{baseUrl}}/v1/internal/ppp/profile/{{pppProfileId}}
+X-Client-Key: {{clientKey}}
+
+### 3. Update PPP Profile
+PUT {{baseUrl}}/v1/internal/ppp/profile/{{pppProfileId}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+
+{
+  "rate_limit": "20M/20M",
+  "only_one": "no",
+  "comment": "Updated test profile"
+}
+
+### 4. List All PPP Profiles
+GET {{baseUrl}}/v1/internal/ppp/profile/list
+X-Client-Key: {{clientKey}}
+
+### 5. Delete PPP Profile
+DELETE {{baseUrl}}/v1/internal/ppp/profile/{{pppProfileId}}
+X-Client-Key: {{clientKey}}

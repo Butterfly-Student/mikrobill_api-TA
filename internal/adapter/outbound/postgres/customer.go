@@ -1,6 +1,7 @@
 package postgres_outbound_adapter
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 	"prabogo/internal/model"
 	outbound_port "prabogo/internal/port/outbound"
+	contextutil "prabogo/utils/context"
 )
 
 const (
@@ -30,8 +32,14 @@ func NewCustomerAdapter(
 	}
 }
 
-func (a *customerAdapter) CreateCustomer(input model.CustomerInput, mikrotikID uuid.UUID, mikrotikObjectID string) (*model.Customer, error) {
+func (a *customerAdapter) CreateCustomer(ctx context.Context, input model.CustomerInput, mikrotikID uuid.UUID, mikrotikObjectID string) (*model.Customer, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	record := goqu.Record{
+		"tenant_id":          tenantID,
 		"mikrotik_id":        mikrotikID,
 		"username":           input.Username,
 		"name":               input.Name,
@@ -57,9 +65,10 @@ func (a *customerAdapter) CreateCustomer(input model.CustomerInput, mikrotikID u
 	}
 
 	var result model.Customer
-	err = a.db.QueryRow(query).Scan(
+	err = a.db.QueryRowContext(ctx, query).Scan(
 		&result.ID,
 		&result.MikrotikID,
+		&result.PackageID,
 		&result.Username,
 		&result.Name,
 		&result.Phone,
@@ -87,8 +96,14 @@ func (a *customerAdapter) CreateCustomer(input model.CustomerInput, mikrotikID u
 	return &result, nil
 }
 
-func (a *customerAdapter) CreateCustomerService(customerID, profileID uuid.UUID, price, taxRate float64, startDate time.Time) (*model.CustomerService, error) {
+func (a *customerAdapter) CreateCustomerService(ctx context.Context, customerID, profileID uuid.UUID, price, taxRate float64, startDate time.Time) (*model.CustomerService, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	record := goqu.Record{
+		"tenant_id":   tenantID,
 		"customer_id": customerID,
 		"profile_id":  profileID,
 		"price":       price,
@@ -107,7 +122,7 @@ func (a *customerAdapter) CreateCustomerService(customerID, profileID uuid.UUID,
 	}
 
 	var result model.CustomerService
-	err = a.db.QueryRow(query).Scan(
+	err = a.db.QueryRowContext(ctx, query).Scan(
 		&result.ID,
 		&result.CustomerID,
 		&result.ProfileID,
@@ -118,32 +133,30 @@ func (a *customerAdapter) CreateCustomerService(customerID, profileID uuid.UUID,
 		&result.Status,
 		&result.CreatedAt,
 		&result.UpdatedAt,
-		// MikrotikObjectID removed from here as it likely doesn't exist or is not needed
-		// But if it DOES exist in table from migration 18, we might need a dummy scan or update helper.
-		// Assuming migration 18 is effectively "reverted" or ignored by new logic using customers table.
-		// If the column exists, `RETURNING *` returns it. If we don't scan it, we get error.
-		// We should specify explicit columns in RETURNING to be safe.
 	)
 	if err != nil {
-		// If error is number of columns mismatch, we might need to adjust.
-		// For now let's modify the query to return specifics to avoid * trap
 		return nil, stacktrace.Propagate(err, "failed to insert customer service")
 	}
 
 	return &result, nil
 }
 
-func (a *customerAdapter) UpdateMikrotikObjectID(customerID uuid.UUID, objectID string) error {
+func (a *customerAdapter) UpdateMikrotikObjectID(ctx context.Context, customerID uuid.UUID, objectID string) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	query, _, err := goqu.Dialect("postgres").
 		Update(tableCustomers).
 		Set(goqu.Record{"mikrotik_object_id": objectID}).
-		Where(goqu.Ex{"id": customerID}).
+		Where(goqu.Ex{"id": customerID, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build update query")
 	}
 
-	result, err := a.db.Exec(query)
+	result, err := a.db.ExecContext(ctx, query)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update mikrotik object id")
 	}
@@ -160,20 +173,26 @@ func (a *customerAdapter) UpdateMikrotikObjectID(customerID uuid.UUID, objectID 
 	return nil
 }
 
-func (a *customerAdapter) GetByID(id uuid.UUID) (*model.CustomerWithService, error) {
+func (a *customerAdapter) GetByID(ctx context.Context, id uuid.UUID) (*model.CustomerWithService, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Query customer
 	customerQuery, _, err := goqu.Dialect("postgres").
 		From(tableCustomers).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build customer query")
 	}
 
 	var customer model.Customer
-	err = a.db.QueryRow(customerQuery).Scan(
+	err = a.db.QueryRowContext(ctx, customerQuery).Scan(
 		&customer.ID,
 		&customer.MikrotikID,
+		&customer.PackageID,
 		&customer.Username,
 		&customer.Name,
 		&customer.Phone,
@@ -204,14 +223,14 @@ func (a *customerAdapter) GetByID(id uuid.UUID) (*model.CustomerWithService, err
 	// Query service
 	serviceQuery, _, err := goqu.Dialect("postgres").
 		From(tableCustomerServices).
-		Where(goqu.Ex{"customer_id": id}).
+		Where(goqu.Ex{"customer_id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build service query")
 	}
 
 	var service model.CustomerService
-	err = a.db.QueryRow(serviceQuery).Scan(
+	err = a.db.QueryRowContext(ctx, serviceQuery).Scan(
 		&service.ID,
 		&service.CustomerID,
 		&service.ProfileID,
@@ -222,26 +241,6 @@ func (a *customerAdapter) GetByID(id uuid.UUID) (*model.CustomerWithService, err
 		&service.Status,
 		&service.CreatedAt,
 		&service.UpdatedAt,
-		// Removing MikrotikObjectID scan here too.
-		// If existing DB has column, `SELECT *` returns it. We better change `From` to `Select` in the code?
-		// I will assume for now we scan into nothing if needed, or better, we change query to SELECT specifics or expect no column if we dropped it?
-		// User didn't say drop column from service.
-		// If I cannot drop it easily, I might encounter errors.
-		// The safest bet is: existing code expected it.
-		// But in Go model `CustomerService`, I kept `MikrotikObjectID *string`.
-		// If I removed it from STRUCT, I must remove from scan.
-		// I KEPT it in struct in `model/customer.go`? Let me check Step 86 diff.
-		// I REMOVED it from struct:
-		// -	MikrotikObjectID *string       `json:"mikrotik_object_id,omitempty" db:"mikrotik_object_id"`
-		// So checking the previous tool output... YES, I removed it.
-		// So I MUST remove it from Scan.
-		// AND I MUST ensure SQL query does not return it or I must not scan `*`.
-		// `goqu` `From(table)` -> `SELECT *`.
-		// I should use `Select(...)` to be safe, or if column exists, `Scan` will fail "destination not enough".
-		// I will rely on `Select`ing specific columns if I can't be sure of table schema, OR I just hope column is gone?
-		// User said "perbaiki migration". If column is gone, `SELECT *` is fine.
-		// If column remains, `SELECT *` returns more columns -> Scan error.
-		// I should specify columns.
 	)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, stacktrace.Propagate(err, "failed to get service")
@@ -258,19 +257,25 @@ func (a *customerAdapter) GetByID(id uuid.UUID) (*model.CustomerWithService, err
 	return result, nil
 }
 
-func (a *customerAdapter) GetByUsername(mikrotikID uuid.UUID, username string) (*model.Customer, error) {
+func (a *customerAdapter) GetByUsername(ctx context.Context, mikrotikID uuid.UUID, username string) (*model.Customer, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	query, _, err := goqu.Dialect("postgres").
 		From(tableCustomers).
-		Where(goqu.Ex{"mikrotik_id": mikrotikID, "username": username}).
+		Where(goqu.Ex{"mikrotik_id": mikrotikID, "username": username, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build query")
 	}
 
 	var result model.Customer
-	err = a.db.QueryRow(query).Scan(
+	err = a.db.QueryRowContext(ctx, query).Scan(
 		&result.ID,
 		&result.MikrotikID,
+		&result.PackageID,
 		&result.Username,
 		&result.Name,
 		&result.Phone,
@@ -301,18 +306,23 @@ func (a *customerAdapter) GetByUsername(mikrotikID uuid.UUID, username string) (
 	return &result, nil
 }
 
-func (a *customerAdapter) List(mikrotikID uuid.UUID) ([]model.CustomerWithService, error) {
+func (a *customerAdapter) List(ctx context.Context, mikrotikID uuid.UUID) ([]model.CustomerWithService, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Query all customers for this MikroTik
 	customersQuery, _, err := goqu.Dialect("postgres").
 		From(tableCustomers).
-		Where(goqu.Ex{"mikrotik_id": mikrotikID}).
+		Where(goqu.Ex{"mikrotik_id": mikrotikID, "tenant_id": tenantID}).
 		Order(goqu.I("created_at").Desc()).
 		ToSQL()
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to build customers query")
 	}
 
-	rows, err := a.db.Query(customersQuery)
+	rows, err := a.db.QueryContext(ctx, customersQuery)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to query customers")
 	}
@@ -324,6 +334,7 @@ func (a *customerAdapter) List(mikrotikID uuid.UUID) ([]model.CustomerWithServic
 		err := rows.Scan(
 			&customer.ID,
 			&customer.MikrotikID,
+			&customer.PackageID,
 			&customer.Username,
 			&customer.Name,
 			&customer.Phone,
@@ -355,14 +366,14 @@ func (a *customerAdapter) List(mikrotikID uuid.UUID) ([]model.CustomerWithServic
 	for _, customer := range customers {
 		serviceQuery, _, err := goqu.Dialect("postgres").
 			From(tableCustomerServices).
-			Where(goqu.Ex{"customer_id": customer.ID}).
+			Where(goqu.Ex{"customer_id": customer.ID, "tenant_id": tenantID}).
 			ToSQL()
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to build service query")
 		}
 
 		var service model.CustomerService
-		err = a.db.QueryRow(serviceQuery).Scan(
+		err = a.db.QueryRowContext(ctx, serviceQuery).Scan(
 			&service.ID,
 			&service.CustomerID,
 			&service.ProfileID,
@@ -389,8 +400,12 @@ func (a *customerAdapter) List(mikrotikID uuid.UUID) ([]model.CustomerWithServic
 	return result, nil
 }
 
-func (a *customerAdapter) Update(id uuid.UUID, input model.CustomerInput) error {
-	// Update customer
+func (a *customerAdapter) Update(ctx context.Context, id uuid.UUID, input model.CustomerInput, price, taxRate float64) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Update customer
 	customerUpdate := goqu.Record{
 		"username":        input.Username,
@@ -407,13 +422,13 @@ func (a *customerAdapter) Update(id uuid.UUID, input model.CustomerInput) error 
 	customerQuery, _, err := goqu.Dialect("postgres").
 		Update(tableCustomers).
 		Set(customerUpdate).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build customer update query")
 	}
 
-	result, err := a.db.Exec(customerQuery)
+	result, err := a.db.ExecContext(ctx, customerQuery)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update customer")
 	}
@@ -427,50 +442,26 @@ func (a *customerAdapter) Update(id uuid.UUID, input model.CustomerInput) error 
 		return stacktrace.NewError("customer not found")
 	}
 
-	// Update service
-	// Check if service exists first
-	serviceQuery, _, err := goqu.Dialect("postgres").
-		From(tableCustomerServices).
-		Where(goqu.Ex{"customer_id": id}).
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build existing service query")
-	}
-
-	var existingServiceID uuid.UUID
-	err = a.db.QueryRow(serviceQuery).Scan(&existingServiceID)
-	// We only need to check if it exists, scan errors (except no rows) are handled below
-
-	if err == sql.ErrNoRows {
-		// Create new service if not exists (should not happen in normal flow but for safety)
-		// Skipping create here for update operation simplicity, assuming service exists
-		return nil
-	} else if err != nil {
-		// Ignore scan error as we only checking existence by count or similar, but queryrow simple
-		// Actually if we scanned into UUID and it failed, likely column count mismatch if we used *
-		// But here I selected * (default SELECT * FROM... if no Select() called?)
-		// Wait, goqu From().Where().ToSQL() generates SELECT * FROM ...
-		// Use explicit Select to check
-	}
-
 	// Update service fields
 	serviceUpdate := goqu.Record{
 		"profile_id": input.ProfileID,
-		"price":      input.Price,
-		"tax_rate":   *input.TaxRate,
-		"start_date": *input.StartDate,
+		"price":      price,
+		"tax_rate":   taxRate,
+	}
+	if input.StartDate != nil {
+		serviceUpdate["start_date"] = *input.StartDate
 	}
 
 	serviceUpdateQuery, _, err := goqu.Dialect("postgres").
 		Update(tableCustomerServices).
 		Set(serviceUpdate).
-		Where(goqu.Ex{"customer_id": id}).
+		Where(goqu.Ex{"customer_id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build service update query")
 	}
 
-	_, err = a.db.Exec(serviceUpdateQuery)
+	_, err = a.db.ExecContext(ctx, serviceUpdateQuery)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update service")
 	}
@@ -478,17 +469,22 @@ func (a *customerAdapter) Update(id uuid.UUID, input model.CustomerInput) error 
 	return nil
 }
 
-func (a *customerAdapter) Delete(id uuid.UUID) error {
+func (a *customerAdapter) Delete(ctx context.Context, id uuid.UUID) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	// Delete customer (service will be cascade deleted)
 	query, _, err := goqu.Dialect("postgres").
 		Delete(tableCustomers).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build delete query")
 	}
 
-	result, err := a.db.Exec(query)
+	result, err := a.db.ExecContext(ctx, query)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete customer")
 	}
@@ -505,10 +501,15 @@ func (a *customerAdapter) Delete(id uuid.UUID) error {
 	return nil
 }
 
-func (a *customerAdapter) GetByPPPoEUsername(username string) (*model.Customer, error) {
+func (a *customerAdapter) GetByPPPoEUsername(ctx context.Context, username string) (*model.Customer, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	query, _, err := goqu.Dialect("postgres").
 		From(tableCustomers).
-		Where(goqu.Ex{"username": username}).
+		Where(goqu.Ex{"username": username, "tenant_id": tenantID}).
 		Limit(1).
 		ToSQL()
 	if err != nil {
@@ -516,9 +517,10 @@ func (a *customerAdapter) GetByPPPoEUsername(username string) (*model.Customer, 
 	}
 
 	var result model.Customer
-	err = a.db.QueryRow(query).Scan(
+	err = a.db.QueryRowContext(ctx, query).Scan(
 		&result.ID,
 		&result.MikrotikID,
+		&result.PackageID,
 		&result.Username,
 		&result.Name,
 		&result.Phone,
@@ -549,7 +551,12 @@ func (a *customerAdapter) GetByPPPoEUsername(username string) (*model.Customer, 
 	return &result, nil
 }
 
-func (a *customerAdapter) UpdateStatus(id uuid.UUID, status model.CustomerStatus, ip, mac, interfaceName *string) error {
+func (a *customerAdapter) UpdateStatus(ctx context.Context, id uuid.UUID, status model.CustomerStatus, ip, mac, interfaceName *string) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
 	record := goqu.Record{
 		"status": status,
 	}
@@ -568,13 +575,13 @@ func (a *customerAdapter) UpdateStatus(id uuid.UUID, status model.CustomerStatus
 	query, _, err := goqu.Dialect("postgres").
 		Update(tableCustomers).
 		Set(record).
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
 		ToSQL()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to build update status query")
 	}
 
-	result, err := a.db.Exec(query)
+	result, err := a.db.ExecContext(ctx, query)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update customer status")
 	}

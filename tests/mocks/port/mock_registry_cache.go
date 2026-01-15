@@ -47,3 +47,17 @@ func (mr *MockCachePortMockRecorder) Client() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Client", reflect.TypeOf((*MockCachePort)(nil).Client))
 }
+
+// PubSub mocks base method.
+func (m *MockCachePort) PubSub() outbound_port.RedisPubSubPort {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PubSub")
+	ret0, _ := ret[0].(outbound_port.RedisPubSubPort)
+	return ret0
+}
+
+// PubSub indicates an expected call of PubSub.
+func (mr *MockCachePortMockRecorder) PubSub() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PubSub", reflect.TypeOf((*MockCachePort)(nil).PubSub))
+}

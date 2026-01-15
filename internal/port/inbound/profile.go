@@ -1,6 +1,9 @@
 package inbound_port
 
-import "prabogo/internal/model"
+import (
+	"context"
+	"prabogo/internal/model"
+)
 
 type ProfilePort interface {
 	CreateProfile(a any) error
@@ -11,9 +14,9 @@ type ProfilePort interface {
 }
 
 type ProfileDomain interface {
-	CreateProfile(ctx any, input model.ProfileInput) (*model.ProfileWithPPPoE, error)
-	GetProfile(ctx any, id string) (*model.ProfileWithPPPoE, error)
-	ListProfiles(ctx any) ([]model.ProfileWithPPPoE, error)
-	UpdateProfile(ctx any, id string, input model.ProfileInput) (*model.ProfileWithPPPoE, error)
-	DeleteProfile(ctx any, id string) error
+	CreateProfile(ctx context.Context, input model.ProfileInput) (*model.ProfileWithPPPoE, error)
+	GetProfile(ctx context.Context, id string) (*model.ProfileWithPPPoE, error)
+	ListProfiles(ctx context.Context) ([]model.ProfileWithPPPoE, error)
+	UpdateProfile(ctx context.Context, id string, input model.ProfileInput) (*model.ProfileWithPPPoE, error)
+	DeleteProfile(ctx context.Context, id string) error
 }

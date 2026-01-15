@@ -26,36 +26,27 @@ func NewMikrotikAdapter(
 
 func (h *mikrotikAdapter) Create(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_create")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_create")
 
 	var input model.MikrotikInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Success: false,
-			Error:   "Invalid request body: " + err.Error(),
-		})
+		SendError(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
 		return nil
 	}
 
 	result, err := h.domain.Mikrotik().Create(ctx, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusCreated, model.Response{
-		Success: true,
-		Data:    result,
-	})
+	SendResponse(c, http.StatusCreated, result, nil)
 	return nil
 }
 
 func (h *mikrotikAdapter) GetByID(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_get_by_id")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_get_by_id")
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -68,23 +59,17 @@ func (h *mikrotikAdapter) GetByID(a any) error {
 
 	result, err := h.domain.Mikrotik().GetByID(ctx, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusNotFound, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    result,
-	})
+	SendResponse(c, http.StatusOK, result, nil)
 	return nil
 }
 
 func (h *mikrotikAdapter) List(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_list")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_list")
 
 	var filter model.MikrotikFilter
 	if err := c.ShouldBindJSON(&filter); err != nil {
@@ -94,23 +79,19 @@ func (h *mikrotikAdapter) List(a any) error {
 
 	results, err := h.domain.Mikrotik().List(ctx, filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    results,
+	SendResponse(c, http.StatusOK, results, &model.Metadata{
+		Total: int64(len(results)),
 	})
 	return nil
 }
 
 func (h *mikrotikAdapter) Update(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_update")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_update")
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -132,23 +113,17 @@ func (h *mikrotikAdapter) Update(a any) error {
 
 	result, err := h.domain.Mikrotik().Update(ctx, id, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    result,
-	})
+	SendResponse(c, http.StatusOK, result, nil)
 	return nil
 }
 
 func (h *mikrotikAdapter) Delete(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_delete")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_delete")
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -161,23 +136,17 @@ func (h *mikrotikAdapter) Delete(a any) error {
 
 	err = h.domain.Mikrotik().Delete(ctx, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    gin.H{"message": "Mikrotik deleted successfully"},
-	})
+	SendResponse(c, http.StatusOK, nil, nil)
 	return nil
 }
 
 func (h *mikrotikAdapter) UpdateStatus(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_update_status")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_update_status")
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -201,51 +170,36 @@ func (h *mikrotikAdapter) UpdateStatus(a any) error {
 
 	err = h.domain.Mikrotik().UpdateStatus(ctx, id, input.Status)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    gin.H{"message": "Status updated successfully"},
-	})
+	SendResponse(c, http.StatusOK, nil, nil)
 	return nil
 }
 
 func (h *mikrotikAdapter) GetActiveMikrotik(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_get_active")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_get_active")
 
 	result, err := h.domain.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
 	if result == nil {
-		c.JSON(http.StatusNotFound, model.Response{
-			Success: false,
-			Error:   "No active mikrotik found",
-		})
+		SendError(c, http.StatusNotFound, "No active mikrotik found")
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    result,
-	})
+	SendResponse(c, http.StatusOK, result, nil)
 	return nil
 }
 
 func (h *mikrotikAdapter) SetActive(a any) error {
 	c := a.(*gin.Context)
-	ctx := activity.NewContext("http_mikrotik_set_active")
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_set_active")
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -258,16 +212,11 @@ func (h *mikrotikAdapter) SetActive(a any) error {
 
 	err = h.domain.Mikrotik().SetActive(ctx, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.Response{
-			Success: false,
-			Error:   err.Error(),
-		})
+		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	c.JSON(http.StatusOK, model.Response{
-		Success: true,
-		Data:    gin.H{"message": "Mikrotik set as active successfully"},
-	})
+	SendResponse(c, http.StatusOK, nil, nil)
 	return nil
 }
+
