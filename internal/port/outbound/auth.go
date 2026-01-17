@@ -4,15 +4,17 @@ package outbound_port
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 
 	"github.com/google/uuid"
 )
 
 type AuthDatabasePort interface {
 	SaveUser(ctx context.Context, user model.User) error
-	FindUserByFilter(ctx context.Context, filter model.UserFilter, lock bool) ([]model.User, error)
+	FindUserByEmail(ctx context.Context, email string) (*model.User, error)
+	FindUserByUsername(ctx context.Context, username string) (*model.User, error)
+	FindUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	FindRoleByName(ctx context.Context, name string) (*model.Role, error)
 	FindRoleByID(ctx context.Context, id uuid.UUID) (*model.Role, error)
-	// Add other methods as needed
 }
+

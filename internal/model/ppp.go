@@ -52,3 +52,12 @@ type PPPProfileInput struct {
 	OnlyOne       string `json:"only_one"`
 	Comment       string `json:"comment"`
 }
+
+type PPPoEEventInput struct {
+	Name          string `json:"name"`
+	CallerID      string `json:"caller_id"`
+	Interface     string `json:"interface"`
+	LocalAddress  string `json:"local_address"`
+	RemoteAddress string `json:"remote_address"`
+	Service       string `json:"service"`
+}

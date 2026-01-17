@@ -6,7 +6,7 @@ package mock_outbound_port
 
 import (
 	sql "database/sql"
-	outbound_port "prabogo/internal/port/outbound"
+	outbound_port "MikrOps/internal/port/outbound"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -245,3 +245,4 @@ func (mr *MockDatabaseExecutorMockRecorder) QueryRow(arg0 interface{}, arg1 ...i
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRow", reflect.TypeOf((*MockDatabaseExecutor)(nil).QueryRow), varargs...)
 }
+

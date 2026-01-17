@@ -2,7 +2,7 @@ package inbound_port
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 type MikrotikPPPSecretPort interface {
@@ -21,3 +21,4 @@ type MikrotikPPPSecretDomain interface {
 	MikrotikDeleteSecret(ctx context.Context, id string) error
 	MikrotikListSecrets(ctx context.Context) ([]model.PPPSecret, error)
 }
+

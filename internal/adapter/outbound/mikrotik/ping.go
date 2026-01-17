@@ -2,7 +2,7 @@ package mikrotik_outbound_adapter
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 func (c *Client) StreamPing(
@@ -84,3 +84,4 @@ func mapToPingResponse(m map[string]string) model.PingResponse {
 		IsSummary:  isSummary,
 	}
 }
+

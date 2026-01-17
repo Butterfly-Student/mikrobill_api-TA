@@ -3,7 +3,7 @@ package gin_inbound_adapter
 import (
 	"github.com/gin-gonic/gin"
 
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 // SendResponse sends a structured JSON response
@@ -30,3 +30,4 @@ func SendAbort(c *gin.Context, statusCode int, message string) {
 		Error:   message,
 	})
 }
+

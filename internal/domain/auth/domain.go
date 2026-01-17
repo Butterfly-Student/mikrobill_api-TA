@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -15,7 +15,7 @@ import (
 )
 
 type AuthDomain interface {
-	Register(ctx context.Context, input model.UserInput) (*model.User, error)
+	Register(ctx context.Context, input model.RegisterRequest) (*model.User, error)
 	Login(ctx context.Context, identifier, password string) (*model.User, string, error)
 	ValidateToken(ctx context.Context, token string) (*model.User, error)
 }
@@ -30,15 +30,24 @@ func NewAuthDomain(databasePort outbound_port.DatabasePort) AuthDomain {
 	}
 }
 
-func (s *authDomain) Register(ctx context.Context, input model.UserInput) (*model.User, error) {
+func (s *authDomain) Register(ctx context.Context, input model.RegisterRequest) (*model.User, error) {
 	// Check if user exists
 	db := s.databasePort.Auth()
-	users, err := db.FindUserByFilter(ctx, model.UserFilter{Emails: []string{input.Email}}, false)
+
+	existingUser, err := db.FindUserByEmail(ctx, input.Email)
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to check existing user")
+		return nil, stacktrace.Propagate(err, "failed to check existing email")
 	}
-	if len(users) > 0 {
+	if existingUser != nil {
 		return nil, stacktrace.NewError("email already registered")
+	}
+
+	existingUser, err = db.FindUserByUsername(ctx, input.Username)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to check existing username")
+	}
+	if existingUser != nil {
+		return nil, stacktrace.NewError("username already taken")
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -46,31 +55,24 @@ func (s *authDomain) Register(ctx context.Context, input model.UserInput) (*mode
 		return nil, stacktrace.Propagate(err, "failed to hash password")
 	}
 
-	roleID := uuid.Nil
-	userRole := model.RoleTenantViewer // Default
+	roleIDStr := ""
+	userRole := model.UserRoleViewer // Default
 
 	// Find default role
-	// This assumes roles are seeded.
-	role, err := db.FindRoleByName(ctx, string(model.RoleTenantViewer))
+	role, err := db.FindRoleByName(ctx, string(model.UserRoleViewer))
 	if err == nil && role != nil {
-		roleID = role.ID
-		userRole = model.RoleTenantViewer
-	} else {
-		// Fallback for older seed data name 'viewer'
-		if role, err := db.FindRoleByName(ctx, "viewer"); err == nil && role != nil {
-			roleID = role.ID
-			userRole = model.RoleTenantViewer
-		}
+		roleIDStr = role.ID
+		userRole = model.UserRoleViewer
 	}
 
 	newUser := model.User{
-		ID:                uuid.New(),
+		ID:                uuid.New().String(),
 		Username:          input.Username,
 		Email:             input.Email,
 		EncryptedPassword: string(hashed),
 		Fullname:          input.Fullname,
 		Status:            model.UserStatusActive,
-		RoleID:            &roleID,
+		RoleID:            &roleIDStr,
 		UserRole:          userRole,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
@@ -86,19 +88,27 @@ func (s *authDomain) Register(ctx context.Context, input model.UserInput) (*mode
 
 	return &newUser, nil
 }
+
 func (s *authDomain) Login(ctx context.Context, identifier, password string) (*model.User, string, error) {
 	db := s.databasePort.Auth()
-	users, err := db.FindUserByFilter(ctx, model.UserFilter{
-		Emails:    []string{identifier},
-		Usernames: []string{identifier},
-	}, false)
+
+	// Try to find by email first
+	user, err := db.FindUserByEmail(ctx, identifier)
 	if err != nil {
-		return nil, "", stacktrace.Propagate(err, "failed to find user")
+		return nil, "", stacktrace.Propagate(err, "failed to find user by email")
 	}
-	if len(users) == 0 {
+
+	// If not found by email, try username
+	if user == nil {
+		user, err = db.FindUserByUsername(ctx, identifier)
+		if err != nil {
+			return nil, "", stacktrace.Propagate(err, "failed to find user by username")
+		}
+	}
+
+	if user == nil {
 		return nil, "", stacktrace.NewError("invalid credentials")
 	}
-	user := users[0]
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.EncryptedPassword), []byte(password)); err != nil {
 		return nil, "", stacktrace.NewError("invalid credentials")
@@ -110,7 +120,7 @@ func (s *authDomain) Login(ctx context.Context, identifier, password string) (*m
 
 	// Generate JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":      user.ID.String(),
+		"sub":      user.ID,
 		"username": user.Username,
 		"role":     user.UserRole,
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
@@ -126,7 +136,7 @@ func (s *authDomain) Login(ctx context.Context, identifier, password string) (*m
 		return nil, "", stacktrace.Propagate(err, "failed to sign token")
 	}
 
-	return &user, tokenString, nil
+	return user, tokenString, nil
 }
 
 func (s *authDomain) ValidateToken(ctx context.Context, tokenString string) (*model.User, error) {
@@ -157,19 +167,23 @@ func (s *authDomain) ValidateToken(ctx context.Context, tokenString string) (*mo
 			return nil, stacktrace.Propagate(err, "invalid user id in token")
 		}
 
-		// Optionally check DB if user still exists/active
+		// Check DB if user still exists/active
 		db := s.databasePort.Auth()
-		users, err := db.FindUserByFilter(ctx, model.UserFilter{IDs: []uuid.UUID{userID}}, false)
-		if err != nil || len(users) == 0 {
+		user, err := db.FindUserByID(ctx, userID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to find user")
+		}
+		if user == nil {
 			return nil, stacktrace.NewError("user not found")
 		}
 
-		if users[0].Status != model.UserStatusActive {
+		if user.Status != model.UserStatusActive {
 			return nil, stacktrace.NewError("user is inactive")
 		}
 
-		return &users[0], nil
+		return user, nil
 	}
 
 	return nil, stacktrace.NewError("invalid token")
 }
+

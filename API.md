@@ -1,249 +1,295 @@
-# MikroBill API Documentation
+# MikroOps API Documentation
+
+Comprehensive API documentation for MikroOps Multi-Tenant Billing & Monitoring System.
 
 ## Table of Contents
-1. [General Information](#general-information)
-2. [Authentication](#authentication)
-3. [Internal Management](#internal-management)
-   - [Tenant Management](#tenant-management)
-   - [Client Management](#client-management)
-   - [MikroTik Devices](#mikrotik-devices)
-   - [PPP Secrets Management](#ppp-secrets-management)
-   - [PPP Profiles Management](#ppp-profiles-management)
-   - [System Profiles Management](#system-profiles-management)
-   - [Customer Management](#customer-management)
-   - [Monitoring](#monitoring)
-4. [Callbacks](#callbacks)
-5. [V1 Client API](#v1-client-api)
+1. [Base Configuration](#base-configuration)
+2. [Authentication](#1-authentication)
+3. [Tenant Management](#2-tenant-management)
+4. [Client Operations](#3-client-operations)
+5. [MikroTik Device Management](#4-mikrotik-device-management)
+6. [PPP Management](#5-ppp-management)
+7. [Billing Profiles](#6-billing-profiles)
+8. [Customer Management](#7-customer-management)
+9. [Monitoring & Real-time Stats](#8-monitoring--real-time-stats)
+10. [Callbacks & System](#9-callbacks--system)
 
 ---
 
-## General Information
+## Base Configuration
+*   **Base URL:** `http://localhost:8000/v1`
+*   **Format:** All responses follow the standard `model.Response` structure.
 
-### Base URL
-The API base URL is: `/v1`
-
-### Authentication
-- Internal endpoints require `X-Client-Key` header or session authentication.
-- Authorization is enforced by Tenant ID and User Role.
-- Client API endpoints require client authentication via `X-Client-Key`.
-
-### Response Format
-All responses follow a standard structure:
+### Standard Response Structure
 ```json
 {
   "success": true,
-  "data": {},
+  "data": null,
   "metadata": {
-    "total": 100,
-    "limit": 10,
+    "total": 0,
+    "limit": 0,
     "offset": 0
   },
   "error": null
 }
 ```
 
-### WebSocket Endpoints
-- `/v1/internal/monitor/traffic/:interface` - Real-time traffic monitoring
-- `/v1/internal/customer/:id/traffic/stream` - Customer-specific traffic streaming
-- `/v1/internal/customer/:id/ping/stream` - Continuous ICMP ping monitoring
+### Required Headers
+*   `Authorization`: `Bearer <jwt_token>` (Required for all `/internal/*` routes)
+*   `Content-Type`: `application/json`
+*   `X-Tenant-ID`: `<uuid>`
+    *   **Required** for **Super Admins** to switch context to a specific tenant.
+    *   Derived automatically for regular Users.
 
 ---
 
-## Authentication
+## 1. Authentication
+Public endpoints for identity management.
 
-### POST `/v1/auth/login`
-**Description:** Authenticate a user and receive a session token.
-**No Authentication Required**
-**Request Body:**
-```json
-{
-  "username": "admin",
-  "password": "password"
-}
-```
-**Response Data:**
-```json
-{
-  "id": "uuid",
-  "username": "admin",
-  "email": "admin@example.com",
-  "role": "admin",
-  "api_token": "token_string"
-}
-```
+### Login
+*   **Path:** `POST /auth/login`
+*   **Request Body:**
+    ```json
+    {
+      "email": "admin@example.com", // Optional
+      "username": "admin",         // Required if email is empty
+      "password": "password123"
+    }
+    ```
+*   **Response (Data):**
+    ```json
+    {
+      "id": "uuid",
+      "username": "admin",
+      "email": "admin@example.com",
+      "fullname": "Administrator",
+      "user_role": "admin",
+      "role_id": "uuid",
+      "api_token": "jwt_string"
+    }
+    ```
 
-### POST `/v1/auth/register`
-**Description:** Register a new user.
-**No Authentication Required**
-**Request Body:**
-```json
-{
-  "username": "newuser",
-  "email": "user@example.com",
-  "password": "securepassword",
-  "fullname": "New User",
-  "phone": "08123456789",
-  "role_id": "uuid"
-}
-```
-
----
-
-## Internal Management
-
-### Tenant Management
-
-#### POST `/v1/internal/tenant`
-**Description:** Create a new tenant.
-**Authentication Required:** Internal Auth (Super Admin)
-
-#### GET `/v1/internal/tenant/list`
-**Description:** List all tenants with pagination.
-
-#### GET `/v1/internal/tenant/:id`
-**Description:** Get tenant details by ID.
-
-#### PUT `/v1/internal/tenant/:id`
-**Description:** Update tenant configuration and limits.
-
-#### DELETE `/v1/internal/tenant/:id`
-**Description:** Soft-delete a tenant.
-
-#### GET `/v1/internal/tenant/:id/stats`
-**Description:** Get usage statistics for a tenant (device count, user count, etc.).
-
-### Client Management
-
-#### POST `/v1/internal/client-upsert`
-**Description:** Create or update a client (API consumer).
-
-#### POST `/v1/internal/client-find`
-**Description:** Search for clients by name or ID.
-
-#### DELETE `/v1/internal/client-delete`
-**Description:** Delete clients by list of IDs.
-
-### MikroTik Devices
-
-#### POST `/v1/internal/mikrotik`
-**Description:** Add a new MikroTik device to the system.
-
-#### POST `/v1/internal/mikrotik/list`
-**Description:** List MikroTik devices with filters.
-
-#### GET `/v1/internal/mikrotik/active`
-**Description:** Get the currently active/selected MikroTik device for the browser session.
-
-#### GET `/v1/internal/mikrotik/:id`
-**Description:** Get device details.
-
-#### PUT `/v1/internal/mikrotik/:id`
-**Description:** Update device connection details.
-
-#### DELETE `/v1/internal/mikrotik/:id`
-**Description:** Remove device from system.
-
-#### PATCH `/v1/internal/mikrotik/:id/status`
-**Description:** Update device reachability status.
-
-#### PATCH `/v1/internal/mikrotik/:id/activate`
-**Description:** Set this device as the active gateway for subsequent commands.
-
-### PPP Secrets Management
-
-#### POST `/v1/internal/ppp/secret`
-**Description:** Create a direct PPP secret on MikroTik.
-
-#### GET `/v1/internal/ppp/secret/:id`
-**Description:** Fetch secret directly from RouterOS.
-
-#### PUT `/v1/internal/ppp/secret/:id`
-**Description:** Update secret configuration.
-
-#### DELETE `/v1/internal/ppp/secret/:id`
-**Description:** Remove secret from MikroTik.
-
-#### GET `/v1/internal/ppp/secret/list`
-**Description:** List all secrets from the active MikroTik.
-
-### PPP Profiles Management
-
-#### POST `/v1/internal/ppp/profile`
-**Description:** Create a direct PPP profile on MikroTik.
-
-#### GET `/v1/internal/ppp/profile/:id`
-**Description:** Fetch profile from RouterOS.
-
-#### PUT `/v1/internal/ppp/profile/:id`
-**Description:** Update profile configuration.
-
-#### DELETE `/v1/internal/ppp/profile/:id`
-**Description:** Remove profile from MikroTik.
-
-#### GET `/v1/internal/ppp/profile/list`
-**Description:** List all profiles from the active MikroTik.
-
-### System Profiles Management
-*Note: These are managed by the application and synchronized to MikroTik.*
-
-#### POST `/v1/internal/profile`
-**Description:** Create a system profile (Plan).
-
-#### GET `/v1/internal/profile/list`
-**Description:** List all available plans.
-
-#### GET `/v1/internal/profile/:id`
-**Description:** Get plan details.
-
-#### PUT `/v1/internal/profile/:id`
-**Description:** Update plan and sync change to MikroTik.
-
-#### DELETE `/v1/internal/profile/:id`
-**Description:** Delete plan and remove from MikroTik.
-
-### Customer Management
-
-#### POST `/v1/internal/customer`
-**Description:** Create a new customer and provision on MikroTik.
-
-#### GET `/v1/internal/customer/:id`
-**Description:** Get customer profile and service status.
-
-#### GET `/v1/internal/customer/list`
-**Description:** List customers with pagination.
-
-#### PUT `/v1/internal/customer/:id`
-**Description:** Update customer info or plan.
-
-#### DELETE `/v1/internal/customer/:id`
-**Description:** Suspend or delete customer account.
-
-#### GET `/v1/internal/customer/:id/ping`
-**Description:** Trigger ICMP ping from RouterOS to customer IP.
-
-### Monitoring
-
-#### GET `/v1/internal/monitor/traffic/:interface` (WebSocket)
-**Description:** Stream real-time PPS/BPS for a physical interface.
-
-#### GET `/v1/internal/customer/:id/traffic/stream` (WebSocket)
-**Description:** Stream real-time traffic specifically for a customer's dynamic interface.
+### Register
+*   **Path:** `POST /auth/register`
+*   **Request Body (`model.RegisterRequest`):**
+    ```json
+    {
+      "username": "newuser",
+      "email": "user@example.com",
+      "password": "strongpassword",
+      "fullname": "New User",
+      "phone": "08123456789"
+    }
+    ```
+*   **Response (Data):** Returns the created `User` object.
 
 ---
 
-## Callbacks
-*Used by MikroTik scripts for event notifications.*
+## 2. Tenant Management
+Super Admin routes for managing platform tenants.
 
-### POST `/v1/callbacks/pppoe/up`
-**Description:** Notify application when a PPPoE session starts.
+### Create Tenant
+*   **Path:** `POST /internal/tenant`
+*   **Request Body (`model.CreateTenantRequest`):**
+    ```json
+    {
+      "name": "ISP Bandung",
+      "subdomain": "ispbdg",
+      "company_name": "PT ISP Digital",
+      "phone": "022-123456",
+      "timezone": "Asia/Jakarta",
+      "max_mikrotiks": 10,
+      "max_network_users": 5000,
+      "features": { "api_access": true }
+    }
+    ```
 
-### POST `/v1/callbacks/pppoe/down`
-**Description:** Notify application when a PPPoE session ends.
+### List Tenants
+*   **Path:** `GET /internal/tenant/list`
+*   **Query Params:** `status`, `is_active`, `search`, `limit`, `offset`
+*   **Response (Data):** `[]model.TenantResponse`
+
+### Get Tenant
+*   **Path:** `GET /internal/tenant/:id`
+*   **Response (Data):** Full `model.TenantResponse` including limits and features.
 
 ---
 
-## V1 Client API
+## 3. Client Operations
+Generic operations for managing linked clients/entities.
 
-### GET `/v1/client/ping`
-**Description:** Public health check for clients.
-**Headers Required:** `X-Client-Key`
+### Upsert Clients
+*   **Path:** `POST /internal/client-upsert`
+*   **Request Body:** `[]model.ClientInput`
+*   **Response (Data):** List of upserted clients.
+
+### Find Clients
+*   **Path:** `POST /internal/client-find`
+*   **Request Body:** `model.ClientFilter`
+*   **Response (Data):** List of matching clients.
+
+---
+
+## 4. MikroTik Device Management
+Requires Tenant Context. Traced via `MikrotikHttpPort`.
+
+### Create Device
+*   **Path:** `POST /internal/mikrotik`
+*   **Request Body (`model.CreateMikrotikRequest`):**
+    ```json
+    {
+      "name": "Router-01",
+      "host": "103.11.22.33",
+      "port": 8728,
+      "api_username": "billing",
+      "api_password": "securepassword",
+      "location": "IDC Cyber"
+    }
+    ```
+
+### List Devices
+*   **Path:** `POST /internal/mikrotik/list`
+*   **Note:** Uses POST for potential complex filtering in the future, currently returns all.
+*   **Response (Data):** `[]model.MikrotikResponse`
+
+### Get Device By ID
+*   **Path:** `GET /internal/mikrotik/:id`
+*   **Response (Data):**
+    ```json
+    {
+      "id": "uuid",
+      "name": "Router-01",
+      "host": "103.11.22.33",
+      "status": "online",
+      "total_profiles": 5,
+      "total_customers": 120,
+      "last_sync": "2024-01-01T12:00:00Z"
+    }
+    ```
+
+### Set Active Device
+*   **Path:** `PATCH /internal/mikrotik/:id/activate`
+*   **Description:** Sets this router as the primary active device for the tenant.
+
+---
+
+## 5. PPP Management
+Direct MikroTik API calls for PPP Secrets and Profiles.
+
+### Create PPP Secret
+*   **Path:** `POST /internal/ppp/secret`
+*   **Request Body (`model.PPPSecretInput`):**
+    ```json
+    {
+      "name": "customer_user",
+      "password": "secretpassword",
+      "profile": "Plan-10M",
+      "service": "pppoe",
+      "comment": "John Doe"
+    }
+    ```
+
+### List PPP Secrets
+*   **Path:** `GET /internal/ppp/secret/list`
+*   **Response (Data):** `[]model.PPPSecret`
+
+### List PPP Profiles
+*   **Path:** `GET /internal/ppp/profile/list`
+*   **Response (Data):** `[]model.PPPProfile`
+
+---
+
+## 6. Billing Profiles
+System-level billing plans mapped to MikroTik configurations.
+
+### Create Profile
+*   **Path:** `POST /internal/profile`
+*   **Request Body (`model.CreateProfileRequest`):**
+    ```json
+    {
+      "name": "Premium 50M",
+      "type": "pppoe",
+      "price": 350000,
+      "rate_limit": "50M/50M",
+      "local_address": "10.0.0.1",
+      "remote_address": "pool-pppoe"
+    }
+    ```
+
+### List Profiles
+*   **Path:** `GET /internal/profile/list`
+*   **Response (Data):** `[]model.ProfileResponse`
+
+---
+
+## 7. Customer Management
+End-user subscription management.
+
+### Create Customer
+*   **Path:** `POST /internal/customer`
+*   **Request Body (`model.CreateCustomerRequest`):**
+    ```json
+    {
+      "username": "johndoe",
+      "name": "John Doe",
+      "phone": "0812345678",
+      "password": "p",
+      "profile_id": "uuid",
+      "service_type": "pppoe",
+      "billing_day": 5
+    }
+    ```
+
+### Get Customer
+*   **Path:** `GET /internal/customer/:id`
+*   **Response (Data):** Full `model.CustomerResponse` including `mikrotik` info and `services` history.
+
+---
+
+## 8. Monitoring & Real-time Stats
+WebSocket and high-frequency polling routes.
+
+### Real-time Traffic Stream
+*   **Path:** `GET /internal/customer/:id/traffic/stream`
+*   **Protocol:** WebSocket
+*   **Output (`model.CustomerTrafficData`):**
+    ```json
+    {
+      "rx_bits_per_second": "5240000",
+      "tx_bits_per_second": "1200000",
+      "download_speed": "5.24 Mbps",
+      "upload_speed": "1.20 Mbps",
+      "timestamp": "..."
+    }
+    ```
+
+### On-Demand Ping
+*   **Path:** `GET /internal/customer/:id/ping`
+*   **Response (Data):** Returns a one-time ping result summary.
+
+### Ping Stream
+*   **Path:** `GET /internal/customer/:id/ping/stream`
+*   **Protocol:** WebSocket
+*   **Output:** Continuous `model.PingResponse` frames until closure.
+
+---
+
+## 9. Callbacks & System
+
+### PPPoE On-Up Callback
+*   **Path:** `POST /callbacks/pppoe/up`
+*   **Request Body (`model.PPPoEEventInput`):**
+    ```json
+    {
+      "name": "johndoe",
+      "interface": "pppoe-johndoe",
+      "remote_address": "192.168.100.50"
+    }
+    ```
+
+### System Resource Ping
+*   **Path:** `GET /client/ping`
+*   **Output:** Returns Backend CPU, RAM, and Core usage stats.
+
+---
+*Generated by tracing: Handler -> Port -> Domain -> Model.*

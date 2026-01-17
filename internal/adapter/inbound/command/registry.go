@@ -1,8 +1,8 @@
 package command_inbound_adapter
 
 import (
-	"prabogo/internal/domain"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type adapter struct {
@@ -20,3 +20,4 @@ func NewAdapter(
 func (s *adapter) Client() inbound_port.ClientCommandPort {
 	return NewClientAdapter(s.domain)
 }
+

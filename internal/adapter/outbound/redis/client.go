@@ -3,9 +3,9 @@ package redis_outbound_adapter
 import (
 	"context"
 	"encoding/json"
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
-	"prabogo/utils/redis"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
+	"MikrOps/utils/redis"
 
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 )
@@ -38,3 +38,4 @@ func (adapter *clientAdapter) Get(ctx context.Context, bearerKey string) (model.
 
 	return client, nil
 }
+

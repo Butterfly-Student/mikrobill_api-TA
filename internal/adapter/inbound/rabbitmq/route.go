@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/log"
-	"prabogo/utils/rabbitmq"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/log"
+	"MikrOps/utils/rabbitmq"
 )
 
 func InitRoute(
@@ -43,3 +43,4 @@ func InitRoute(
 		log.WithContext(ctx).Info("message subscribe not found")
 	}
 }
+

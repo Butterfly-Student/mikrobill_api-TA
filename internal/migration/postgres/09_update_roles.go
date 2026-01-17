@@ -18,11 +18,10 @@ func upUpdateRoles(ctx context.Context, tx *sql.Tx) error {
 
 		// Create new enum with updated values
 		`CREATE TYPE user_role AS ENUM (
-			'SUPER_ADMIN',
-			'TENANT_OWNER',
-			'TENANT_ADMIN',
-			'TENANT_TECHNICIAN',
-			'TENANT_VIEWER'
+			'superadmin',
+			'admin',
+			'technician',
+			'viewer'
 		);`,
 
 		// Drop default before altering column type
@@ -33,11 +32,11 @@ func upUpdateRoles(ctx context.Context, tx *sql.Tx) error {
 		ALTER COLUMN user_role TYPE user_role 
 		USING (
 			CASE user_role::text
-				WHEN 'superadmin' THEN 'SUPER_ADMIN'::user_role
-				WHEN 'admin' THEN 'TENANT_ADMIN'::user_role
-				WHEN 'technician' THEN 'TENANT_TECHNICIAN'::user_role
-				WHEN 'viewer' THEN 'TENANT_VIEWER'::user_role
-				ELSE 'TENANT_VIEWER'::user_role
+				WHEN 'superadmin' THEN 'superadmin'::user_role
+				WHEN 'admin' THEN 'admin'::user_role
+				WHEN 'technician' THEN 'technician'::user_role
+				WHEN 'viewer' THEN 'viewer'::user_role
+				ELSE 'viewer'::user_role
 			END
 		);`,
 
@@ -45,10 +44,10 @@ func upUpdateRoles(ctx context.Context, tx *sql.Tx) error {
 		`DROP TYPE user_role_old;`,
 
 		// Update default value
-		`ALTER TABLE users ALTER COLUMN user_role SET DEFAULT 'TENANT_VIEWER';`,
+		`ALTER TABLE users ALTER COLUMN user_role SET DEFAULT 'viewer';`,
 
 		// Update existing superadmin user
-		`UPDATE users SET user_role = 'SUPER_ADMIN' WHERE is_superadmin = true;`,
+		`UPDATE users SET user_role = 'superadmin' WHERE is_superadmin = true;`,
 	}
 
 	for _, query := range queries {

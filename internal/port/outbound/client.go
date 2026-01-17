@@ -2,7 +2,7 @@ package outbound_port
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 //go:generate mockgen -source=client.go -destination=./../../../tests/mocks/port/mock_client.go
@@ -21,3 +21,4 @@ type ClientCachePort interface {
 	Set(ctx context.Context, data model.Client) error
 	Get(ctx context.Context, bearerKey string) (model.Client, error)
 }
+

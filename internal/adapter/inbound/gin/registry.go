@@ -1,8 +1,8 @@
 package gin_inbound_adapter
 
 import (
-	"prabogo/internal/domain"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type adapter struct {
@@ -68,3 +68,4 @@ func (s *adapter) Callback() inbound_port.CallbackHttpPort {
 func (s *adapter) Tenant() inbound_port.TenantPort {
 	return NewTenantAdapter(s.domain)
 }
+

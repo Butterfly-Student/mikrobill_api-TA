@@ -6,15 +6,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type MikrotikDomain interface {
-	Create(ctx context.Context, input model.MikrotikInput) (*model.Mikrotik, error)
+	Create(ctx context.Context, input model.CreateMikrotikRequest) (*model.Mikrotik, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Mikrotik, error)
-	List(ctx context.Context, filter model.MikrotikFilter) ([]model.Mikrotik, error)
-	Update(ctx context.Context, id uuid.UUID, input model.MikrotikUpdateInput) (*model.Mikrotik, error)
+	List(ctx context.Context) ([]model.Mikrotik, error)
+	Update(ctx context.Context, id uuid.UUID, input model.UpdateMikrotikRequest) (*model.Mikrotik, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status model.MikrotikStatus) error
 	UpdateLastSync(ctx context.Context, id uuid.UUID) error
@@ -35,7 +35,7 @@ func NewMikrotikDomain(
 	}
 }
 
-func (d *mikrotikDomain) Create(ctx context.Context, input model.MikrotikInput) (*model.Mikrotik, error) {
+func (d *mikrotikDomain) Create(ctx context.Context, input model.CreateMikrotikRequest) (*model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
 	result, err := mikrotikPort.Create(ctx, input)
 	if err != nil {
@@ -53,16 +53,16 @@ func (d *mikrotikDomain) GetByID(ctx context.Context, id uuid.UUID) (*model.Mikr
 	return result, nil
 }
 
-func (d *mikrotikDomain) List(ctx context.Context, filter model.MikrotikFilter) ([]model.Mikrotik, error) {
+func (d *mikrotikDomain) List(ctx context.Context) ([]model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
-	results, err := mikrotikPort.List(ctx, filter)
+	results, err := mikrotikPort.List(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list mikrotik")
 	}
 	return results, nil
 }
 
-func (d *mikrotikDomain) Update(ctx context.Context, id uuid.UUID, input model.MikrotikUpdateInput) (*model.Mikrotik, error) {
+func (d *mikrotikDomain) Update(ctx context.Context, id uuid.UUID, input model.UpdateMikrotikRequest) (*model.Mikrotik, error) {
 	mikrotikPort := d.databasePort.Mikrotik()
 	result, err := mikrotikPort.Update(ctx, id, input)
 	if err != nil {
@@ -124,3 +124,4 @@ func (d *mikrotikDomain) DeactivateAll(ctx context.Context) error {
 	}
 	return nil
 }
+

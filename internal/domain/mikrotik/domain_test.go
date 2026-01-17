@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"prabogo/internal/model"
-	mock_outbound_port "prabogo/tests/mocks/port"
+	"MikrOps/internal/model"
+	mock_outbound_port "MikrOps/tests/mocks/port"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -82,3 +82,4 @@ func TestMikrotik(t *testing.T) {
 		})
 	})
 }
+

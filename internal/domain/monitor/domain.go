@@ -1,8 +1,8 @@
 package monitor
 
 import (
-	inbound_port "prabogo/internal/port/inbound"
-	outbound_port "prabogo/internal/port/outbound"
+	inbound_port "MikrOps/internal/port/inbound"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type monitorDomain struct {
@@ -22,3 +22,4 @@ func NewMonitorDomain(
 		cachePort:             cachePort,
 	}
 }
+

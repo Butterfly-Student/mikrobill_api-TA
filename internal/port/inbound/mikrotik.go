@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 type MikrotikHttpPort interface {
@@ -20,10 +20,10 @@ type MikrotikHttpPort interface {
 }
 
 type MikrotikDomain interface {
-	Create(ctx context.Context, input model.MikrotikInput) (*model.Mikrotik, error)
+	Create(ctx context.Context, input model.CreateMikrotikRequest) (*model.Mikrotik, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Mikrotik, error)
-	List(ctx context.Context, filter model.MikrotikFilter) ([]model.Mikrotik, error)
-	Update(ctx context.Context, id uuid.UUID, input model.MikrotikUpdateInput) (*model.Mikrotik, error)
+	List(ctx context.Context) ([]model.Mikrotik, error)
+	Update(ctx context.Context, id uuid.UUID, input model.UpdateMikrotikRequest) (*model.Mikrotik, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status model.MikrotikStatus) error
 	UpdateLastSync(ctx context.Context, id uuid.UUID) error
@@ -31,3 +31,4 @@ type MikrotikDomain interface {
 	SetActive(ctx context.Context, id uuid.UUID) error
 	DeactivateAll(ctx context.Context) error
 }
+

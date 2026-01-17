@@ -10,9 +10,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	mock_outbound_port "prabogo/tests/mocks/port"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	mock_outbound_port "MikrOps/tests/mocks/port"
 )
 
 func TestClient(t *testing.T) {
@@ -218,3 +218,4 @@ func TestClient(t *testing.T) {
 		})
 	})
 }
+

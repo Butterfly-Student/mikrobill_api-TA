@@ -6,8 +6,8 @@ import (
 	"github.com/palantir/stacktrace"
 	"github.com/redis/go-redis/v9"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type ClientDomain interface {
@@ -139,3 +139,4 @@ func (s *clientDomain) IsExists(ctx context.Context, bearerKey string) (bool, er
 
 	return exists, nil
 }
+

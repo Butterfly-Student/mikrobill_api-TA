@@ -1,8 +1,8 @@
 package rabbitmq_inbound_adapter
 
 import (
-	"prabogo/internal/domain"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type adapter struct {
@@ -20,3 +20,4 @@ func NewAdapter(
 func (a *adapter) Client() inbound_port.ClientMessagePort {
 	return NewClientAdapter(a.domain)
 }
+

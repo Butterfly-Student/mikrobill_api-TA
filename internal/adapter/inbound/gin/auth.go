@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
 )
 
 type authAdapter struct {
@@ -72,7 +72,7 @@ func (a *authAdapter) Register(i any) {
 	c := i.(*gin.Context)
 	ctx := activity.NewContext(c.Request.Context(), "http_register")
 
-	var input model.UserInput
+	var input model.RegisterRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, model.Response{
 			Success: false,

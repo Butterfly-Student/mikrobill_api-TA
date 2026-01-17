@@ -3,9 +3,9 @@ package rabbitmq_outbound_adapter
 import (
 	"context"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
-	"prabogo/utils/rabbitmq"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
+	"MikrOps/utils/rabbitmq"
 )
 
 type clientAdapter struct{}
@@ -22,3 +22,4 @@ func (adapter *clientAdapter) PublishUpsert(ctx context.Context, datas []model.C
 
 	return nil
 }
+

@@ -5,8 +5,8 @@
 package mock_outbound_port
 
 import (
-	model "prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	model "MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 	reflect "reflect"
 
 	routeros "github.com/go-routeros/routeros/v3"
@@ -137,3 +137,4 @@ func (mr *MockMikrotikClientFactoryMockRecorder) NewClient(mikrotik interface{})
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewClient", reflect.TypeOf((*MockMikrotikClientFactory)(nil).NewClient), mikrotik)
 }
+

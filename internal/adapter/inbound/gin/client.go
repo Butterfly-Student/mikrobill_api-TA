@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
 )
 
 type clientAdapter struct {
@@ -111,4 +111,5 @@ func (h *clientAdapter) Delete(a any) error {
 	})
 	return nil
 }
+
 

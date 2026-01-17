@@ -5,7 +5,7 @@
 package mock_outbound_port
 
 import (
-	model "prabogo/internal/model"
+	model "MikrOps/internal/model"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -150,3 +150,4 @@ func (mr *MockProfileDatabasePortMockRecorder) UpdateMikrotikObjectID(tenantID, 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMikrotikObjectID", reflect.TypeOf((*MockProfileDatabasePort)(nil).UpdateMikrotikObjectID), tenantID, profileID, objectID)
 }
+

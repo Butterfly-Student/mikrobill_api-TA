@@ -5,7 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 func InitRoute(
@@ -28,7 +29,7 @@ func InitRoute(
 	engine.Use(middlewareAdapter.CORS())
 
 	// 5. Rate Limiting (Global)
-	engine.Use(middlewareAdapter.RateLimit())
+	// engine.Use(middlewareAdapter.RateLimit())
 
 	// 9. Request Validation (Global Validator)
 	engine.Use(middlewareAdapter.Validator())
@@ -54,8 +55,9 @@ func InitRoute(
 		}
 	})
 
-	// 12. Tenant Management (GLOBAL - No tenant isolation needed)
+	// 12. Tenant Management (GLOBAL - Restricted to SuperAdmin)
 	tenant := internal.Group("/tenant")
+	tenant.Use(middlewareAdapter.RequireRole(string(model.UserRoleSuperAdmin)))
 	{
 		tenant.POST("", func(c *gin.Context) { port.Tenant().CreateTenant(c) })
 		tenant.GET("/list", func(c *gin.Context) { port.Tenant().ListTenants(c) })
@@ -148,3 +150,4 @@ func InitRoute(
 		port.Ping().GetResource(c)
 	})
 }
+

@@ -58,7 +58,7 @@ func upInitSystem(ctx context.Context, tx *sql.Tx) error {
 
 		`DO $$ BEGIN
 			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-				CREATE TYPE user_role AS ENUM ('superadmin', 'admin', 'technician', 'sales', 'cs', 'finance', 'viewer');
+				CREATE TYPE user_role AS ENUM ('superadmin', 'admin', 'technician', 'viewer');
 			END IF;
 		END $$;`,
 

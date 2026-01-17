@@ -3,7 +3,7 @@ package outbound_port
 //go:generate mockgen -source=mikrotik_client.go -destination=./../../../tests/mocks/port/mock_mikrotik_client.go
 
 import (
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 
 	"github.com/go-routeros/routeros/v3"
 	"github.com/go-routeros/routeros/v3/proto"
@@ -19,3 +19,4 @@ type MikrotikClientPort interface {
 type MikrotikClientFactory interface {
 	NewClient(mikrotik *model.Mikrotik) (MikrotikClientPort, error)
 }
+

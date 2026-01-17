@@ -10,9 +10,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.uber.org/zap"
 
-	"prabogo/internal/domain/tenant"
-	"prabogo/internal/model"
-	mock_outbound_port "prabogo/tests/mocks/port"
+	"MikrOps/internal/domain/tenant"
+	"MikrOps/internal/model"
+	mock_outbound_port "MikrOps/tests/mocks/port"
 )
 
 func TestTenant(t *testing.T) {
@@ -238,3 +238,4 @@ func TestTenant(t *testing.T) {
 		})
 	})
 }
+

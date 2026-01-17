@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 // Context keys for storing tenant-related data
@@ -127,3 +127,4 @@ func WithTenantContext(ctx context.Context, tenantID uuid.UUID, user *model.User
 	ctx = SetSuperAdmin(ctx, isSuperAdmin)
 	return ctx
 }
+

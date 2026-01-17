@@ -5,7 +5,7 @@
 package mock_outbound_port
 
 import (
-	outbound_port "prabogo/internal/port/outbound"
+	outbound_port "MikrOps/internal/port/outbound"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -61,3 +61,4 @@ func (mr *MockCachePortMockRecorder) PubSub() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PubSub", reflect.TypeOf((*MockCachePort)(nil).PubSub))
 }
+

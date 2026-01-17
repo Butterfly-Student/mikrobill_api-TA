@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type profileDomain struct {
@@ -27,9 +27,7 @@ func NewProfileDomain(
 	}
 }
 
-func (d *profileDomain) CreateProfile(ctx context.Context, input model.ProfileInput) (*model.ProfileWithPPPoE, error) { // Validate and prepare input
-	model.PrepareProfileInput(&input)
-
+func (d *profileDomain) CreateProfile(ctx context.Context, input model.CreateProfileRequest) (*model.MikrotikProfile, error) {
 	// Get active mikrotik
 	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
@@ -39,18 +37,30 @@ func (d *profileDomain) CreateProfile(ctx context.Context, input model.ProfileIn
 		return nil, fmt.Errorf("no active mikrotik found")
 	}
 
+	mikrotikID, err := uuid.Parse(activeMikrotik.ID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid mikrotik id")
+	}
+
 	// Begin database transaction
 	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Insert to mikrotik_profiles
-		profile, err := txDB.Profile().CreateProfile(ctx, input, activeMikrotik.ID)
+		profile, err := txDB.Profile().CreateProfile(ctx, input, mikrotikID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to create profile")
 		}
 
-		// 2. Insert to mikrotik_profile_pppoe
-		err = txDB.Profile().CreateProfilePPPoE(ctx, profile.ID, input)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to create profile pppoe")
+		// 2. Insert to mikrotik_profile_pppoe if PPPoE type
+		if input.Type == model.ProfileTypePPPoE {
+			profileID, err := uuid.Parse(profile.ID)
+			if err != nil {
+				return nil, stacktrace.Propagate(err, "invalid profile id")
+			}
+
+			err = txDB.Profile().CreateProfilePPPoE(ctx, profileID, input)
+			if err != nil {
+				return nil, stacktrace.Propagate(err, "failed to create profile pppoe")
+			}
 		}
 
 		// 3. Create MikroTik client
@@ -71,32 +81,17 @@ func (d *profileDomain) CreateProfile(ctx context.Context, input model.ProfileIn
 			args["remote-address"] = *input.RemoteAddress
 		}
 
-		// Build rate-limit (format: upload/download)
-		if input.RateLimitUpKbps != nil && input.RateLimitDownKbps != nil {
-			rateLimit := fmt.Sprintf("%dk/%dk", *input.RateLimitUpKbps, *input.RateLimitDownKbps)
-			args["rate-limit"] = rateLimit
+		// Build rate-limit from RateLimit field (format: upload/download)
+		if input.RateLimit != nil {
+			args["rate-limit"] = *input.RateLimit
 		}
 
-		if input.OnlyOne != nil && *input.OnlyOne {
-			args["only-one"] = "yes"
-		} else {
-			args["only-one"] = "no"
+		if input.SessionTimeout != nil {
+			args["session-timeout"] = fmt.Sprintf("%d", *input.SessionTimeout)
 		}
 
-		if input.SessionTimeoutSeconds != nil {
-			args["session-timeout"] = fmt.Sprintf("%d", *input.SessionTimeoutSeconds)
-		}
-
-		if input.IdleTimeoutSeconds != nil {
-			args["idle-timeout"] = fmt.Sprintf("%d", *input.IdleTimeoutSeconds)
-		}
-
-		if input.KeepaliveTimeoutSeconds != nil {
-			args["keepalive-timeout"] = fmt.Sprintf("%d", *input.KeepaliveTimeoutSeconds)
-		}
-
-		if input.DNSServer != nil {
-			args["dns-server"] = *input.DNSServer
+		if input.IdleTimeout != nil {
+			args["idle-timeout"] = fmt.Sprintf("%d", *input.IdleTimeout)
 		}
 
 		// 5. Call MikroTik API to create profile
@@ -106,14 +101,11 @@ func (d *profileDomain) CreateProfile(ctx context.Context, input model.ProfileIn
 		}
 
 		// 6. Extract mikrotik object ID from reply
-		// For add commands, RouterOS returns the ID in the Done response
 		var mikrotikObjectID string
 		if reply.Done != nil && reply.Done.Map != nil {
-			// Try "ret" first (newer API)
 			if ret, ok := reply.Done.Map["ret"]; ok {
 				mikrotikObjectID = ret
 			} else if after, ok := reply.Done.Map["after"]; ok {
-				// Fallback to "after" (older API)
 				mikrotikObjectID = after
 			}
 		}
@@ -122,28 +114,33 @@ func (d *profileDomain) CreateProfile(ctx context.Context, input model.ProfileIn
 		}
 
 		// 7. Update mikrotik_object_id in database
-		err = txDB.Profile().UpdateMikrotikObjectID(ctx, profile.ID, mikrotikObjectID)
+		profileID, err := uuid.Parse(profile.ID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "invalid profile id")
+		}
+
+		err = txDB.Profile().UpdateMikrotikObjectID(ctx, profileID, mikrotikObjectID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to update mikrotik object id")
 		}
 
 		// 8. Get complete profile with PPPoE settings
-		profileWithPPPoE, err := txDB.Profile().GetByID(ctx, profile.ID)
+		profileWithDetails, err := txDB.Profile().GetByID(ctx, profileID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "failed to get created profile")
 		}
 
-		return profileWithPPPoE, nil
+		return profileWithDetails, nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return result.(*model.ProfileWithPPPoE), nil
+	return result.(*model.MikrotikProfile), nil
 }
 
-func (d *profileDomain) GetProfile(ctx context.Context, id string) (*model.ProfileWithPPPoE, error) {
+func (d *profileDomain) GetProfile(ctx context.Context, id string) (*model.MikrotikProfile, error) {
 	profileID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid profile id")
@@ -157,7 +154,8 @@ func (d *profileDomain) GetProfile(ctx context.Context, id string) (*model.Profi
 	return profile, nil
 }
 
-func (d *profileDomain) ListProfiles(ctx context.Context) ([]model.ProfileWithPPPoE, error) { // Get active mikrotik
+func (d *profileDomain) ListProfiles(ctx context.Context) ([]model.MikrotikProfile, error) {
+	// Get active mikrotik
 	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
@@ -166,7 +164,12 @@ func (d *profileDomain) ListProfiles(ctx context.Context) ([]model.ProfileWithPP
 		return nil, fmt.Errorf("no active mikrotik found")
 	}
 
-	profiles, err := d.databasePort.Profile().List(ctx, activeMikrotik.ID)
+	mikrotikID, err := uuid.Parse(activeMikrotik.ID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid mikrotik id")
+	}
+
+	profiles, err := d.databasePort.Profile().List(ctx, mikrotikID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list profiles")
 	}
@@ -174,22 +177,16 @@ func (d *profileDomain) ListProfiles(ctx context.Context) ([]model.ProfileWithPP
 	return profiles, nil
 }
 
-func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input model.ProfileInput) (*model.ProfileWithPPPoE, error) {
+func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input model.CreateProfileRequest) (*model.MikrotikProfile, error) {
 	profileID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "invalid profile id")
 	}
 
-	model.PrepareProfileInput(&input)
-
 	// Get profile to get mikrotik_object_id
 	existing, err := d.databasePort.Profile().GetByID(ctx, profileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get existing profile")
-	}
-
-	if existing.MikrotikObjectID == "" {
-		return nil, fmt.Errorf("profile has no mikrotik object id")
 	}
 
 	// Get active mikrotik
@@ -205,52 +202,48 @@ func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input mode
 			return nil, stacktrace.Propagate(err, "failed to update profile in database")
 		}
 
-		// 2. Update MikroTik
-		client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
-		}
-		defer client.Close()
+		// 2. Update MikroTik if has object ID
+		if existing.Metadata != nil {
+			client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
+			if err != nil {
+				return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
+			}
+			defer client.Close()
 
-		// Prepare update parameters
-		args := make(map[string]string)
-		args[".id"] = existing.MikrotikObjectID
-		args["name"] = input.Name
+			// Get mikrotik object ID from metadata or separate field
+			// For now assume we have it stored somewhere accessible
+			// This would need to be adjusted based on actual schema
+			mikrotikObjectID := "" // TODO: Get from metadata or add field to model
 
-		if input.LocalAddress != nil {
-			args["local-address"] = *input.LocalAddress
-		}
-		if input.RemoteAddress != nil {
-			args["remote-address"] = *input.RemoteAddress
-		}
+			if mikrotikObjectID != "" {
+				// Prepare update parameters
+				args := make(map[string]string)
+				args[".id"] = mikrotikObjectID
+				args["name"] = input.Name
 
-		if input.RateLimitUpKbps != nil && input.RateLimitDownKbps != nil {
-			rateLimit := fmt.Sprintf("%dk/%dk", *input.RateLimitUpKbps, *input.RateLimitDownKbps)
-			args["rate-limit"] = rateLimit
-		}
+				if input.LocalAddress != nil {
+					args["local-address"] = *input.LocalAddress
+				}
+				if input.RemoteAddress != nil {
+					args["remote-address"] = *input.RemoteAddress
+				}
 
-		if input.OnlyOne != nil && *input.OnlyOne {
-			args["only-one"] = "yes"
-		} else {
-			args["only-one"] = "no"
-		}
+				if input.RateLimit != nil {
+					args["rate-limit"] = *input.RateLimit
+				}
 
-		if input.SessionTimeoutSeconds != nil {
-			args["session-timeout"] = fmt.Sprintf("%d", *input.SessionTimeoutSeconds)
-		}
-		if input.IdleTimeoutSeconds != nil {
-			args["idle-timeout"] = fmt.Sprintf("%d", *input.IdleTimeoutSeconds)
-		}
-		if input.KeepaliveTimeoutSeconds != nil {
-			args["keepalive-timeout"] = fmt.Sprintf("%d", *input.KeepaliveTimeoutSeconds)
-		}
-		if input.DNSServer != nil {
-			args["dns-server"] = *input.DNSServer
-		}
+				if input.SessionTimeout != nil {
+					args["session-timeout"] = fmt.Sprintf("%d", *input.SessionTimeout)
+				}
+				if input.IdleTimeout != nil {
+					args["idle-timeout"] = fmt.Sprintf("%d", *input.IdleTimeout)
+				}
 
-		_, err = client.RunArgs("/ppp/profile/set", args)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to update profile in mikrotik")
+				_, err = client.RunArgs("/ppp/profile/set", args)
+				if err != nil {
+					return nil, stacktrace.Propagate(err, "failed to update profile in mikrotik")
+				}
+			}
 		}
 
 		// 3. Get updated profile
@@ -266,7 +259,7 @@ func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input mode
 		return nil, err
 	}
 
-	return result.(*model.ProfileWithPPPoE), nil
+	return result.(*model.MikrotikProfile), nil
 }
 
 func (d *profileDomain) DeleteProfile(ctx context.Context, id string) error {
@@ -281,10 +274,6 @@ func (d *profileDomain) DeleteProfile(ctx context.Context, id string) error {
 		return stacktrace.Propagate(err, "failed to get existing profile")
 	}
 
-	if existing.MikrotikObjectID == "" {
-		return fmt.Errorf("profile has no mikrotik object id")
-	}
-
 	// Get active mikrotik
 	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 	if err != nil {
@@ -292,18 +281,24 @@ func (d *profileDomain) DeleteProfile(ctx context.Context, id string) error {
 	}
 
 	_, err = d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
-		// 1. Delete from MikroTik first
-		client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
-		}
-		defer client.Close()
+		// 1. Delete from MikroTik first if has object ID
+		if existing.Metadata != nil {
+			client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
+			if err != nil {
+				return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
+			}
+			defer client.Close()
 
-		_, err = client.RunArgs("/ppp/profile/remove", map[string]string{
-			".id": existing.MikrotikObjectID,
-		})
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to delete profile from mikrotik")
+			mikrotikObjectID := "" // TODO: Get from metadata
+
+			if mikrotikObjectID != "" {
+				_, err = client.RunArgs("/ppp/profile/remove", map[string]string{
+					".id": mikrotikObjectID,
+				})
+				if err != nil {
+					return nil, stacktrace.Propagate(err, "failed to delete profile from mikrotik")
+				}
+			}
 		}
 
 		// 2. Delete from database

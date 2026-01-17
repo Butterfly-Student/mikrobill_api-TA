@@ -1,8 +1,8 @@
 package fiber_inbound_adapter
 
 import (
-	"prabogo/internal/domain"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type mikrotikAdapter struct {
@@ -25,3 +25,4 @@ func (h *mikrotikAdapter) Delete(a any) error            { return nil }
 func (h *mikrotikAdapter) UpdateStatus(a any) error      { return nil }
 func (h *mikrotikAdapter) GetActiveMikrotik(a any) error { return nil }
 func (h *mikrotikAdapter) SetActive(a any) error         { return nil }
+

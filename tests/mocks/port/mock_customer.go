@@ -5,7 +5,7 @@
 package mock_outbound_port
 
 import (
-	model "prabogo/internal/model"
+	model "MikrOps/internal/model"
 	reflect "reflect"
 	time "time"
 
@@ -181,3 +181,4 @@ func (mr *MockCustomerDatabasePortMockRecorder) UpdateStatus(tenantID, id, statu
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateStatus), tenantID, id, status, ip, mac, interfaceName)
 }
+

@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
 )
 
 type mikrotikAdapter struct {
@@ -28,7 +28,7 @@ func (h *mikrotikAdapter) Create(a any) error {
 	c := a.(*gin.Context)
 	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_create")
 
-	var input model.MikrotikInput
+	var input model.CreateMikrotikRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		SendError(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
 		return nil
@@ -71,13 +71,7 @@ func (h *mikrotikAdapter) List(a any) error {
 	c := a.(*gin.Context)
 	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_list")
 
-	var filter model.MikrotikFilter
-	if err := c.ShouldBindJSON(&filter); err != nil {
-		// If no body, list all
-		filter = model.MikrotikFilter{}
-	}
-
-	results, err := h.domain.Mikrotik().List(ctx, filter)
+	results, err := h.domain.Mikrotik().List(ctx)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err.Error())
 		return nil
@@ -102,7 +96,7 @@ func (h *mikrotikAdapter) Update(a any) error {
 		return nil
 	}
 
-	var input model.MikrotikUpdateInput
+	var input model.UpdateMikrotikRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, model.Response{
 			Success: false,

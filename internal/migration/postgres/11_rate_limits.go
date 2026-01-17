@@ -73,11 +73,10 @@ func upRateLimits(ctx context.Context, tx *sql.Tx) error {
 
 		// Role-specific limits
 		`INSERT INTO rate_limit_rules (name, description, user_role, requests_per_minute, requests_per_hour, requests_per_day, priority) VALUES
-		('super_admin_limit', 'Super admin unlimited', 'SUPER_ADMIN', 10000, 100000, 1000000, 100),
-		('tenant_owner_limit', 'Tenant owner high limit', 'TENANT_OWNER', 200, 5000, 50000, 90),
-		('tenant_admin_limit', 'Tenant admin limit', 'TENANT_ADMIN', 120, 3000, 30000, 80),
-		('tenant_tech_limit', 'Tenant technician limit', 'TENANT_TECHNICIAN', 100, 2000, 20000, 70),
-		('tenant_viewer_limit', 'Tenant viewer limit', 'TENANT_VIEWER', 60, 1000, 10000, 60)
+		('super_admin_limit', 'Super admin unlimited', 'superadmin', 10000, 100000, 1000000, 100),
+		('admin_limit', 'Admin limit', 'admin', 120, 3000, 30000, 80),
+		('technician_limit', 'Technician limit', 'technician', 100, 2000, 20000, 70),
+		('viewer_limit', 'Viewer limit', 'viewer', 60, 1000, 10000, 60)
 		ON CONFLICT (name) DO NOTHING;`,
 	}
 

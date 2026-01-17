@@ -11,9 +11,9 @@ import (
 	"github.com/palantir/stacktrace"
 	log "github.com/sirupsen/logrus"
 
-	mikrotik_adapter "prabogo/internal/adapter/outbound/mikrotik"
-	"prabogo/internal/model"
-	contextutil "prabogo/utils/context"
+	mikrotik_adapter "MikrOps/internal/adapter/outbound/mikrotik"
+	"MikrOps/internal/model"
+	contextutil "MikrOps/utils/context"
 )
 
 // Global state for active monitors
@@ -100,7 +100,7 @@ func (d *monitorDomain) StreamTraffic(ctx context.Context, customerID string) (<
 	mu.Unlock()
 
 	// Start the actual background monitoring for this customer
-	go d.runMonitorLoop(monitorCtx, customer.ID.String(), customer.Name, customer.Username, customer.ServiceType, interfaceName)
+	go d.runMonitorLoop(monitorCtx, customer.ID, customer.Name, customer.Username, customer.ServiceType, interfaceName)
 
 	log.Printf("[OnDemand] Started monitoring for customer %s (%s) on interface %s",
 		customer.Name, customer.Username, interfaceName)
@@ -359,7 +359,7 @@ func (d *monitorDomain) PingCustomer(ctx context.Context, customerID string) (ma
 		return nil, stacktrace.Propagate(err, "customer not found: %s", customerID)
 	}
 
-	target, err := d.getCustomerIPAddress(&customer.Customer)
+	target, err := d.getCustomerIPAddress(customer)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to resolve customer ip")
 	}
@@ -424,7 +424,7 @@ func (d *monitorDomain) StreamPing(ctx context.Context, customerID string) (<-ch
 		return nil, stacktrace.Propagate(err, "customer not found: %s", customerID)
 	}
 
-	target, err := d.getCustomerIPAddress(&customer.Customer)
+	target, err := d.getCustomerIPAddress(customer)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to resolve customer ip")
 	}
@@ -539,3 +539,4 @@ func (d *monitorDomain) getCustomerIPAddress(customer *model.Customer) (string, 
 		return "", fmt.Errorf("unsupported service type or no IP: %s", customer.ServiceType)
 	}
 }
+

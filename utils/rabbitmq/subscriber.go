@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"prabogo/utils/log"
+	"MikrOps/utils/log"
 )
 
 type ExchangeKind string
@@ -182,3 +182,4 @@ func Subscriber(exchange string, exchangeKind ExchangeKind, queue, routeKey stri
 		Callback:     callback,
 	})
 }
+

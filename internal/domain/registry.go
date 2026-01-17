@@ -1,18 +1,18 @@
 package domain
 
 import (
-	"prabogo/internal/domain/auth"
-	"prabogo/internal/domain/client"
-	"prabogo/internal/domain/customer"
-	"prabogo/internal/domain/mikrotik"
-	"prabogo/internal/domain/monitor"
-	"prabogo/internal/domain/ppp"
-	"prabogo/internal/domain/profile"
-	"prabogo/internal/domain/tenant"
-	"prabogo/internal/domain/testing"
-	inbound_port "prabogo/internal/port/inbound"
-	outbound_port "prabogo/internal/port/outbound"
-	"prabogo/utils/logger"
+	"MikrOps/internal/domain/auth"
+	"MikrOps/internal/domain/client"
+	"MikrOps/internal/domain/customer"
+	"MikrOps/internal/domain/mikrotik"
+	"MikrOps/internal/domain/monitor"
+	"MikrOps/internal/domain/ppp"
+	"MikrOps/internal/domain/profile"
+	"MikrOps/internal/domain/tenant"
+	"MikrOps/internal/domain/testing"
+	inbound_port "MikrOps/internal/port/inbound"
+	outbound_port "MikrOps/internal/port/outbound"
+	"MikrOps/utils/logger"
 )
 
 type Domain interface {
@@ -93,3 +93,4 @@ func (d *domain) Tenant() inbound_port.TenantDomain {
 func (d *domain) Database() outbound_port.DatabasePort {
 	return d.databasePort
 }
+

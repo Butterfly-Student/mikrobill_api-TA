@@ -3,347 +3,356 @@ package postgres_outbound_adapter
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
-	"github.com/palantir/stacktrace"
+	"gorm.io/gorm"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
-const tableTenants = "tenants"
-
 type tenantAdapter struct {
-	db outbound_port.DatabaseExecutor
+	db *gorm.DB
 }
 
-func NewTenantAdapter(db outbound_port.DatabaseExecutor) outbound_port.TenantDatabasePort {
+func NewTenantAdapter(db *gorm.DB) outbound_port.TenantDatabasePort {
 	return &tenantAdapter{db: db}
 }
 
 // CreateTenant creates a new tenant
-func (a *tenantAdapter) CreateTenant(ctx context.Context, input model.TenantInput) (*model.Tenant, error) {
+func (a *tenantAdapter) CreateTenant(ctx context.Context, req model.CreateTenantRequest) (*model.Tenant, error) {
 	tenant := &model.Tenant{
-		ID:              uuid.New(),
-		Name:            input.Name,
+		Name:            req.Name,
+		Subdomain:       req.Subdomain,
+		CompanyName:     req.CompanyName,
+		Phone:           req.Phone,
+		Address:         req.Address,
 		Timezone:        "Asia/Jakarta",
 		IsActive:        true,
 		Status:          "active",
 		MaxMikrotiks:    3,
 		MaxNetworkUsers: 50,
 		MaxStaffUsers:   5,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
 	}
 
 	// Apply optional fields
-	if input.Subdomain != nil {
-		tenant.Subdomain = input.Subdomain
+	if req.Timezone != nil {
+		tenant.Timezone = *req.Timezone
 	}
-	if input.CompanyName != nil {
-		tenant.CompanyName = input.CompanyName
+	if req.MaxMikrotiks != nil {
+		tenant.MaxMikrotiks = *req.MaxMikrotiks
 	}
-	if input.Phone != nil {
-		tenant.Phone = input.Phone
+	if req.MaxNetworkUsers != nil {
+		tenant.MaxNetworkUsers = *req.MaxNetworkUsers
 	}
-	if input.Address != nil {
-		tenant.Address = input.Address
+	if req.MaxStaffUsers != nil {
+		tenant.MaxStaffUsers = *req.MaxStaffUsers
 	}
-	if input.Timezone != nil {
-		tenant.Timezone = *input.Timezone
+	if req.Features != nil {
+		tenant.Features = req.Features
 	}
-	if input.MaxMikrotiks != nil {
-		tenant.MaxMikrotiks = *input.MaxMikrotiks
-	}
-	if input.MaxNetworkUsers != nil {
-		tenant.MaxNetworkUsers = *input.MaxNetworkUsers
-	}
-	if input.MaxStaffUsers != nil {
-		tenant.MaxStaffUsers = *input.MaxStaffUsers
+	if req.Metadata != nil {
+		tenant.Metadata = req.Metadata
 	}
 
-	record := goqu.Record{
-		"id":                tenant.ID,
-		"name":              tenant.Name,
-		"subdomain":         tenant.Subdomain,
-		"company_name":      tenant.CompanyName,
-		"phone":             tenant.Phone,
-		"address":           tenant.Address,
-		"timezone":          tenant.Timezone,
-		"is_active":         tenant.IsActive,
-		"status":            tenant.Status,
-		"max_mikrotiks":     tenant.MaxMikrotiks,
-		"max_network_users": tenant.MaxNetworkUsers,
-		"max_staff_users":   tenant.MaxStaffUsers,
-		"features":          `{"api_access": true, "reports": true, "backup": true}`,
-		"metadata":          `{}`,
-		"created_at":        tenant.CreatedAt,
-		"updated_at":        tenant.UpdatedAt,
+	if err := a.db.WithContext(ctx).Create(tenant).Error; err != nil {
+		return nil, fmt.Errorf("failed to create tenant: %w", err)
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Insert(tableTenants).
-		Rows(record).
-		Returning("*").
-		ToSQL()
-
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build insert tenant query")
-	}
-
-	var result model.Tenant
-	err = a.db.QueryRowContext(ctx, query).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Subdomain,
-		&result.CompanyName,
-		&result.Phone,
-		&result.Address,
-		&result.Timezone,
-		&result.IsActive,
-		&result.Status,
-		&result.MaxMikrotiks,
-		&result.MaxNetworkUsers,
-		&result.MaxStaffUsers,
-		&result.Features,
-		&result.Metadata,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-		&result.SuspendedAt,
-		&result.DeletedAt,
-	)
-
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to create tenant")
-	}
-
-	return &result, nil
+	return tenant, nil
 }
 
 // GetByID retrieves a tenant by ID
 func (a *tenantAdapter) GetByID(ctx context.Context, id uuid.UUID) (*model.Tenant, error) {
-	query, _, err := goqu.Dialect("postgres").
-		From(tableTenants).
-		Where(goqu.Ex{"id": id, "deleted_at": nil}).
-		ToSQL()
+	var tenant model.Tenant
+
+	err := a.db.WithContext(ctx).
+		Where("id = ?", id).
+		First(&tenant).Error
 
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build get tenant query")
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("tenant not found")
+		}
+		return nil, fmt.Errorf("failed to get tenant: %w", err)
 	}
 
-	var result model.Tenant
-	err = a.db.QueryRowContext(ctx, query).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Subdomain,
-		&result.CompanyName,
-		&result.Phone,
-		&result.Address,
-		&result.Timezone,
-		&result.IsActive,
-		&result.Status,
-		&result.MaxMikrotiks,
-		&result.MaxNetworkUsers,
-		&result.MaxStaffUsers,
-		&result.Features,
-		&result.Metadata,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-		&result.SuspendedAt,
-		&result.DeletedAt,
-	)
-
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "tenant not found")
-	}
-
-	return &result, nil
+	return &tenant, nil
 }
 
-// List retrieves all tenants (Super Admin only)
+// GetBySubdomain retrieves a tenant by subdomain
+func (a *tenantAdapter) GetBySubdomain(ctx context.Context, subdomain string) (*model.Tenant, error) {
+	var tenant model.Tenant
+
+	err := a.db.WithContext(ctx).
+		Where("subdomain = ?", subdomain).
+		First(&tenant).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("tenant not found")
+		}
+		return nil, fmt.Errorf("failed to get tenant: %w", err)
+	}
+
+	return &tenant, nil
+}
+
+// List retrieves all tenants with filtering and pagination
 func (a *tenantAdapter) List(ctx context.Context, filter model.TenantFilter) ([]model.Tenant, error) {
-	ds := goqu.Dialect("postgres").
-		From(tableTenants).
-		Where(goqu.Ex{"deleted_at": nil})
+	var tenants []model.Tenant
+
+	query := a.db.WithContext(ctx).Model(&model.Tenant{})
 
 	// Apply filters
 	if filter.Status != nil {
-		ds = ds.Where(goqu.Ex{"status": *filter.Status})
+		query = query.Where("status = ?", *filter.Status)
 	}
 	if filter.IsActive != nil {
-		ds = ds.Where(goqu.Ex{"is_active": *filter.IsActive})
+		query = query.Where("is_active = ?", *filter.IsActive)
 	}
 	if filter.Search != nil && *filter.Search != "" {
 		searchPattern := fmt.Sprintf("%%%s%%", *filter.Search)
-		ds = ds.Where(goqu.Or(
-			goqu.C("name").ILike(searchPattern),
-			goqu.C("company_name").ILike(searchPattern),
-		))
+		query = query.Where(
+			"name ILIKE ? OR company_name ILIKE ?",
+			searchPattern, searchPattern,
+		)
 	}
 
-	ds = ds.Order(goqu.C("created_at").Desc())
+	// Apply pagination and ordering
+	query = query.Order("created_at DESC")
 
 	if filter.Limit > 0 {
-		ds = ds.Limit(uint(filter.Limit))
+		query = query.Limit(filter.Limit)
 	}
 	if filter.Offset > 0 {
-		ds = ds.Offset(uint(filter.Offset))
+		query = query.Offset(filter.Offset)
 	}
 
-	query, _, err := ds.ToSQL()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build list tenants query")
-	}
-
-	rows, err := a.db.QueryContext(ctx, query)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to list tenants")
-	}
-	defer rows.Close()
-
-	var tenants []model.Tenant
-	for rows.Next() {
-		var t model.Tenant
-		err := rows.Scan(
-			&t.ID,
-			&t.Name,
-			&t.Subdomain,
-			&t.CompanyName,
-			&t.Phone,
-			&t.Address,
-			&t.Timezone,
-			&t.IsActive,
-			&t.Status,
-			&t.MaxMikrotiks,
-			&t.MaxNetworkUsers,
-			&t.MaxStaffUsers,
-			&t.Features,
-			&t.Metadata,
-			&t.CreatedAt,
-			&t.UpdatedAt,
-			&t.SuspendedAt,
-			&t.DeletedAt,
-		)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to scan tenant")
-		}
-		tenants = append(tenants, t)
+	// Execute query
+	if err := query.Find(&tenants).Error; err != nil {
+		return nil, fmt.Errorf("failed to list tenants: %w", err)
 	}
 
 	return tenants, nil
 }
 
 // Update updates a tenant
-func (a *tenantAdapter) Update(ctx context.Context, id uuid.UUID, input model.TenantInput) error {
-	record := goqu.Record{
-		"updated_at": time.Now(),
+func (a *tenantAdapter) Update(ctx context.Context, id uuid.UUID, req model.UpdateTenantRequest) (*model.Tenant, error) {
+	updates := make(map[string]interface{})
+
+	// Build update map
+	if req.Name != nil {
+		updates["name"] = *req.Name
+	}
+	if req.Subdomain != nil {
+		updates["subdomain"] = *req.Subdomain
+	}
+	if req.CompanyName != nil {
+		updates["company_name"] = *req.CompanyName
+	}
+	if req.Phone != nil {
+		updates["phone"] = *req.Phone
+	}
+	if req.Address != nil {
+		updates["address"] = *req.Address
+	}
+	if req.Timezone != nil {
+		updates["timezone"] = *req.Timezone
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+	if req.Status != nil {
+		updates["status"] = *req.Status
+	}
+	if req.MaxMikrotiks != nil {
+		updates["max_mikrotiks"] = *req.MaxMikrotiks
+	}
+	if req.MaxNetworkUsers != nil {
+		updates["max_network_users"] = *req.MaxNetworkUsers
+	}
+	if req.MaxStaffUsers != nil {
+		updates["max_staff_users"] = *req.MaxStaffUsers
+	}
+	if req.Features != nil {
+		updates["features"] = req.Features
+	}
+	if req.Metadata != nil {
+		updates["metadata"] = req.Metadata
 	}
 
-	if input.Name != "" {
-		record["name"] = input.Name
-	}
-	if input.Subdomain != nil {
-		record["subdomain"] = input.Subdomain
-	}
-	if input.CompanyName != nil {
-		record["company_name"] = input.CompanyName
-	}
-	if input.Phone != nil {
-		record["phone"] = input.Phone
-	}
-	if input.Address != nil {
-		record["address"] = input.Address
-	}
-	if input.Timezone != nil {
-		record["timezone"] = input.Timezone
-	}
-	if input.IsActive != nil {
-		record["is_active"] = input.IsActive
-	}
-	if input.Status != nil {
-		record["status"] = input.Status
-	}
-	if input.MaxMikrotiks != nil {
-		record["max_mikrotiks"] = input.MaxMikrotiks
-	}
-	if input.MaxNetworkUsers != nil {
-		record["max_network_users"] = input.MaxNetworkUsers
-	}
-	if input.MaxStaffUsers != nil {
-		record["max_staff_users"] = input.MaxStaffUsers
+	// Execute update
+	result := a.db.WithContext(ctx).
+		Model(&model.Tenant{}).
+		Where("id = ?", id).
+		Updates(updates)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to update tenant: %w", result.Error)
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Update(tableTenants).
-		Set(record).
-		Where(goqu.Ex{"id": id, "deleted_at": nil}).
-		ToSQL()
-
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build update tenant query")
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("tenant not found")
 	}
 
-	result, err := a.db.ExecContext(ctx, query)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to update tenant")
-	}
-
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return stacktrace.NewError("tenant not found")
-	}
-
-	return nil
+	// Fetch and return updated tenant
+	return a.GetByID(ctx, id)
 }
 
 // Delete soft deletes a tenant
 func (a *tenantAdapter) Delete(ctx context.Context, id uuid.UUID) error {
-	query, _, err := goqu.Dialect("postgres").
-		Update(tableTenants).
-		Set(goqu.Record{"deleted_at": time.Now()}).
-		Where(goqu.Ex{"id": id, "deleted_at": nil}).
-		ToSQL()
+	result := a.db.WithContext(ctx).
+		Delete(&model.Tenant{}, id)
 
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build delete tenant query")
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete tenant: %w", result.Error)
 	}
 
-	result, err := a.db.ExecContext(ctx, query)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to delete tenant")
-	}
-
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return stacktrace.NewError("tenant not found")
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("tenant not found")
 	}
 
 	return nil
 }
 
-// GetStats retrieves tenant stats
-func (a *tenantAdapter) GetStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStats, error) {
-	stats := &model.TenantStats{
-		TenantID: tenantID,
+// Suspend suspends a tenant
+func (a *tenantAdapter) Suspend(ctx context.Context, id uuid.UUID) error {
+	result := a.db.WithContext(ctx).
+		Model(&model.Tenant{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"status":       "suspended",
+			"is_active":    false,
+			"suspended_at": gorm.Expr("NOW()"),
+		})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to suspend tenant: %w", result.Error)
 	}
 
-	// Get tenant limits first
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("tenant not found")
+	}
+
+	return nil
+}
+
+// Activate activates a suspended tenant
+func (a *tenantAdapter) Activate(ctx context.Context, id uuid.UUID) error {
+	result := a.db.WithContext(ctx).
+		Model(&model.Tenant{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"status":       "active",
+			"is_active":    true,
+			"suspended_at": nil,
+		})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to activate tenant: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("tenant not found")
+	}
+
+	return nil
+}
+
+// GetStats retrieves tenant usage statistics
+func (a *tenantAdapter) GetStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStatsResponse, error) {
+	// Get tenant to retrieve limits
 	tenant, err := a.GetByID(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	stats.MaxMikrotiks = tenant.MaxMikrotiks
-	stats.MaxNetworkUsers = tenant.MaxNetworkUsers
-	stats.MaxStaffUsers = tenant.MaxStaffUsers
+	stats := &model.TenantStatsResponse{
+		TenantID:        tenantID,
+		MaxMikrotiks:    tenant.MaxMikrotiks,
+		MaxNetworkUsers: tenant.MaxNetworkUsers,
+		MaxStaffUsers:   tenant.MaxStaffUsers,
+	}
 
-	// Note: Count queries would need to be implemented separately
-	// For now, return empty stats
-	stats.MikrotiksCount = 0
-	stats.NetworkUsersCount = 0
-	stats.StaffUsersCount = 0
+	// Count mikrotiks
+	var mikrotiksCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&model.Mikrotik{}).
+		Where("tenant_id = ?", tenantID).
+		Count(&mikrotiksCount).Error; err != nil {
+		return nil, fmt.Errorf("failed to count mikrotiks: %w", err)
+	}
+	stats.MikrotiksCount = int(mikrotiksCount)
+
+	// Count network users (customers)
+	var networkUsersCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&model.Customer{}).
+		Where("tenant_id = ?", tenantID).
+		Count(&networkUsersCount).Error; err != nil {
+		return nil, fmt.Errorf("failed to count network users: %w", err)
+	}
+	stats.NetworkUsersCount = int(networkUsersCount)
+
+	// Count staff users
+	var staffUsersCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&model.TenantUser{}).
+		Where("tenant_id = ? AND is_active = ?", tenantID, true).
+		Count(&staffUsersCount).Error; err != nil {
+		return nil, fmt.Errorf("failed to count staff users: %w", err)
+	}
+	stats.StaffUsersCount = int(staffUsersCount)
+
+	// Calculate usage percentages
+	if stats.MaxMikrotiks > 0 {
+		stats.MikrotiksUsagePercent = float64(stats.MikrotiksCount) / float64(stats.MaxMikrotiks) * 100
+	}
+	if stats.MaxNetworkUsers > 0 {
+		stats.NetworkUsersUsagePercent = float64(stats.NetworkUsersCount) / float64(stats.MaxNetworkUsers) * 100
+	}
+	if stats.MaxStaffUsers > 0 {
+		stats.StaffUsersUsagePercent = float64(stats.StaffUsersCount) / float64(stats.MaxStaffUsers) * 100
+	}
 
 	return stats, nil
 }
+
+// CheckLimits validates if tenant can add more resources
+func (a *tenantAdapter) CheckLimits(ctx context.Context, tenantID uuid.UUID, resourceType string) (bool, error) {
+	stats, err := a.GetStats(ctx, tenantID)
+	if err != nil {
+		return false, err
+	}
+
+	switch resourceType {
+	case "mikrotik":
+		return stats.MikrotiksCount < stats.MaxMikrotiks, nil
+	case "network_user":
+		return stats.NetworkUsersCount < stats.MaxNetworkUsers, nil
+	case "staff_user":
+		return stats.StaffUsersCount < stats.MaxStaffUsers, nil
+	default:
+		return false, fmt.Errorf("invalid resource type: %s", resourceType)
+	}
+}
+
+// IsSubdomainAvailable checks if subdomain is available
+func (a *tenantAdapter) IsSubdomainAvailable(ctx context.Context, subdomain string, excludeTenantID *uuid.UUID) (bool, error) {
+	var count int64
+	query := a.db.WithContext(ctx).
+		Model(&model.Tenant{}).
+		Where("subdomain = ?", subdomain)
+
+	if excludeTenantID != nil {
+		query = query.Where("id != ?", *excludeTenantID)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check subdomain availability: %w", err)
+	}
+
+	return count == 0, nil
+}
+

@@ -3,8 +3,8 @@ package command_inbound_adapter
 import (
 	"context"
 
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/log"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/log"
 )
 
 func InitRoute(
@@ -24,3 +24,4 @@ func InitRoute(
 		log.WithContext(ctx).Info("command not found")
 	}
 }
+

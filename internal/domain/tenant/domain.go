@@ -8,17 +8,17 @@ import (
 	"github.com/palantir/stacktrace"
 	"go.uber.org/zap"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type TenantDomain interface {
-	CreateTenant(ctx context.Context, input model.TenantInput, createdBy uuid.UUID) (*model.Tenant, error)
+	CreateTenant(ctx context.Context, input model.CreateTenantRequest, createdBy uuid.UUID) (*model.Tenant, error)
 	GetTenant(ctx context.Context, id uuid.UUID) (*model.Tenant, error)
 	ListTenants(ctx context.Context, filter model.TenantFilter) ([]model.Tenant, error)
-	UpdateTenant(ctx context.Context, id uuid.UUID, input model.TenantInput, updatedBy uuid.UUID) (*model.Tenant, error)
+	UpdateTenant(ctx context.Context, id uuid.UUID, input model.UpdateTenantRequest, updatedBy uuid.UUID) (*model.Tenant, error)
 	DeleteTenant(ctx context.Context, id uuid.UUID, deletedBy uuid.UUID) error
-	GetTenantStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStats, error)
+	GetTenantStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStatsResponse, error)
 	CheckResourceLimit(ctx context.Context, tenantID uuid.UUID, resourceType string) error
 }
 
@@ -39,7 +39,7 @@ func NewTenantDomain(
 }
 
 // CreateTenant creates a new tenant
-func (d *tenantDomain) CreateTenant(ctx context.Context, input model.TenantInput, createdBy uuid.UUID) (*model.Tenant, error) {
+func (d *tenantDomain) CreateTenant(ctx context.Context, input model.CreateTenantRequest, createdBy uuid.UUID) (*model.Tenant, error) {
 	d.logger.Info("Creating new tenant",
 		zap.String("name", input.Name),
 		zap.String("created_by", createdBy.String()),
@@ -56,7 +56,7 @@ func (d *tenantDomain) CreateTenant(ctx context.Context, input model.TenantInput
 	}
 
 	d.logger.Info("Tenant created successfully",
-		zap.String("tenant_id", tenant.ID.String()),
+		zap.String("tenant_id", tenant.ID),
 		zap.String("name", tenant.Name),
 	)
 
@@ -90,7 +90,7 @@ func (d *tenantDomain) ListTenants(ctx context.Context, filter model.TenantFilte
 }
 
 // UpdateTenant updates a tenant
-func (d *tenantDomain) UpdateTenant(ctx context.Context, id uuid.UUID, input model.TenantInput, updatedBy uuid.UUID) (*model.Tenant, error) {
+func (d *tenantDomain) UpdateTenant(ctx context.Context, id uuid.UUID, input model.UpdateTenantRequest, updatedBy uuid.UUID) (*model.Tenant, error) {
 	// Verify tenant exists
 	existing, err := d.GetTenant(ctx, id)
 	if err != nil {
@@ -103,18 +103,14 @@ func (d *tenantDomain) UpdateTenant(ctx context.Context, id uuid.UUID, input mod
 	)
 
 	// Update tenant
-	if err := d.databasePort.Tenant().Update(ctx, id, input); err != nil {
+	// Update tenant
+	updated, err := d.databasePort.Tenant().Update(ctx, id, input)
+	if err != nil {
 		d.logger.Error("Failed to update tenant",
 			zap.Error(err),
 			zap.String("tenant_id", id.String()),
 		)
 		return nil, stacktrace.Propagate(err, "failed to update tenant")
-	}
-
-	// Fetch updated tenant
-	updated, err := d.GetTenant(ctx, id)
-	if err != nil {
-		return nil, err
 	}
 
 	d.logger.Info("Tenant updated successfully",
@@ -157,7 +153,7 @@ func (d *tenantDomain) DeleteTenant(ctx context.Context, id uuid.UUID, deletedBy
 }
 
 // GetTenantStats retrieves tenant usage statistics
-func (d *tenantDomain) GetTenantStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStats, error) {
+func (d *tenantDomain) GetTenantStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStatsResponse, error) {
 	stats, err := d.databasePort.Tenant().GetStats(ctx, tenantID)
 	if err != nil {
 		d.logger.Error("Failed to get tenant stats",
@@ -210,3 +206,4 @@ func (d *tenantDomain) CheckResourceLimit(ctx context.Context, tenantID uuid.UUI
 
 	return nil
 }
+

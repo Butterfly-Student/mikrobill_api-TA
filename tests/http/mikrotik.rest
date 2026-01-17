@@ -1,15 +1,16 @@
 ### Base URL
 @baseUrl = http://localhost:8000
-@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg1NzUzMTAsInJvbGUiOiJTVVBFUl9BRE1JTiIsInN1YiI6ImIyMmUwNDlkLWExYzAtNDczYy04M2ViLWQzZWY1YWE0ODViYiIsInVzZXJuYW1lIjoic3VwZXJhZG1pbiJ9.XN-USiv4NVCIAMGovHaOsIjtXHn7tuF-Izr4y_jS2QY
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg3MTE4MzUsInJvbGUiOiJhZG1pbiIsInN1YiI6ImFmY2IzZjFmLWM2ZWQtNDBlOS1hZTE5LTg4YmEyYjkzMDliNiIsInVzZXJuYW1lIjoibWFqdWJlcnNhbWFfYWRtaW4ifQ.ZxR6LCqH1HuFymQ9hdmh6zU2HOE-6kD-jRxHzxe0K-I
 
 @mikrotikId = e5a065c0-1d00-41e9-b4c3-c87ef7f8da28
-@tenantId = 82613431-a8aa-48a4-aa6c-1fa63ca1771d
+@tenantId = f9c1def5-4994-4513-a556-97e33a3f66b0
 
 ### 1. Create MikroTik Device
 # @name createMikrotik
 POST {{baseUrl}}/v1/internal/mikrotik
 Content-Type: application/json
 X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
 
 {
   "name": "Test Router",
@@ -31,7 +32,6 @@ X-Client-Key: {{clientKey}}
 POST {{baseUrl}}/v1/internal/mikrotik/list
 Content-Type: application/json
 X-Client-Key: {{clientKey}}
-X-Tenant-ID: {{tenantId}}
 
 {
   "is_active": true

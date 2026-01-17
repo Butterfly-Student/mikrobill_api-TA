@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type tenantAdapter struct {
@@ -22,7 +22,7 @@ func NewTenantAdapter(domainRegistry domain.Domain) inbound_port.TenantPort {
 }
 
 func (a *tenantAdapter) CreateTenant(c *gin.Context) {
-	var input model.TenantInput
+	var input model.CreateTenantRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request",
@@ -99,7 +99,7 @@ func (a *tenantAdapter) UpdateTenant(c *gin.Context) {
 		return
 	}
 
-	var input model.TenantInput
+	var input model.UpdateTenantRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request",
@@ -173,3 +173,4 @@ func (a *tenantAdapter) GetTenantStats(c *gin.Context) {
 		Data:    stats,
 	})
 }
+

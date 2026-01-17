@@ -1,8 +1,8 @@
 package mikrotik_outbound_adapter
 
 import (
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
 	"time"
 )
 
@@ -28,3 +28,4 @@ func (f *mikrotikClientFactory) NewClient(mikrotik *model.Mikrotik) (outbound_po
 	}
 	return NewClient(cfg)
 }
+

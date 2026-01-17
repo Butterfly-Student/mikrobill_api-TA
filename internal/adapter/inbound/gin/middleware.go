@@ -11,12 +11,12 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
-	"prabogo/utils/logger"
-	"prabogo/utils/redis"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
+	"MikrOps/utils/logger"
+	"MikrOps/utils/redis"
 )
 
 type middlewareAdapter struct {
@@ -57,7 +57,7 @@ func (h *middlewareAdapter) InternalAuth(a any) error {
 		systemUser := &model.User{
 			Username:     "system",
 			IsSuperadmin: true,
-			UserRole:     model.RoleSuperAdmin,
+			UserRole:     model.UserRoleSuperAdmin,
 			Status:       model.UserStatusActive,
 		}
 		c.Set("user", systemUser)
@@ -199,12 +199,12 @@ func (h *middlewareAdapter) RateLimit() gin.HandlerFunc {
 
 		// Role-based limits
 		if role, exists := c.Get("user_role"); exists {
-			switch strings.ToUpper(role.(string)) {
-			case "SUPER_ADMIN":
+			switch strings.ToLower(role.(string)) {
+			case string(model.UserRoleSuperAdmin):
 				limit = 1000
-			case "TENANT_OWNER":
+			case string(model.UserRoleAdmin):
 				limit = 200
-			case "TENANT_ADMIN":
+			case string(model.UserRoleTechnician):
 				limit = 120
 			}
 		}
@@ -269,7 +269,7 @@ func (h *middlewareAdapter) RequireRole(roles ...string) gin.HandlerFunc {
 		roleStr := userRole.(string)
 		role := model.UserRole(roleStr)
 
-		if role.IsSuperAdmin() {
+		if role == model.UserRoleSuperAdmin {
 			c.Next()
 			return
 		}
@@ -322,3 +322,4 @@ func extractTenantIDFromRequest(c *gin.Context) string {
 	}
 	return c.Query("tenant_id")
 }
+

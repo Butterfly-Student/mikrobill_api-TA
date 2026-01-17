@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"prabogo/internal/model"
-	mock_outbound_port "prabogo/tests/mocks/port"
+	"MikrOps/internal/model"
+	mock_outbound_port "MikrOps/tests/mocks/port"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -45,14 +45,14 @@ func TestAuth(t *testing.T) {
 
 			Convey("Success with default role", func() {
 				mockAuthDB.EXPECT().FindUserByFilter(gomock.Any(), false).Return([]model.User{}, nil)
-				mockAuthDB.EXPECT().FindRoleByName("TENANT_VIEWER").Return(&model.Role{ID: uuid.New(), Name: "TENANT_VIEWER"}, nil)
+				mockAuthDB.EXPECT().FindRoleByName("viewer").Return(&model.Role{ID: uuid.New(), Name: "viewer"}, nil)
 				mockAuthDB.EXPECT().SaveUser(gomock.Any()).Return(nil)
 
 				user, err := domain.Register(ctx, input)
 				So(err, ShouldBeNil)
 				So(user, ShouldNotBeNil)
 				So(user.Email, ShouldEqual, input.Email)
-				So(user.UserRole, ShouldEqual, model.RoleTenantViewer)
+				So(user.UserRole, ShouldEqual, model.RoleViewer)
 			})
 
 			Convey("Database error", func() {
@@ -72,7 +72,7 @@ func TestAuth(t *testing.T) {
 				Email:             "test@example.com",
 				EncryptedPassword: string(hashed),
 				Status:            model.UserStatusActive,
-				UserRole:          model.RoleTenantAdmin,
+				UserRole:          model.RoleAdmin,
 			}
 
 			Convey("Success", func() {
@@ -124,7 +124,7 @@ func TestAuth(t *testing.T) {
 				Email:             "test@example.com",
 				EncryptedPassword: string(hashed),
 				Status:            model.UserStatusActive,
-				UserRole:          model.RoleTenantAdmin,
+				UserRole:          model.RoleAdmin,
 			}
 
 			mockAuthDB.EXPECT().FindUserByFilter(gomock.Any(), false).Return([]model.User{user}, nil)
@@ -154,3 +154,4 @@ func TestAuth(t *testing.T) {
 		})
 	})
 }
+

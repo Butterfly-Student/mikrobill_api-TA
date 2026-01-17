@@ -1,7 +1,7 @@
 package model
 
 import (
-	"prabogo/utils"
+	"MikrOps/utils"
 	"time"
 )
 
@@ -41,3 +41,4 @@ func (c ClientFilter) IsEmpty() bool {
 	}
 	return false
 }
+

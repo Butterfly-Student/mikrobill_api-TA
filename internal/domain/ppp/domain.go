@@ -6,7 +6,7 @@ import (
 
 	"github.com/palantir/stacktrace"
 
-	outbound_port "prabogo/internal/port/outbound"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type PPPDomain struct {
@@ -41,3 +41,4 @@ func (d *PPPDomain) getActiveClient(ctx context.Context) (outbound_port.Mikrotik
 	}
 	return client, nil
 }
+

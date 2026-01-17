@@ -2,289 +2,171 @@ package postgres_outbound_adapter
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
-	"github.com/doug-martin/goqu/v9"
-	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
+	"gorm.io/gorm"
 
-	"prabogo/internal/model"
-	outbound_port "prabogo/internal/port/outbound"
-	contextutil "prabogo/utils/context"
+	"MikrOps/internal/model"
+	outbound_port "MikrOps/internal/port/outbound"
+	contextutil "MikrOps/utils/context"
 )
 
 const tableMikrotik = "mikrotik"
 
 type mikrotikAdapter struct {
-	db outbound_port.DatabaseExecutor
+	db *gorm.DB
 }
 
-func NewMikrotikAdapter(
-	db outbound_port.DatabaseExecutor,
-) outbound_port.MikrotikDatabasePort {
-	return &mikrotikAdapter{
-		db: db,
-	}
+func NewMikrotikAdapter(db *gorm.DB) outbound_port.MikrotikDatabasePort {
+	return &mikrotikAdapter{db: db}
 }
 
-func (a *mikrotikAdapter) Create(ctx context.Context, input model.MikrotikInput) (*model.Mikrotik, error) {
-	model.MikrotikPrepare(&input)
-
-	// Extract tenant ID from context
+func (a *mikrotikAdapter) Create(ctx context.Context, input model.CreateMikrotikRequest) (*model.Mikrotik, error) {
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	record := goqu.Record{
-		"tenant_id":              tenantID,
-		"name":                   input.Name,
-		"host":                   input.Host,
-		"port":                   input.Port,
-		"api_username":           input.APIUsername,
-		"api_encrypted_password": input.APIEncryptedPassword,
-		"keepalive":              input.Keepalive,
-		"timeout":                input.Timeout,
-		"location":               input.Location,
-		"description":            input.Description,
-		"status":                 model.MikrotikStatusOffline,
-		"is_active":              false,
+	mikrotik := &model.Mikrotik{
+		TenantID:             tenantID.String(),
+		Name:                 input.Name,
+		Host:                 input.Host,
+		Port:                 input.Port,
+		APIUsername:          input.APIUsername,
+		APIEncryptedPassword: &input.APIPassword, // Should be encrypted before calling this
+		Keepalive:            input.Keepalive != nil && *input.Keepalive,
+		Timeout:              300000, // default
+		Location:             input.Location,
+		Description:          input.Description,
+		Status:               model.MikrotikStatusOffline,
+		IsActive:             false,
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Insert(tableMikrotik).
-		Rows(record).
-		Returning("*").
-		ToSQL()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build insert query")
+	if input.Keepalive != nil {
+		mikrotik.Keepalive = *input.Keepalive
+	}
+	if input.Timeout != nil {
+		mikrotik.Timeout = *input.Timeout
 	}
 
-	var result model.Mikrotik
-	err = a.db.QueryRowContext(ctx, query).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Host,
-		&result.Port,
-		&result.APIUsername,
-		&result.APIEncryptedPassword,
-		&result.Keepalive,
-		&result.Timeout,
-		&result.Location,
-		&result.Description,
-		&result.IsActive,
-		&result.Status,
-		&result.LastSync,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-	)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to insert mikrotik")
+	if err := a.db.WithContext(ctx).Create(mikrotik).Error; err != nil {
+		return nil, stacktrace.Propagate(err, "failed to create mikrotik")
 	}
 
-	return &result, nil
+	return mikrotik, nil
 }
 
 func (a *mikrotikAdapter) GetByID(ctx context.Context, id uuid.UUID) (*model.Mikrotik, error) {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		From(tableMikrotik).
-		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build select query")
+	var mikrotik model.Mikrotik
+	err = a.db.WithContext(ctx).
+		Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+		First(&mikrotik).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, stacktrace.NewError("mikrotik not found")
 	}
 
-	var result model.Mikrotik
-	err = a.db.QueryRowContext(ctx, query).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Host,
-		&result.Port,
-		&result.APIUsername,
-		&result.APIEncryptedPassword,
-		&result.Keepalive,
-		&result.Timeout,
-		&result.Location,
-		&result.Description,
-		&result.IsActive,
-		&result.Status,
-		&result.LastSync,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, stacktrace.NewError("mikrotik not found")
-		}
 		return nil, stacktrace.Propagate(err, "failed to get mikrotik")
 	}
 
-	return &result, nil
+	return &mikrotik, nil
 }
 
-func (a *mikrotikAdapter) List(ctx context.Context, filter model.MikrotikFilter) ([]model.Mikrotik, error) {
-	// Extract tenant ID from context
+func (a *mikrotikAdapter) List(ctx context.Context) ([]model.Mikrotik, error) {
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	dataset := goqu.Dialect("postgres").From(tableMikrotik).Where(goqu.Ex{"tenant_id": tenantID})
-	dataset = addMikrotikFilter(dataset, filter)
-
-	query, _, err := dataset.ToSQL()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build list query")
-	}
-
-	rows, err := a.db.QueryContext(ctx, query)
-	if err != nil {
+	var mikrotiks []model.Mikrotik
+	if err := a.db.WithContext(ctx).
+		Where("tenant_id = ?", tenantID.String()).
+		Find(&mikrotiks).Error; err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list mikrotik")
 	}
-	defer rows.Close()
 
-	var results []model.Mikrotik
-	for rows.Next() {
-		var result model.Mikrotik
-		err := rows.Scan(
-			&result.ID,
-			&result.Name,
-			&result.Host,
-			&result.Port,
-			&result.APIUsername,
-			&result.APIEncryptedPassword,
-			&result.Keepalive,
-			&result.Timeout,
-			&result.Location,
-			&result.Description,
-			&result.IsActive,
-			&result.Status,
-			&result.LastSync,
-			&result.CreatedAt,
-			&result.UpdatedAt,
-		)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to scan mikrotik")
-		}
-		results = append(results, result)
-	}
-
-	return results, nil
+	return mikrotiks, nil
 }
 
-func (a *mikrotikAdapter) Update(ctx context.Context, id uuid.UUID, input model.MikrotikUpdateInput) (*model.Mikrotik, error) {
-	// Extract tenant ID from context
+func (a *mikrotikAdapter) Update(ctx context.Context, id uuid.UUID, input model.UpdateMikrotikRequest) (*model.Mikrotik, error) {
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	record := goqu.Record{}
+	updates := make(map[string]interface{})
 
 	if input.Name != nil {
-		record["name"] = *input.Name
+		updates["name"] = *input.Name
 	}
 	if input.Host != nil {
-		record["host"] = *input.Host
+		updates["host"] = *input.Host
 	}
 	if input.Port != nil {
-		record["port"] = *input.Port
+		updates["port"] = *input.Port
 	}
 	if input.APIUsername != nil {
-		record["api_username"] = *input.APIUsername
+		updates["api_username"] = *input.APIUsername
 	}
-	if input.APIEncryptedPassword != nil {
-		record["api_encrypted_password"] = *input.APIEncryptedPassword
+	if input.APIPassword != nil {
+		updates["api_encrypted_password"] = *input.APIPassword // Should be encrypted
 	}
 	if input.Keepalive != nil {
-		record["keepalive"] = *input.Keepalive
+		updates["keepalive"] = *input.Keepalive
 	}
 	if input.Timeout != nil {
-		record["timeout"] = *input.Timeout
+		updates["timeout"] = *input.Timeout
 	}
 	if input.Location != nil {
-		record["location"] = *input.Location
+		updates["location"] = *input.Location
 	}
 	if input.Description != nil {
-		record["description"] = *input.Description
+		updates["description"] = *input.Description
 	}
 
-	if len(record) == 0 {
+	if len(updates) == 0 {
 		return a.GetByID(ctx, id)
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Update(tableMikrotik).
-		Set(record).
-		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
-		Returning("*").
-		ToSQL()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build update query")
+	result := a.db.WithContext(ctx).
+		Model(&model.Mikrotik{}).
+		Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+		Updates(updates)
+
+	if result.Error != nil {
+		return nil, stacktrace.Propagate(result.Error, "failed to update mikrotik")
 	}
 
-	var result model.Mikrotik
-	err = a.db.QueryRowContext(ctx, query).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Host,
-		&result.Port,
-		&result.APIUsername,
-		&result.APIEncryptedPassword,
-		&result.Keepalive,
-		&result.Timeout,
-		&result.Location,
-		&result.Description,
-		&result.IsActive,
-		&result.Status,
-		&result.LastSync,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, stacktrace.NewError("mikrotik not found")
-		}
-		return nil, stacktrace.Propagate(err, "failed to update mikrotik")
+	if result.RowsAffected == 0 {
+		return nil, stacktrace.NewError("mikrotik not found")
 	}
 
-	return &result, nil
+	return a.GetByID(ctx, id)
 }
 
 func (a *mikrotikAdapter) Delete(ctx context.Context, id uuid.UUID) error {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Delete(tableMikrotik).
-		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build delete query")
+	result := a.db.WithContext(ctx).
+		Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+		Delete(&model.Mikrotik{})
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to delete mikrotik")
 	}
 
-	result, err := a.db.ExecContext(ctx, query)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to delete mikrotik")
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get rows affected")
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return stacktrace.NewError("mikrotik not found")
 	}
 
@@ -292,32 +174,21 @@ func (a *mikrotikAdapter) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (a *mikrotikAdapter) UpdateStatus(ctx context.Context, id uuid.UUID, status model.MikrotikStatus) error {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Update(tableMikrotik).
-		Set(goqu.Record{"status": status}).
-		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build update status query")
+	result := a.db.WithContext(ctx).
+		Model(&model.Mikrotik{}).
+		Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+		Update("status", status)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update mikrotik status")
 	}
 
-	result, err := a.db.ExecContext(ctx, query)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to update mikrotik status")
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get rows affected")
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return stacktrace.NewError("mikrotik not found")
 	}
 
@@ -325,33 +196,22 @@ func (a *mikrotikAdapter) UpdateStatus(ctx context.Context, id uuid.UUID, status
 }
 
 func (a *mikrotikAdapter) UpdateLastSync(ctx context.Context, id uuid.UUID) error {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
 	now := time.Now()
-	query, _, err := goqu.Dialect("postgres").
-		Update(tableMikrotik).
-		Set(goqu.Record{"last_sync": now}).
-		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build update last sync query")
+	result := a.db.WithContext(ctx).
+		Model(&model.Mikrotik{}).
+		Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+		Update("last_sync", &now)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update mikrotik last sync")
 	}
 
-	result, err := a.db.ExecContext(ctx, query)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to update mikrotik last sync")
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get rows affected")
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return stacktrace.NewError("mikrotik not found")
 	}
 
@@ -359,149 +219,72 @@ func (a *mikrotikAdapter) UpdateLastSync(ctx context.Context, id uuid.UUID) erro
 }
 
 func (a *mikrotikAdapter) GetActiveMikrotik(ctx context.Context) (*model.Mikrotik, error) {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		From(tableMikrotik).
-		Where(goqu.Ex{"is_active": true, "tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to build get active query")
+	var mikrotik model.Mikrotik
+	err = a.db.WithContext(ctx).
+		Where("is_active = ? AND tenant_id = ?", true, tenantID.String()).
+		First(&mikrotik).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // No active mikrotik is valid
 	}
 
-	var result model.Mikrotik
-	err = a.db.QueryRowContext(ctx, query).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Host,
-		&result.Port,
-		&result.APIUsername,
-		&result.APIEncryptedPassword,
-		&result.Keepalive,
-		&result.Timeout,
-		&result.Location,
-		&result.Description,
-		&result.IsActive,
-		&result.Status,
-		&result.LastSync,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // No active mikrotik is valid
-		}
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
 
-	return &result, nil
+	return &mikrotik, nil
 }
 
 func (a *mikrotikAdapter) SetActive(ctx context.Context, id uuid.UUID) error {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	// Begin transaction
-	tx, err := a.db.BeginTx(ctx, nil)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to begin transaction")
-	}
-	defer tx.Rollback()
+	// Use transaction
+	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Deactivate all for this tenant
+		if err := tx.Model(&model.Mikrotik{}).
+			Where("tenant_id = ?", tenantID.String()).
+			Update("is_active", false).Error; err != nil {
+			return stacktrace.Propagate(err, "failed to deactivate all mikrotik")
+		}
 
-	// Deactivate all
-	deactivateQuery, _, err := goqu.Dialect("postgres").
-		Update(tableMikrotik).
-		Set(goqu.Record{"is_active": false}).
-		Where(goqu.Ex{"tenant_id": tenantID}). // Only deactivate for this tenant
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build deactivate query")
-	}
+		// Activate the specific one
+		result := tx.Model(&model.Mikrotik{}).
+			Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+			Update("is_active", true)
 
-	_, err = tx.ExecContext(ctx, deactivateQuery)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to deactivate all mikrotik")
-	}
+		if result.Error != nil {
+			return stacktrace.Propagate(result.Error, "failed to activate mikrotik")
+		}
 
-	// Activate the specific one
-	activateQuery, _, err := goqu.Dialect("postgres").
-		Update(tableMikrotik).
-		Set(goqu.Record{"is_active": true}).
-		Where(goqu.Ex{"id": id, "tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build activate query")
-	}
+		if result.RowsAffected == 0 {
+			return stacktrace.NewError("mikrotik not found")
+		}
 
-	result, err := tx.ExecContext(ctx, activateQuery)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to activate mikrotik")
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get rows affected")
-	}
-
-	if rowsAffected == 0 {
-		return stacktrace.NewError("mikrotik not found")
-	}
-
-	// Commit transaction
-	if err := tx.Commit(); err != nil {
-		return stacktrace.Propagate(err, "failed to commit transaction")
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (a *mikrotikAdapter) DeactivateAll(ctx context.Context) error {
-	// Extract tenant ID from context
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get tenant ID from context")
 	}
 
-	query, _, err := goqu.Dialect("postgres").
-		Update(tableMikrotik).
-		Set(goqu.Record{"is_active": false}).
-		Where(goqu.Ex{"tenant_id": tenantID}).
-		ToSQL()
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to build deactivate all query")
-	}
-
-	_, err = a.db.ExecContext(ctx, query)
-	if err != nil {
+	if err := a.db.WithContext(ctx).
+		Model(&model.Mikrotik{}).
+		Where("tenant_id = ?", tenantID.String()).
+		Update("is_active", false).Error; err != nil {
 		return stacktrace.Propagate(err, "failed to deactivate all mikrotik")
 	}
 
 	return nil
 }
 
-func addMikrotikFilter(dataset *goqu.SelectDataset, filter model.MikrotikFilter) *goqu.SelectDataset {
-	if len(filter.IDs) > 0 {
-		dataset = dataset.Where(goqu.Ex{"id": filter.IDs})
-	}
-
-	if len(filter.Hosts) > 0 {
-		dataset = dataset.Where(goqu.Ex{"host": filter.Hosts})
-	}
-
-	if len(filter.Statuses) > 0 {
-		dataset = dataset.Where(goqu.Ex{"status": filter.Statuses})
-	}
-
-	if filter.IsActive != nil {
-		dataset = dataset.Where(goqu.Ex{"is_active": *filter.IsActive})
-	}
-
-	return dataset
-}

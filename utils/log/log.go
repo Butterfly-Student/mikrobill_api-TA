@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"prabogo/utils/activity"
+	"MikrOps/utils/activity"
 )
 
 const (
@@ -38,3 +38,4 @@ func LogTrails(trails []Trail) {
 		go LogTrail(trail.Payload, trail.Label)
 	}
 }
+

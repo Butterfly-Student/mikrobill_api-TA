@@ -1,32 +1,69 @@
-### Base URL
 @baseUrl = http://localhost:8000
-@adminUsername = superadmin@mikrobill.com
-@adminPassword = password123
-@roleId = c5a9e294-2917-4530-b56b-164b2e145e30
 
-### 1. Login User
-# @name login
+### ========================================
+### SUPERADMIN LOGIN
+### ========================================
+# @name loginSuperAdmin
 POST {{baseUrl}}/v1/auth/login
 Content-Type: application/json
 
 {
-  "username": "{{adminUsername}}",
-  "password": "{{adminPassword}}"
+  "username": "superadmin@mikrobill.com",
+  "password": "password123"
 }
 
-> {%
-    client.global.set("authToken", response.body.data.api_token);
-    client.global.set("roleId", response.body.data.role_id);
-%}
-
-### 2. Register New User
-POST {{baseUrl}}/v1/auth/register
+### ========================================
+### TEKNOLOGI NUSANTARA - ADMIN
+### ========================================
+# @name loginTeknusantaraAdmin
+POST {{baseUrl}}/v1/auth/login
 Content-Type: application/json
 
 {
-  "username": "newuser",
-  "email": "newuser@example.com",
-  "password": "SecurePass123!",
-  "fullname": "New User",
-  "phone": "081234567890"
+  "username": "admin@teknusantara.com",
+  "password": "password123"
 }
+
+### ========================================
+### TEKNOLOGI NUSANTARA - TECHNICIAN
+### ========================================
+# @name loginTeknusantaraTech
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "tech@teknusantara.com",
+  "password": "password123"
+}
+
+### ========================================
+### MAJU BERSAMA - ADMIN
+### ========================================
+# @name loginMajubersamaAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@majubersama.com",
+  "password": "password123"
+}
+
+### ========================================
+### DIGITAL INDONESIA - ADMIN
+### ========================================
+# @name loginDigiindoAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@digiindo.com",
+  "password": "password123"
+}
+
+### ========================================
+### Get Profile (Use token from login)
+### ========================================
+@token = {{loginDigiindoAdmin.response.body.data.token}}
+
+GET {{baseUrl}}/v1/auth/profile
+Authorization: Bearer {{token}}

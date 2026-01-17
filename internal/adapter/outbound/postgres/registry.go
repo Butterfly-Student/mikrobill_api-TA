@@ -2,134 +2,76 @@ package postgres_outbound_adapter
 
 import (
 	"context"
-	"database/sql"
 
-	"github.com/pkg/errors"
+	"gorm.io/gorm"
 
-	outbound_port "prabogo/internal/port/outbound"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type adapter struct {
-	db         *sql.DB
-	dbexecutor outbound_port.DatabaseExecutor
+	db *gorm.DB
 }
 
-type txWrapper struct {
-	*sql.Tx
-}
-
-func (tx *txWrapper) Begin() (*sql.Tx, error) {
-	return nil, errors.New("cannot start a transaction within a transaction")
-}
-
-func (tx *txWrapper) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-	return nil, errors.New("cannot start a transaction within a transaction")
-}
-
-func (tx *txWrapper) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return tx.Tx.PrepareContext(ctx, query)
-}
-
-func (tx *txWrapper) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	return tx.Tx.QueryRowContext(ctx, query, args...)
-}
-
-func NewAdapter(db *sql.DB) outbound_port.DatabasePort {
+func NewAdapter(db *gorm.DB) outbound_port.DatabasePort {
 	return &adapter{
 		db: db,
 	}
 }
 
+// DoInTransaction executes a function within a database transaction
 func (s *adapter) DoInTransaction(ctx context.Context, txFunc outbound_port.InTransaction) (out interface{}, err error) {
-	var tx *sql.Tx
-	reg := s
-	if s.dbexecutor == nil {
-		tx, err = s.db.BeginTx(ctx, nil)
-		if err != nil {
-			return
-		}
-		defer func() {
-			if p := recover(); p != nil {
-				_ = tx.Rollback()
-				switch x := p.(type) {
-				case string:
-					err = errors.New(x)
-				case error:
-					err = x
-				default:
-					// Fallback err (per specs, error strings should be lowercase w/o punctuation
-					err = errors.New("unknown panic")
-				}
-			} else if err != nil {
-				xerr := tx.Rollback() // err is non-nil; don't change it
-				if xerr != nil {
-					err = errors.Wrap(err, xerr.Error())
-				}
-			} else {
-				err = tx.Commit() // err is nil; if Commit returns error update err
-			}
-		}()
-		reg = &adapter{
-			db:         s.db,
-			dbexecutor: &txWrapper{Tx: tx},
-		}
+	// Check if we're already in a transaction
+	if tx := s.db.Statement.DB; tx != s.db {
+		// Already in a transaction, just execute the function
+		return txFunc(s)
 	}
-	out, err = txFunc(reg)
-	if err != nil {
-		if out != nil {
-			return out, err
-		}
 
-		return nil, err
-	}
-	return
+	// Start a new transaction
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Create a new adapter with the transaction
+		txAdapter := &adapter{db: tx}
+		
+		// Execute the function
+		result, txErr := txFunc(txAdapter)
+		out = result
+		
+		return txErr
+	})
+
+	return out, err
 }
 
+// Client returns the client database port
 func (s *adapter) Client() outbound_port.ClientDatabasePort {
-	if s.dbexecutor != nil {
-		return NewClientAdapter(s.dbexecutor)
-	}
 	return NewClientAdapter(s.db)
 }
 
+// Auth returns the auth database port
 func (s *adapter) Auth() outbound_port.AuthDatabasePort {
-	if s.dbexecutor != nil {
-		return NewAuthAdapter(s.dbexecutor)
-	}
 	return NewAuthAdapter(s.db)
 }
 
+// Mikrotik returns the mikrotik database port
 func (s *adapter) Mikrotik() outbound_port.MikrotikDatabasePort {
-	if s.dbexecutor != nil {
-		return NewMikrotikAdapter(s.dbexecutor)
-	}
 	return NewMikrotikAdapter(s.db)
 }
 
+// Profile returns the profile database port
 func (s *adapter) Profile() outbound_port.ProfileDatabasePort {
-	if s.dbexecutor != nil {
-		return NewProfileAdapter(s.dbexecutor)
-	}
 	return NewProfileAdapter(s.db)
 }
 
+// Customer returns the customer database port
 func (s *adapter) Customer() outbound_port.CustomerDatabasePort {
-	if s.dbexecutor != nil {
-		return NewCustomerAdapter(s.dbexecutor)
-	}
 	return NewCustomerAdapter(s.db)
 }
 
+// Tenant returns the tenant database port
 func (s *adapter) Tenant() outbound_port.TenantDatabasePort {
-	if s.dbexecutor != nil {
-		return NewTenantAdapter(s.dbexecutor)
-	}
 	return NewTenantAdapter(s.db)
 }
 
+// TenantUser returns the tenant user database port
 func (s *adapter) TenantUser() outbound_port.TenantUserDatabasePort {
-	if s.dbexecutor != nil {
-		return NewTenantUserAdapter(s.dbexecutor)
-	}
 	return NewTenantUserAdapter(s.db)
 }

@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type profileAdapter struct {
@@ -24,7 +24,7 @@ func NewProfileAdapter(domainRegistry domain.Domain) inbound_port.ProfilePort {
 func (a *profileAdapter) CreateProfile(ctx any) error {
 	c := ctx.(*gin.Context)
 
-	var input model.ProfileInput
+	var input model.CreateProfileRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request",
@@ -79,7 +79,7 @@ func (a *profileAdapter) UpdateProfile(ctx any) error {
 	c := ctx.(*gin.Context)
 	id := c.Param("id")
 
-	var input model.ProfileInput
+	var input model.CreateProfileRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request",
@@ -113,3 +113,4 @@ func (a *profileAdapter) DeleteProfile(ctx any) error {
 
 	return nil
 }
+

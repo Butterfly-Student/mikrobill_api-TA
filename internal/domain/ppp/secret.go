@@ -6,7 +6,7 @@ import (
 
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 // --- Secrets ---
@@ -132,3 +132,4 @@ func (d *PPPDomain) MikrotikListSecrets(ctx context.Context) ([]model.PPPSecret,
 	}
 	return secrets, nil
 }
+

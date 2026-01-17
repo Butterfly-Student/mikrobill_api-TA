@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"prabogo/internal/model"
-	contextutil "prabogo/utils/context"
-	"prabogo/utils/logger"
+	"MikrOps/internal/model"
+	contextutil "MikrOps/utils/context"
+	"MikrOps/utils/logger"
 )
 
 // TenantContext middleware resolves tenant from authenticated context
@@ -32,7 +32,7 @@ func (h *middlewareAdapter) TenantContext() gin.HandlerFunc {
 		tenantID, err := h.resolveTenantID(c, user)
 		if err != nil {
 			l.Error("Failed to resolve tenant ID",
-				zap.String("user_id", user.ID.String()),
+				zap.String("user_id", user.ID),
 				zap.Error(err))
 			SendAbort(c, http.StatusForbidden, err.Error())
 			return
@@ -40,10 +40,17 @@ func (h *middlewareAdapter) TenantContext() gin.HandlerFunc {
 
 		// Validate user has access to the resolved tenant
 		if !user.IsSuperadmin {
-			hasAccess, err := h.validateTenantAccess(user.ID, tenantID)
+			userID, err := uuid.Parse(user.ID)
+			if err != nil {
+				l.Error("Failed to parse user ID", zap.Error(err))
+				SendAbort(c, http.StatusInternalServerError, "Invalid user ID")
+				return
+			}
+
+			hasAccess, err := h.validateTenantAccess(userID, tenantID)
 			if err != nil {
 				l.Error("Failed to validate tenant access",
-					zap.String("user_id", user.ID.String()),
+					zap.String("user_id", user.ID),
 					zap.String("tenant_id", tenantID.String()),
 					zap.Error(err))
 				SendAbort(c, http.StatusInternalServerError, "Failed to validate tenant access")
@@ -52,7 +59,7 @@ func (h *middlewareAdapter) TenantContext() gin.HandlerFunc {
 
 			if !hasAccess {
 				l.Warn("User attempted to access unauthorized tenant",
-					zap.String("user_id", user.ID.String()),
+					zap.String("user_id", user.ID),
 					zap.String("tenant_id", tenantID.String()))
 				SendAbort(c, http.StatusForbidden, "Access denied to requested tenant")
 				return
@@ -71,7 +78,7 @@ func (h *middlewareAdapter) TenantContext() gin.HandlerFunc {
 
 		// Log tenant context resolution
 		l.Debug("Tenant context resolved",
-			zap.String("user_id", user.ID.String()),
+			zap.String("user_id", user.ID),
 			zap.String("tenant_id", tenantID.String()),
 			zap.Bool("is_superadmin", user.IsSuperadmin))
 
@@ -97,31 +104,38 @@ func (h *middlewareAdapter) getUserFromGinContext(c *gin.Context) (*model.User, 
 
 // resolveTenantID determines the tenant ID based on user and request headers
 func (h *middlewareAdapter) resolveTenantID(c *gin.Context, user *model.User) (uuid.UUID, error) {
-	// Strategy 1: Check X-Tenant-ID header (for super admin tenant selection or multi-tenant users)
-	tenantIDHeader := c.GetHeader("X-Tenant-ID")
-	if tenantIDHeader != "" {
+	// Strategy 1: Super Admin - Must use header to select context
+	if user.IsSuperadmin {
+		tenantIDHeader := c.GetHeader("X-Tenant-ID")
+		if tenantIDHeader == "" {
+			return uuid.Nil, fmt.Errorf("super admin must specify X-Tenant-ID header to access tenant resources")
+		}
+
 		tenantID, err := uuid.Parse(tenantIDHeader)
 		if err != nil {
 			return uuid.Nil, fmt.Errorf("invalid X-Tenant-ID header format: %w", err)
 		}
-
-		// For super admin, header is required but no validation needed
-		// For regular users, validation will happen in validateTenantAccess
 		return tenantID, nil
 	}
 
-	// Strategy 2: For super admin WITHOUT header, deny access (security by design)
-	if user.IsSuperadmin {
-		return uuid.Nil, fmt.Errorf("super admin must specify X-Tenant-ID header to access tenant resources")
+	// Strategy 2: Regular User - STRICTLY use assigned tenant
+	// Ignore X-Tenant-ID header completely for non-superadmins to prevent spoofing
+	if user.TenantID != nil && *user.TenantID != "" {
+		parsedTenantID, err := uuid.Parse(*user.TenantID)
+		if err != nil {
+			return uuid.Nil, fmt.Errorf("invalid tenant ID in user record: %w", err)
+		}
+		if parsedTenantID != uuid.Nil {
+			return parsedTenantID, nil
+		}
 	}
 
-	// Strategy 3: Use user's primary tenant from JWT (tenant_id field)
-	if user.TenantID != nil && *user.TenantID != uuid.Nil {
-		return *user.TenantID, nil
+	// Strategy 3: Query primary tenant from tenant_users table (Fallback)
+	userID, err := uuid.Parse(user.ID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
 	}
-
-	// Strategy 4: Query primary tenant from tenant_users table
-	primaryTenantID, err := h.getPrimaryTenantForUser(user.ID)
+	primaryTenantID, err := h.getPrimaryTenantForUser(userID)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to get primary tenant: %w", err)
 	}
@@ -135,10 +149,11 @@ func (h *middlewareAdapter) resolveTenantID(c *gin.Context, user *model.User) (u
 
 // validateTenantAccess checks if user has access to the specified tenant
 func (h *middlewareAdapter) validateTenantAccess(userID, tenantID uuid.UUID) (bool, error) {
-	return h.domain.Database().TenantUser().HasAccess(contextutil.SetUser(contextutil.SetSuperAdmin(contextutil.SetTenantID(context.Background(), tenantID), true), &model.User{ID: userID}), userID, tenantID)
+	return h.domain.Database().TenantUser().HasAccess(contextutil.SetUser(contextutil.SetSuperAdmin(contextutil.SetTenantID(context.Background(), tenantID), true), &model.User{ID: userID.String()}), userID, tenantID)
 }
 
 // getPrimaryTenantForUser retrieves the primary tenant for a user from tenant_users table
 func (h *middlewareAdapter) getPrimaryTenantForUser(userID uuid.UUID) (uuid.UUID, error) {
-	return h.domain.Database().TenantUser().GetPrimaryTenant(contextutil.SetUser(context.Background(), &model.User{ID: userID, IsSuperadmin: true}), userID)
+	return h.domain.Database().TenantUser().GetPrimaryTenant(contextutil.SetUser(context.Background(), &model.User{ID: userID.String(), IsSuperadmin: true}), userID)
 }
+

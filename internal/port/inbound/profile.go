@@ -2,7 +2,7 @@ package inbound_port
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 type ProfilePort interface {
@@ -14,9 +14,10 @@ type ProfilePort interface {
 }
 
 type ProfileDomain interface {
-	CreateProfile(ctx context.Context, input model.ProfileInput) (*model.ProfileWithPPPoE, error)
-	GetProfile(ctx context.Context, id string) (*model.ProfileWithPPPoE, error)
-	ListProfiles(ctx context.Context) ([]model.ProfileWithPPPoE, error)
-	UpdateProfile(ctx context.Context, id string, input model.ProfileInput) (*model.ProfileWithPPPoE, error)
+	CreateProfile(ctx context.Context, input model.CreateProfileRequest) (*model.MikrotikProfile, error)
+	GetProfile(ctx context.Context, id string) (*model.MikrotikProfile, error)
+	ListProfiles(ctx context.Context) ([]model.MikrotikProfile, error)
+	UpdateProfile(ctx context.Context, id string, input model.CreateProfileRequest) (*model.MikrotikProfile, error)
 	DeleteProfile(ctx context.Context, id string) error
 }
+

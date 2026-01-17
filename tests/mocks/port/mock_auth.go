@@ -5,7 +5,7 @@
 package mock_outbound_port
 
 import (
-	model "prabogo/internal/model"
+	model "MikrOps/internal/model"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -93,3 +93,4 @@ func (mr *MockAuthDatabasePortMockRecorder) SaveUser(user interface{}) *gomock.C
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveUser", reflect.TypeOf((*MockAuthDatabasePort)(nil).SaveUser), user)
 }
+

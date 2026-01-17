@@ -1,9 +1,9 @@
 package gin_inbound_adapter
 
 import (
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +19,7 @@ func NewCallbackAdapter(domain domain.Domain) inbound_port.CallbackHttpPort {
 }
 
 func (h *callbackHandler) HandlePPPoEUp(c *gin.Context) {
-	var input model.PPPoEUpInput
+	var input model.PPPoEEventInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"status": "error", "message": err.Error()})
 		return
@@ -35,7 +35,7 @@ func (h *callbackHandler) HandlePPPoEUp(c *gin.Context) {
 }
 
 func (h *callbackHandler) HandlePPPoEDown(c *gin.Context) {
-	var input model.PPPoEDownInput
+	var input model.PPPoEEventInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"status": "error", "message": err.Error()})
 		return
@@ -49,3 +49,4 @@ func (h *callbackHandler) HandlePPPoEDown(c *gin.Context) {
 
 	c.JSON(200, gin.H{"status": "success"})
 }
+

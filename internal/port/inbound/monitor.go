@@ -2,7 +2,7 @@ package inbound_port
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 type MonitorPort interface {
@@ -16,3 +16,4 @@ type MonitorDomain interface {
 	PingCustomer(ctx context.Context, customerID string) (map[string]interface{}, error)
 	StreamPing(ctx context.Context, customerID string) (<-chan model.PingResponse, error)
 }
+

@@ -3,11 +3,11 @@ package rabbitmq_inbound_adapter
 import (
 	"context"
 	"encoding/json"
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
-	"prabogo/utils/log"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
+	"MikrOps/utils/log"
 )
 
 type clientAdapter struct {
@@ -42,3 +42,4 @@ func (h *clientAdapter) Upsert(a any) bool {
 	log.WithContext(ctx).Info("client upsert success")
 	return true
 }
+

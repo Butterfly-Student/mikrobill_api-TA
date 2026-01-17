@@ -2,7 +2,7 @@ package mikrotik_outbound_adapter
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 func MonitorTraffic(
@@ -80,3 +80,4 @@ func mapToInterfaceTraffic(m map[string]string) model.InterfaceTraffic {
 		Section: m[".section"],
 	}
 }
+

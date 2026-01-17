@@ -10,25 +10,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	joonix "github.com/joonix/log"
-	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 
-	command_inbound_adapter "prabogo/internal/adapter/inbound/command"
-	gin_inbound_adapter "prabogo/internal/adapter/inbound/gin"
-	rabbitmq_inbound_adapter "prabogo/internal/adapter/inbound/rabbitmq"
-	mikrotik_outbound_adapter "prabogo/internal/adapter/outbound/mikrotik"
-	postgres_outbound_adapter "prabogo/internal/adapter/outbound/postgres"
-	rabbitmq_outbound_adapter "prabogo/internal/adapter/outbound/rabbitmq"
-	redis_outbound_adapter "prabogo/internal/adapter/outbound/redis"
-	"prabogo/internal/domain"
-	_ "prabogo/internal/migration/postgres"
-	outbound_port "prabogo/internal/port/outbound"
-	"prabogo/utils"
-	"prabogo/utils/activity"
-	"prabogo/utils/database"
-	"prabogo/utils/log"
-	"prabogo/utils/rabbitmq"
-	"prabogo/utils/redis"
+	command_inbound_adapter "MikrOps/internal/adapter/inbound/command"
+	gin_inbound_adapter "MikrOps/internal/adapter/inbound/gin"
+	rabbitmq_inbound_adapter "MikrOps/internal/adapter/inbound/rabbitmq"
+	mikrotik_outbound_adapter "MikrOps/internal/adapter/outbound/mikrotik"
+	postgres_outbound_adapter "MikrOps/internal/adapter/outbound/postgres"
+	rabbitmq_outbound_adapter "MikrOps/internal/adapter/outbound/rabbitmq"
+	redis_outbound_adapter "MikrOps/internal/adapter/outbound/redis"
+	"MikrOps/internal/domain"
+	_ "MikrOps/internal/migration/postgres"
+	outbound_port "MikrOps/internal/port/outbound"
+	"MikrOps/utils"
+	"MikrOps/utils/activity"
+	"MikrOps/utils/database"
+	"MikrOps/utils/log"
+	"MikrOps/utils/rabbitmq"
+	"MikrOps/utils/redis"
 )
 
 var embedMigrations embed.FS
@@ -51,11 +50,13 @@ func NewApp() *App {
 	ctx = activity.WithClientID(ctx, "system")
 	godotenv.Load(".env")
 	configureLogging()
+	
 	outboundDatabaseDriver = os.Getenv("OUTBOUND_DATABASE_DRIVER")
 	outboundMessageDriver = os.Getenv("OUTBOUND_MESSAGE_DRIVER")
 	outboundCacheDriver = os.Getenv("OUTBOUND_CACHE_DRIVER")
 	inboundHttpDriver = os.Getenv("INBOUND_HTTP_DRIVER")
 	inboundMessageDriver = os.Getenv("INBOUND_MESSAGE_DRIVER")
+	
 	domain := domain.NewDomain(
 		databaseOutbound(ctx),
 		messageOutbound(ctx),
@@ -85,12 +86,15 @@ func databaseOutbound(ctx context.Context) outbound_port.DatabasePort {
 		log.WithContext(ctx).Fatal("database driver is not supported")
 		os.Exit(1)
 	}
+	
+	// InitDatabase now returns *gorm.DB instead of *sql.DB
 	db := database.InitDatabase(ctx, outboundDatabaseDriver)
 
 	switch outboundDatabaseDriver {
 	case "postgres":
 		return postgres_outbound_adapter.NewAdapter(db)
 	}
+	
 	return nil
 }
 
@@ -105,6 +109,7 @@ func messageOutbound(ctx context.Context) outbound_port.MessagePort {
 		rabbitmq.InitMessage()
 		return rabbitmq_outbound_adapter.NewAdapter()
 	}
+	
 	return nil
 }
 
@@ -120,6 +125,7 @@ func cacheOutbound(ctx context.Context) outbound_port.CachePort {
 		redis.InitPubsub()
 		return redis_outbound_adapter.NewAdapter()
 	}
+	
 	return nil
 }
 
@@ -135,6 +141,7 @@ func (a *App) httpInbound() {
 		app := gin.New()
 		inboundHttpAdapter := gin_inbound_adapter.NewAdapter(a.domain)
 		gin_inbound_adapter.InitRoute(ctx, app, inboundHttpAdapter)
+		
 		go func() {
 			if err := app.Run(":" + os.Getenv("SERVER_PORT")); err != nil {
 				log.WithContext(ctx).Fatalf("failed to listen and serve: %+v", err)

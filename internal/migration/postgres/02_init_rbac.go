@@ -101,30 +101,6 @@ func upInitRbac(ctx context.Context, tx *sql.Tx) error {
 
 		`CREATE INDEX IF NOT EXISTS idx_sessions_user ON user_sessions(user_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions(token_hash);`,
-
-		// 5. Initial Data - Global System Roles (tenant_id IS NULL)
-		`INSERT INTO roles (name, display_name, description, is_system, tenant_id) VALUES
-		('superadmin', 'Super Administrator', 'Full system access', true, NULL),
-		('admin', 'Administrator', 'Administrative access', true, NULL),
-		('technician', 'Technician', 'Technical operations', true, NULL),
-		('sales', 'Sales', 'Sales operations', true, NULL),
-		('cs', 'Customer Service', 'Customer support', true, NULL),
-		('finance', 'Finance', 'Financial operations', true, NULL),
-		('viewer', 'Viewer', 'Read-only access', true, NULL)
-		ON CONFLICT (tenant_id, name) WHERE tenant_id IS NULL DO NOTHING;`,
-
-		// 6. Initial Data - Default Superadmin
-		// Password: password123 (hashed)
-		`INSERT INTO users (username, email, encrypted_password, fullname, user_role, status, is_superadmin)
-		VALUES (
-			'superadmin', 
-			'superadmin@mikrobill.com', 
-			'$2a$10$G3KwVzSrJO1SuWNSYYu5KuISTXyeK5MIlCa5Z4c4OdU3esDN/i1bK', 
-			'Super Administrator', 
-			'superadmin', 
-			'active', 
-			true
-		) ON CONFLICT (username) DO NOTHING;`,
 	}
 
 	for _, query := range queries {

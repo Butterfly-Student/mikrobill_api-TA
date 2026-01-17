@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type customerAdapter struct {
@@ -24,7 +24,7 @@ func NewCustomerAdapter(domainRegistry domain.Domain) inbound_port.CustomerPort 
 func (a *customerAdapter) CreateCustomer(ctx any) error {
 	c := ctx.(*gin.Context)
 
-	var input model.CustomerInput
+	var input model.CreateCustomerRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request",
@@ -79,7 +79,7 @@ func (a *customerAdapter) UpdateCustomer(ctx any) error {
 	c := ctx.(*gin.Context)
 	id := c.Param("id")
 
-	var input model.CustomerInput
+	var input model.CreateCustomerRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request",
@@ -113,3 +113,4 @@ func (a *customerAdapter) DeleteCustomer(ctx any) error {
 
 	return nil
 }
+

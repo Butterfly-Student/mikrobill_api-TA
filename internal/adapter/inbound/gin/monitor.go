@@ -8,9 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
 )
 
 type monitorAdapter struct {
@@ -158,3 +158,4 @@ func (a *monitorAdapter) StreamPing(ctx any) error {
 		}
 	}
 }
+

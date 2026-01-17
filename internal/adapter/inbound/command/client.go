@@ -2,11 +2,11 @@ package command_inbound_adapter
 
 import (
 	"context"
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
-	"prabogo/utils/log"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
+	"MikrOps/utils/log"
 )
 
 type clientAdapter struct {
@@ -31,3 +31,4 @@ func (h *clientAdapter) PublishUpsert(name string) {
 	}
 	log.WithContext(ctx).Info("client upsert success")
 }
+

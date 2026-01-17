@@ -1,7 +1,7 @@
 package redis_outbound_adapter
 
 import (
-	outbound_port "prabogo/internal/port/outbound"
+	outbound_port "MikrOps/internal/port/outbound"
 )
 
 type adapter struct {
@@ -18,3 +18,4 @@ func (s *adapter) Client() outbound_port.ClientCachePort {
 func (s *adapter) PubSub() outbound_port.RedisPubSubPort {
 	return NewPubSubAdapter()
 }
+

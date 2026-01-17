@@ -1,7 +1,6 @@
 ### Base URL
 @baseUrl = http://localhost:8000
-@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg1NzUzMTAsInJvbGUiOiJTVVBFUl9BRE1JTiIsInN1YiI6ImIyMmUwNDlkLWExYzAtNDczYy04M2ViLWQzZWY1YWE0ODViYiIsInVzZXJuYW1lIjoic3VwZXJhZG1pbiJ9.XN-USiv4NVCIAMGovHaOsIjtXHn7tuF-Izr4y_jS2QY
-@tenantId = 
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg3MTE1NTEsInJvbGUiOiJzdXBlcmFkbWluIiwic3ViIjoiODIyZGMzMTAtMzM2Mi00ZTNlLWFiZmQtZmMwYjA0MWUyMDBmIiwidXNlcm5hbWUiOiJzdXBlcmFkbWluIn0.jqfHBn9P8nG2rukDFN299P4xI5QFWzTXQzfnsTzqYJk
 
 ### 1. Create Tenant
 # @name createTenant
@@ -10,9 +9,9 @@ Content-Type: application/json
 X-Client-Key: {{clientKey}}
 
 {
-  "name": "Test Tenant",
-  "subdomain": "testtenant",
-  "company_name": "Test Corp",
+  "name": "Test Tenant 1",
+  "subdomain": "testtenant1",
+  "company_name": "Test Corp 1",
   "phone": "081234567890",
   "address": "Jakarta, Indonesia",
   "timezone": "Asia/Jakarta",

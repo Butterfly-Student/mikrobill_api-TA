@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"prabogo/internal/domain"
-	"prabogo/internal/model"
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils/activity"
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
 )
 
 type mikrotikPPPSecretAdapter struct {
@@ -104,4 +104,5 @@ func (h *mikrotikPPPSecretAdapter) MikrotikListSecrets(a any) error {
 	c.JSON(http.StatusOK, model.Response{Success: true, Data: res})
 	return nil
 }
+
 

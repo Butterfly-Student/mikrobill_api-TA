@@ -2,7 +2,7 @@ package inbound_port
 
 import (
 	"context"
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 type MikrotikPPPProfilePort interface {
@@ -21,3 +21,4 @@ type MikrotikPPPProfileDomain interface {
 	MikrotikDeleteProfile(ctx context.Context, id string) error
 	MikrotikListProfiles(ctx context.Context) ([]model.PPPProfile, error)
 }
+

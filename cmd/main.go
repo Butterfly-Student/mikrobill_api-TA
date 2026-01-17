@@ -4,7 +4,7 @@ import (
 	"embed"
 	"os"
 
-	"prabogo/internal"
+	"MikrOps/internal"
 )
 
 var embedMigrations embed.FS
@@ -18,3 +18,4 @@ func main() {
 
 	app.Run(option)
 }
+

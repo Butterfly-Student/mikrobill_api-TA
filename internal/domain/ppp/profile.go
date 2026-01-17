@@ -6,7 +6,7 @@ import (
 
 	"github.com/palantir/stacktrace"
 
-	"prabogo/internal/model"
+	"MikrOps/internal/model"
 )
 
 // --- Profiles ---
@@ -114,3 +114,4 @@ func (d *PPPDomain) MikrotikListProfiles(ctx context.Context) ([]model.PPPProfil
 	}
 	return profiles, nil
 }
+

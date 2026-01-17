@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	inbound_port "prabogo/internal/port/inbound"
-	"prabogo/utils"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils"
 )
 
 type pingAdapter struct{}
@@ -54,3 +54,4 @@ func (h *pingAdapter) GetResource(a any) error {
 	})
 	return nil
 }
+

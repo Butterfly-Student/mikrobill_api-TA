@@ -5,7 +5,7 @@
 package mock_outbound_port
 
 import (
-	model "prabogo/internal/model"
+	model "MikrOps/internal/model"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -122,3 +122,4 @@ func (mr *MockTenantDatabasePortMockRecorder) Update(id, input interface{}) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockTenantDatabasePort)(nil).Update), id, input)
 }
+
