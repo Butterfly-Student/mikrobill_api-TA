@@ -30,11 +30,11 @@ func (s *adapter) DoInTransaction(ctx context.Context, txFunc outbound_port.InTr
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Create a new adapter with the transaction
 		txAdapter := &adapter{db: tx}
-		
+
 		// Execute the function
 		result, txErr := txFunc(txAdapter)
 		out = result
-		
+
 		return txErr
 	})
 
@@ -74,4 +74,9 @@ func (s *adapter) Tenant() outbound_port.TenantDatabasePort {
 // TenantUser returns the tenant user database port
 func (s *adapter) TenantUser() outbound_port.TenantUserDatabasePort {
 	return NewTenantUserAdapter(s.db)
+}
+
+// User returns the user database port
+func (s *adapter) User() outbound_port.UserDatabasePort {
+	return NewUserAdapter(s.db)
 }

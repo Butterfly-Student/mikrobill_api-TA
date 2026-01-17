@@ -17,15 +17,20 @@ type RegisterRequest struct {
 
 // LoginResponse represents the response after successful login
 type LoginResponse struct {
-	AccessToken  string      `json:"access_token"`
-	RefreshToken string      `json:"refresh_token"`
-	TokenType    string      `json:"token_type"` // Bearer
-	ExpiresIn    int64       `json:"expires_in"` // in seconds
-	User         *User       `json:"user"`       // User information (without sensitive data)
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"` // Bearer
+	ExpiresIn    int64  `json:"expires_in"` // in seconds
+	User         *User  `json:"user"`       // User information (without sensitive data)
 }
 
 // RefreshTokenRequest represents the payload for refreshing token
 type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// LogoutRequest represents the payload for logout
+type LogoutRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 

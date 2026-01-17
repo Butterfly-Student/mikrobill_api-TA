@@ -4,4 +4,5 @@ package outbound_port
 type CachePort interface {
 	Client() ClientCachePort
 	PubSub() RedisPubSubPort
+	AuthCache() AuthCachePort
 }

@@ -2,6 +2,7 @@ package postgres_outbound_adapter
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
@@ -61,6 +62,32 @@ func (a *authAdapter) FindUserByUsername(ctx context.Context, username string) (
 	return &user, nil
 }
 
+// Di file: internal/adapter/outbound/postgres/auth.go
+func (a *authAdapter) FindUserByEmailOrUsername(ctx context.Context, identifier string) (*model.User, error) {
+	var user model.User
+
+	err := a.db.WithContext(ctx).
+		Where("email = ? OR username = ?", identifier, identifier).
+		First(&user).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // Return nil jika tidak ditemukan, bukan error
+		}
+		return nil, stacktrace.Propagate(err, "failed to find user")
+	}
+
+	// Load role if needed
+	if user.RoleID != nil && *user.RoleID != "" {
+		var role model.Role
+		if err := a.db.WithContext(ctx).First(&role, "id = ?", *user.RoleID).Error; err == nil {
+			user.UserRole = model.UserRole(role.Name)
+		}
+	}
+
+	return &user, nil
+}
+
 func (a *authAdapter) FindUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	var user model.User
 	err := a.db.WithContext(ctx).
@@ -109,4 +136,3 @@ func (a *authAdapter) FindRoleByID(ctx context.Context, id uuid.UUID) (*model.Ro
 
 	return &role, nil
 }
-

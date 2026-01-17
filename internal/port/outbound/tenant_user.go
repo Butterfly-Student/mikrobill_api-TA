@@ -16,4 +16,7 @@ type TenantUserDatabasePort interface {
 
 	// GetTenantsForUser retrieves all active tenants for a user
 	GetTenantsForUser(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
+
+	// AssignUserToTenant assigns a user to a tenant with optional role
+	AssignUserToTenant(ctx context.Context, userID, tenantID uuid.UUID, roleID *uuid.UUID, isPrimary bool) error
 }

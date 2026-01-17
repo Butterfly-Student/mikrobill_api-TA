@@ -10,6 +10,7 @@ import (
 	"MikrOps/internal/domain/profile"
 	"MikrOps/internal/domain/tenant"
 	"MikrOps/internal/domain/testing"
+	"MikrOps/internal/domain/user"
 	inbound_port "MikrOps/internal/port/inbound"
 	outbound_port "MikrOps/internal/port/outbound"
 	"MikrOps/utils/logger"
@@ -26,6 +27,7 @@ type Domain interface {
 	Profile() inbound_port.ProfileDomain
 	Customer() inbound_port.CustomerDomain
 	Tenant() inbound_port.TenantDomain
+	User() inbound_port.UserDomain
 	Database() outbound_port.DatabasePort // For direct queries in middleware
 }
 
@@ -55,7 +57,7 @@ func (d *domain) Client() client.ClientDomain {
 }
 
 func (d *domain) Auth() auth.AuthDomain {
-	return auth.NewAuthDomain(d.databasePort)
+	return auth.NewAuthDomain(d.databasePort, d.cachePort)
 }
 
 func (d *domain) Testing() testing.TestingDomain {
@@ -90,7 +92,10 @@ func (d *domain) Tenant() inbound_port.TenantDomain {
 	return tenant.NewTenantDomain(d.databasePort, logger.GetLogger())
 }
 
+func (d *domain) User() inbound_port.UserDomain {
+	return user.NewUserDomain(d.databasePort)
+}
+
 func (d *domain) Database() outbound_port.DatabasePort {
 	return d.databasePort
 }
-

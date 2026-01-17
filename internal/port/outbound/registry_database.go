@@ -15,5 +15,6 @@ type DatabasePort interface {
 	Customer() CustomerDatabasePort
 	Tenant() TenantDatabasePort
 	TenantUser() TenantUserDatabasePort
+	User() UserDatabasePort
 	DoInTransaction(ctx context.Context, txFunc InTransaction) (out interface{}, err error)
 }

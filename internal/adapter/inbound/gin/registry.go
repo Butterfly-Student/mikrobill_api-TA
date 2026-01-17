@@ -69,3 +69,6 @@ func (s *adapter) Tenant() inbound_port.TenantPort {
 	return NewTenantAdapter(s.domain)
 }
 
+func (s *adapter) User() inbound_port.UserHttpPort {
+	return NewUserAdapter(s.domain)
+}

@@ -14,4 +14,5 @@ type HttpPort interface {
 	Customer() CustomerPort
 	Callback() CallbackHttpPort
 	Tenant() TenantPort
+	User() UserHttpPort
 }

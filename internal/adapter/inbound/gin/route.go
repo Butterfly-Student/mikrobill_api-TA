@@ -45,6 +45,15 @@ func InitRoute(
 	auth.POST("/register", func(c *gin.Context) {
 		port.Auth().Register(c)
 	})
+	auth.POST("/logout", func(c *gin.Context) {
+		port.Auth().Logout(c)
+	})
+	auth.POST("/refresh", func(c *gin.Context) {
+		port.Auth().RefreshToken(c)
+	})
+	auth.GET("/profile", func(c *gin.Context) {
+		port.Auth().GetProfile(c)
+	})
 
 	// Internal group (Admin/Management)
 	internal := v1.Group("/internal")
@@ -65,6 +74,18 @@ func InitRoute(
 		tenant.PUT("/:id", func(c *gin.Context) { port.Tenant().UpdateTenant(c) })
 		tenant.DELETE("/:id", func(c *gin.Context) { port.Tenant().DeleteTenant(c) })
 		tenant.GET("/:id/stats", func(c *gin.Context) { port.Tenant().GetTenantStats(c) })
+	}
+
+	// User Management
+	users := internal.Group("/users")
+	{
+		users.POST("", func(c *gin.Context) { port.User().CreateUser(c) })
+		users.GET("/list", func(c *gin.Context) { port.User().ListUsers(c) })
+		users.GET("/:id", func(c *gin.Context) { port.User().GetUser(c) })
+		users.PUT("/:id", func(c *gin.Context) { port.User().UpdateUser(c) })
+		users.DELETE("/:id", func(c *gin.Context) { port.User().DeleteUser(c) })
+		users.POST("/:id/assign-role", func(c *gin.Context) { port.User().AssignRole(c) })
+		users.POST("/:id/assign-tenant", func(c *gin.Context) { port.User().AssignToTenant(c) })
 	}
 
 	// Isolated Resources (Need Tenant Context)
@@ -150,4 +171,3 @@ func InitRoute(
 		port.Ping().GetResource(c)
 	})
 }
-

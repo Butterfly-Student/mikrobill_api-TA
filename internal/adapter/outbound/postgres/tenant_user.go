@@ -97,3 +97,54 @@ func (a *tenantUserAdapter) GetTenantsForUser(ctx context.Context, userID uuid.U
 	return tenants, nil
 }
 
+// AssignUserToTenant assigns a user to a tenant with optional role
+func (a *tenantUserAdapter) AssignUserToTenant(ctx context.Context, userID, tenantID uuid.UUID, roleID *uuid.UUID, isPrimary bool) error {
+	// Check if assignment already exists
+	var count int64
+	err := a.db.WithContext(ctx).
+		Table(tableTenantUsers).
+		Where("user_id = ? AND tenant_id = ?", userID, tenantID).
+		Count(&count).Error
+
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to check existing tenant assignment")
+	}
+
+	// If exists, update it
+	if count > 0 {
+		updates := map[string]interface{}{
+			"is_active":  true,
+			"is_primary": isPrimary,
+		}
+		if roleID != nil {
+			updates["role_id"] = roleID
+		}
+
+		if err := a.db.WithContext(ctx).
+			Table(tableTenantUsers).
+			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
+			Updates(updates).Error; err != nil {
+			return stacktrace.Propagate(err, "failed to update tenant assignment")
+		}
+		return nil
+	}
+
+	// Otherwise create new assignment
+	insertData := map[string]interface{}{
+		"user_id":    userID,
+		"tenant_id":  tenantID,
+		"is_active":  true,
+		"is_primary": isPrimary,
+	}
+	if roleID != nil {
+		insertData["role_id"] = roleID
+	}
+
+	if err := a.db.WithContext(ctx).
+		Table(tableTenantUsers).
+		Create(insertData).Error; err != nil {
+		return stacktrace.Propagate(err, "failed to create tenant assignment")
+	}
+
+	return nil
+}

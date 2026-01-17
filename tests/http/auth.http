@@ -13,6 +13,40 @@ Content-Type: application/json
 }
 
 ### ========================================
+### Get token for subsequent requests
+### ========================================
+@accessToken = {{loginSuperAdmin.response.body.data.access_token}}
+@refreshToken = {{loginSuperAdmin.response.body.data.refresh_token}}
+
+### ========================================
+### Get Profile (Use access token from login)
+### ========================================
+GET {{baseUrl}}/v1/auth/profile
+Authorization: Bearer {{accessToken}}
+
+### ========================================
+### Refresh Access Token
+### ========================================
+# @name refreshToken
+POST {{baseUrl}}/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### ========================================
+### Logout
+### ========================================
+POST {{baseUrl}}/v1/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### ========================================
 ### TEKNOLOGI NUSANTARA - ADMIN
 ### ========================================
 # @name loginTeknusantaraAdmin
@@ -59,11 +93,3 @@ Content-Type: application/json
   "username": "admin@digiindo.com",
   "password": "password123"
 }
-
-### ========================================
-### Get Profile (Use token from login)
-### ========================================
-@token = {{loginDigiindoAdmin.response.body.data.token}}
-
-GET {{baseUrl}}/v1/auth/profile
-Authorization: Bearer {{token}}
