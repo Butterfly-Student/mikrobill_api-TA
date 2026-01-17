@@ -6,13 +6,14 @@ Comprehensive API documentation for MikroOps Multi-Tenant Billing & Monitoring S
 1. [Base Configuration](#base-configuration)
 2. [Authentication](#1-authentication)
 3. [Tenant Management](#2-tenant-management)
-4. [Client Operations](#3-client-operations)
-5. [MikroTik Device Management](#4-mikrotik-device-management)
-6. [PPP Management](#5-ppp-management)
-7. [Billing Profiles](#6-billing-profiles)
-8. [Customer Management](#7-customer-management)
-9. [Monitoring & Real-time Stats](#8-monitoring--real-time-stats)
-10. [Callbacks & System](#9-callbacks--system)
+4. [User Management](#3-user-management)
+5. [Client Operations](#4-client-operations)
+6. [MikroTik Device Management](#5-mikrotik-device-management)
+7. [PPP Management](#6-ppp-management)
+8. [Billing Profiles](#7-billing-profiles)
+9. [Customer Management](#8-customer-management)
+10. [Monitoring & Real-time Stats](#9-monitoring--real-time-stats)
+11. [Callbacks & System](#10-callbacks--system)
 
 ---
 
@@ -35,11 +36,11 @@ Comprehensive API documentation for MikroOps Multi-Tenant Billing & Monitoring S
 ```
 
 ### Required Headers
-*   `Authorization`: `Bearer <jwt_token>` (Required for all `/internal/*` routes)
+*   `Authorization`: `Bearer <access_token>` (Required for all restricted routes)
 *   `Content-Type`: `application/json`
 *   `X-Tenant-ID`: `<uuid>`
     *   **Required** for **Super Admins** to switch context to a specific tenant.
-    *   Derived automatically for regular Users.
+    *   Derived automatically for regular Users (Admins/Viewers) based on their assigned tenant.
 
 ---
 
@@ -51,23 +52,64 @@ Public endpoints for identity management.
 *   **Request Body:**
     ```json
     {
-      "email": "admin@example.com", // Optional
-      "username": "admin",         // Required if email is empty
+      "email": "admin@example.com", // Optional if username is provided
+      "username": "admin",         // Optional if email is provided
       "password": "password123"
     }
     ```
 *   **Response (Data):**
     ```json
     {
-      "id": "uuid",
-      "username": "admin",
-      "email": "admin@example.com",
-      "fullname": "Administrator",
-      "user_role": "admin",
-      "role_id": "uuid",
-      "api_token": "jwt_string"
+      "access_token": "jwt_token_string",
+      "refresh_token": "uuid_string",
+      "token_type": "Bearer",
+      "expires_in": 900,           // 15 minutes
+      "refresh_expires_in": 2592000, // 30 days
+      "absolute_expires_in": 7776000, // 90 days
+      "user": {
+        "id": "uuid",
+        "username": "admin",
+        "email": "admin@example.com",
+        "fullname": "Administrator",
+        "user_role": "super_admin",
+        "tenant_id": null
+      }
     }
     ```
+
+### Refresh Token
+*   **Path:** `POST /auth/refresh`
+*   **Request Body:**
+    ```json
+    {
+      "refresh_token": "uuid_string"
+    }
+    ```
+*   **Response (Data):**
+    ```json
+    {
+      "access_token": "new_jwt_token",
+      "token_type": "Bearer",
+      "expires_in": 900,
+      "rotation": true,
+      "refresh_token": "new_uuid_string", // Only if rotated
+      "refresh_expires_in": 2592000
+    }
+    ```
+
+### Logout
+*   **Path:** `POST /auth/logout`
+*   **Request Body:**
+    ```json
+    {
+      "refresh_token": "uuid_string"
+    }
+    ```
+*   **Response (Data):** `{"message": "logged out successfully"}`
+
+### Get Profile
+*   **Path:** `GET /auth/profile`
+*   **Response (Data):** Returns current authenticated `User` object.
 
 ### Register
 *   **Path:** `POST /auth/register`
@@ -111,26 +153,78 @@ Super Admin routes for managing platform tenants.
 
 ### Get Tenant
 *   **Path:** `GET /internal/tenant/:id`
-*   **Response (Data):** Full `model.TenantResponse` including limits and features.
+*   **Response (Data):** Full `model.TenantResponse`.
 
 ---
 
-## 3. Client Operations
+## 3. User Management
+Routes for managing dashboard users (Admins, Operators, Viewers).
+*   **Super Admin:** Can manage all users across all tenants.
+*   **Tenant Admin:** Can manage users only within their own tenant.
+
+### Create User
+*   **Path:** `POST /internal/users`
+*   **Note:** Currently restricted to Super Admin.
+*   **Request Body (`model.CreateUserRequest`):**
+    ```json
+    {
+      "username": "tenant_admin",
+      "email": "admin@isp.com",
+      "password": "securePass123!",
+      "fullname": "Tenant Administrator",
+      "phone": "08123456789",
+      "user_role": "admin",
+      "role_id": "uuid_role" // Optional RBAC role
+    }
+    ```
+
+### List Users
+*   **Path:** `GET /internal/users/list`
+*   **Query Params:** `limit`, `offset`, `tenant_id` (Super Admin only)
+*   **Response (Data):** `{"users": [], "total": 10, "limit": 10, "offset": 0}`
+
+### Get User
+*   **Path:** `GET /internal/users/:id`
+
+### Update User
+*   **Path:** `PUT /internal/users/:id`
+*   **Request Body:** `model.UpdateUserRequest` (Partial fields)
+
+### Delete User
+*   **Path:** `DELETE /internal/users/:id`
+
+### Assign Role
+*   **Path:** `POST /internal/users/:id/assign-role`
+*   **Request Body:** `{"role_id": "uuid"}`
+
+### Assign to Tenant
+*   **Path:** `POST /internal/users/:id/assign-tenant`
+*   **Note:** Super Admin only.
+*   **Request Body:**
+    ```json
+    {
+      "tenant_id": "uuid",
+      "role_id": "uuid", // Optional
+      "is_primary": true
+    }
+    ```
+
+---
+
+## 4. Client Operations
 Generic operations for managing linked clients/entities.
 
 ### Upsert Clients
 *   **Path:** `POST /internal/client-upsert`
 *   **Request Body:** `[]model.ClientInput`
-*   **Response (Data):** List of upserted clients.
 
 ### Find Clients
 *   **Path:** `POST /internal/client-find`
 *   **Request Body:** `model.ClientFilter`
-*   **Response (Data):** List of matching clients.
 
 ---
 
-## 4. MikroTik Device Management
+## 5. MikroTik Device Management
 Requires Tenant Context. Traced via `MikrotikHttpPort`.
 
 ### Create Device
@@ -149,31 +243,17 @@ Requires Tenant Context. Traced via `MikrotikHttpPort`.
 
 ### List Devices
 *   **Path:** `POST /internal/mikrotik/list`
-*   **Note:** Uses POST for potential complex filtering in the future, currently returns all.
 *   **Response (Data):** `[]model.MikrotikResponse`
 
 ### Get Device By ID
 *   **Path:** `GET /internal/mikrotik/:id`
-*   **Response (Data):**
-    ```json
-    {
-      "id": "uuid",
-      "name": "Router-01",
-      "host": "103.11.22.33",
-      "status": "online",
-      "total_profiles": 5,
-      "total_customers": 120,
-      "last_sync": "2024-01-01T12:00:00Z"
-    }
-    ```
 
 ### Set Active Device
 *   **Path:** `PATCH /internal/mikrotik/:id/activate`
-*   **Description:** Sets this router as the primary active device for the tenant.
 
 ---
 
-## 5. PPP Management
+## 6. PPP Management
 Direct MikroTik API calls for PPP Secrets and Profiles.
 
 ### Create PPP Secret
@@ -191,15 +271,13 @@ Direct MikroTik API calls for PPP Secrets and Profiles.
 
 ### List PPP Secrets
 *   **Path:** `GET /internal/ppp/secret/list`
-*   **Response (Data):** `[]model.PPPSecret`
 
 ### List PPP Profiles
 *   **Path:** `GET /internal/ppp/profile/list`
-*   **Response (Data):** `[]model.PPPProfile`
 
 ---
 
-## 6. Billing Profiles
+## 7. Billing Profiles
 System-level billing plans mapped to MikroTik configurations.
 
 ### Create Profile
@@ -218,11 +296,10 @@ System-level billing plans mapped to MikroTik configurations.
 
 ### List Profiles
 *   **Path:** `GET /internal/profile/list`
-*   **Response (Data):** `[]model.ProfileResponse`
 
 ---
 
-## 7. Customer Management
+## 8. Customer Management
 End-user subscription management.
 
 ### Create Customer
@@ -242,54 +319,29 @@ End-user subscription management.
 
 ### Get Customer
 *   **Path:** `GET /internal/customer/:id`
-*   **Response (Data):** Full `model.CustomerResponse` including `mikrotik` info and `services` history.
 
 ---
 
-## 8. Monitoring & Real-time Stats
+## 9. Monitoring & Real-time Stats
 WebSocket and high-frequency polling routes.
 
 ### Real-time Traffic Stream
 *   **Path:** `GET /internal/customer/:id/traffic/stream`
 *   **Protocol:** WebSocket
-*   **Output (`model.CustomerTrafficData`):**
-    ```json
-    {
-      "rx_bits_per_second": "5240000",
-      "tx_bits_per_second": "1200000",
-      "download_speed": "5.24 Mbps",
-      "upload_speed": "1.20 Mbps",
-      "timestamp": "..."
-    }
-    ```
 
 ### On-Demand Ping
 *   **Path:** `GET /internal/customer/:id/ping`
-*   **Response (Data):** Returns a one-time ping result summary.
 
 ### Ping Stream
 *   **Path:** `GET /internal/customer/:id/ping/stream`
 *   **Protocol:** WebSocket
-*   **Output:** Continuous `model.PingResponse` frames until closure.
 
 ---
 
-## 9. Callbacks & System
+## 10. Callbacks & System
 
 ### PPPoE On-Up Callback
 *   **Path:** `POST /callbacks/pppoe/up`
-*   **Request Body (`model.PPPoEEventInput`):**
-    ```json
-    {
-      "name": "johndoe",
-      "interface": "pppoe-johndoe",
-      "remote_address": "192.168.100.50"
-    }
-    ```
 
 ### System Resource Ping
 *   **Path:** `GET /client/ping`
-*   **Output:** Returns Backend CPU, RAM, and Core usage stats.
-
----
-*Generated by tracing: Handler -> Port -> Domain -> Model.*
