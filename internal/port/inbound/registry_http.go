@@ -15,4 +15,5 @@ type HttpPort interface {
 	Callback() CallbackHttpPort
 	Tenant() TenantPort
 	User() UserHttpPort
+	DirectMonitor() DirectMonitorPort
 }

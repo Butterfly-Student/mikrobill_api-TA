@@ -110,7 +110,7 @@ func (a *authAdapter) Logout(i any) {
 	}
 
 	// Get user ID from context (set by middleware)
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, model.Response{
 			Success: false,
@@ -184,7 +184,7 @@ func (a *authAdapter) GetProfile(i any) {
 	ctx := activity.NewContext(c.Request.Context(), "http_get_profile")
 
 	// Get user ID from context (set by middleware)
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, model.Response{
 			Success: false,

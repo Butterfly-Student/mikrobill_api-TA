@@ -72,3 +72,7 @@ func (s *adapter) Tenant() inbound_port.TenantPort {
 func (s *adapter) User() inbound_port.UserHttpPort {
 	return NewUserAdapter(s.domain)
 }
+
+func (s *adapter) DirectMonitor() inbound_port.DirectMonitorPort {
+	return NewDirectMonitorAdapter(s.domain)
+}

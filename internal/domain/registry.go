@@ -24,6 +24,7 @@ type Domain interface {
 	MikrotikPPPSecret() inbound_port.MikrotikPPPSecretDomain
 	MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain
 	Monitor() inbound_port.MonitorDomain
+	DirectMonitor() inbound_port.DirectMonitorDomain
 	Profile() inbound_port.ProfileDomain
 	Customer() inbound_port.CustomerDomain
 	Tenant() inbound_port.TenantDomain
@@ -78,6 +79,10 @@ func (d *domain) MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain {
 
 func (d *domain) Monitor() inbound_port.MonitorDomain {
 	return monitor.NewMonitorDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort)
+}
+
+func (d *domain) DirectMonitor() inbound_port.DirectMonitorDomain {
+	return monitor.NewMonitorDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort).(inbound_port.DirectMonitorDomain)
 }
 
 func (d *domain) Profile() inbound_port.ProfileDomain {

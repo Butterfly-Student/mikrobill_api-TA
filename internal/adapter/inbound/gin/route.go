@@ -52,6 +52,10 @@ func InitRoute(
 		port.Auth().RefreshToken(c)
 	})
 	auth.GET("/profile", func(c *gin.Context) {
+		// Require authentication for profile
+		if err := middlewareAdapter.InternalAuth(c); err != nil {
+			return
+		}
 		port.Auth().GetProfile(c)
 	})
 
@@ -156,6 +160,11 @@ func InitRoute(
 	resources.GET("/monitor/traffic/:interface", func(c *gin.Context) {
 		port.Monitor().StreamTraffic(c)
 	})
+
+	// Direct Monitor
+	resources.GET("/monitor/direct/traffic/:interface/stream", func(c *gin.Context) { port.DirectMonitor().StreamTrafficByInterface(c) })
+	resources.POST("/monitor/direct/ping", func(c *gin.Context) { port.DirectMonitor().PingHost(c) })
+	resources.GET("/monitor/direct/ping/:ip/stream", func(c *gin.Context) { port.DirectMonitor().StreamPingHost(c) })
 
 	// Callbacks (Outside v1 potentially, but let's keep consistency for now)
 	callbacks := v1.Group("/callbacks")

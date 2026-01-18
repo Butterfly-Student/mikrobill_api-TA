@@ -109,6 +109,7 @@ Public endpoints for identity management.
 
 ### Get Profile
 *   **Path:** `GET /auth/profile`
+*   **Headers:** `Authorization: Bearer <access_token>`
 *   **Response (Data):** Returns current authenticated `User` object.
 
 ### Register
