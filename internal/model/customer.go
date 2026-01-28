@@ -16,6 +16,7 @@ const (
 	CustomerStatusInactive  CustomerStatus = "inactive"
 	CustomerStatusSuspended CustomerStatus = "suspended"
 	CustomerStatusPending   CustomerStatus = "pending"
+	CustomerStatusProspect  CustomerStatus = "prospect"
 
 	ServiceTypePPPoE    ServiceType = "pppoe"
 	ServiceTypeHotspot  ServiceType = "hotspot"
@@ -53,8 +54,8 @@ type Customer struct {
 	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
-	Tenant   Tenant           `gorm:"foreignKey:TenantID" json:"tenant"`
-	Mikrotik Mikrotik         `gorm:"foreignKey:MikrotikID" json:"mikrotik"`
+	Tenant   Tenant            `gorm:"foreignKey:TenantID" json:"tenant"`
+	Mikrotik Mikrotik          `gorm:"foreignKey:MikrotikID" json:"mikrotik"`
 	Services []CustomerService `gorm:"foreignKey:CustomerID" json:"services,omitempty"`
 }
 
@@ -64,21 +65,21 @@ func (Customer) TableName() string {
 
 // CustomerService - Service subscription
 type CustomerService struct {
-	ID         string       `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	TenantID   string       `gorm:"type:uuid;not null;index" json:"tenant_id"`
-	CustomerID string       `gorm:"type:uuid;not null;index" json:"customer_id"`
-	ProfileID  string       `gorm:"type:uuid;not null;index" json:"profile_id"`
-	Price      float64      `gorm:"type:numeric(15,2);not null" json:"price"`
-	TaxRate    float64      `gorm:"type:numeric(5,2);default:0.00" json:"tax_rate"`
-	StartDate  time.Time    `gorm:"type:date;not null" json:"start_date"`
-	EndDate    *time.Time   `gorm:"type:date" json:"end_date,omitempty"`
+	ID         string        `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	TenantID   string        `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	CustomerID string        `gorm:"type:uuid;not null;index" json:"customer_id"`
+	ProfileID  string        `gorm:"type:uuid;not null;index" json:"profile_id"`
+	Price      float64       `gorm:"type:numeric(15,2);not null" json:"price"`
+	TaxRate    float64       `gorm:"type:numeric(5,2);default:0.00" json:"tax_rate"`
+	StartDate  time.Time     `gorm:"type:date;not null" json:"start_date"`
+	EndDate    *time.Time    `gorm:"type:date" json:"end_date,omitempty"`
 	Status     ServiceStatus `gorm:"type:service_status;default:'active'" json:"status"`
-	CreatedAt  time.Time    `json:"created_at"`
-	UpdatedAt  time.Time    `json:"updated_at"`
+	CreatedAt  time.Time     `json:"created_at"`
+	UpdatedAt  time.Time     `json:"updated_at"`
 
 	// Relations
-	Tenant   Tenant        `gorm:"foreignKey:TenantID" json:"tenant"`
-	Customer Customer      `gorm:"foreignKey:CustomerID" json:"customer"`
+	Tenant   Tenant          `gorm:"foreignKey:TenantID" json:"tenant"`
+	Customer Customer        `gorm:"foreignKey:CustomerID" json:"customer"`
 	Profile  MikrotikProfile `gorm:"foreignKey:ProfileID" json:"profile"`
 }
 
@@ -126,22 +127,22 @@ type CustomerResponse struct {
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	// Relations
-	Mikrotik *MikrotikResponse `json:"mikrotik,omitempty"`
-	Services []CustomerServiceResponse `json:"services,omitempty"`
-	CurrentService *CustomerServiceResponse `json:"current_service,omitempty"`
+	Mikrotik       *MikrotikResponse         `json:"mikrotik,omitempty"`
+	Services       []CustomerServiceResponse `json:"services,omitempty"`
+	CurrentService *CustomerServiceResponse  `json:"current_service,omitempty"`
 }
 
 type CustomerServiceResponse struct {
-	ID        string       `json:"id"`
-	CustomerID string      `json:"customer_id"`
-	ProfileID string       `json:"profile_id"`
-	Price     float64      `json:"price"`
-	TaxRate   float64      `json:"tax_rate"`
-	StartDate time.Time    `json:"start_date"`
-	EndDate   *time.Time   `json:"end_date,omitempty"`
-	Status    ServiceStatus `json:"status"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	ID         string        `json:"id"`
+	CustomerID string        `json:"customer_id"`
+	ProfileID  string        `json:"profile_id"`
+	Price      float64       `json:"price"`
+	TaxRate    float64       `json:"tax_rate"`
+	StartDate  time.Time     `json:"start_date"`
+	EndDate    *time.Time    `json:"end_date,omitempty"`
+	Status     ServiceStatus `json:"status"`
+	CreatedAt  time.Time     `json:"created_at"`
+	UpdatedAt  time.Time     `json:"updated_at"`
 	// Relation
 	Profile ProfileResponse `json:"profile"`
 }
@@ -197,4 +198,30 @@ func (cs *CustomerService) ToResponse() *CustomerServiceResponse {
 		CreatedAt:  cs.CreatedAt,
 		UpdatedAt:  cs.UpdatedAt,
 	}
+}
+
+// ============================================================================
+// PUBLIC REGISTRATION MODELS
+// ============================================================================
+
+// PublicRegistrationRequest - Request payload for public self-registration
+type PublicRegistrationRequest struct {
+	Username      string      `json:"username" binding:"required,min=3,max=100"`
+	Name          string      `json:"name" binding:"required,min=3,max=255"`
+	Phone         string      `json:"phone" binding:"required,min=10,max=20"`
+	Email         *string     `json:"email,omitempty" binding:"omitempty,email"`
+	Address       *string     `json:"address,omitempty"`
+	Password      string      `json:"password" binding:"required,min=8"`
+	ProfileID     string      `json:"profile_id" binding:"required,uuid4"`
+	ServiceType   ServiceType `json:"service_type" binding:"required,oneof=pppoe hotspot static_ip"`
+	CustomerNotes *string     `json:"customer_notes,omitempty"`
+}
+
+// ApproveProspectRequest - Request for approving prospect and provisioning to MikroTik
+type ApproveProspectRequest struct {
+	CustomerID     string     `json:"customer_id" binding:"required,uuid4"`
+	BillingDay     *int       `json:"billing_day,omitempty" binding:"omitempty,min=1,max=31"`
+	AutoSuspension *bool      `json:"auto_suspension,omitempty"`
+	StartDate      *time.Time `json:"start_date,omitempty"`
+	TechnicianNote *string    `json:"technician_note,omitempty"`
 }

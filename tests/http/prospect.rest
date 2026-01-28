@@ -1,0 +1,272 @@
+### Variables
+@base_url = http://localhost:8000/v1
+@tenant_id = 
+@admin_token = 
+@prospect_id = 
+@profile_id = 
+
+### ===== PUBLIC REGISTRATION =====
+
+### 1. Public Registration (NO AUTH REQUIRED)
+POST {{base_url}}/public/register/ispbandung
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "name": "John Doe",
+  "phone": "081234567890",
+  "email": "john@example.com",
+  "password": "password123",
+  "profile_id": "{{profile_id}}",
+  "service_type": "pppoe",
+  "address": "Jl. Merdeka No. 123",
+  "customer_notes": "New customer registration via public form"
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "message": "Registration successful. Please wait for admin approval.",
+#     "prospect": {
+#       "id": "uuid",
+#       "username": "johndoe",
+#       "name": "John Doe",
+#       "status": "prospect",
+#       "mikrotik_object_id": null
+#     }
+#   }
+# }
+
+### 2. Test Invalid Tenant Slug
+POST {{base_url}}/public/register/nonexistent
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "name": "Test User",
+  "phone": "081234567890",
+  "password": "password123",
+  "profile_id": "{{profile_id}}",
+  "service_type": "pppoe"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "tenant not found"
+# }
+
+### 3. Test Duplicate Username
+POST {{base_url}}/public/register/ispbandung
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "name": "Another John",
+  "phone": "082345678901",
+  "password": "password123",
+  "profile_id": "{{profile_id}}",
+  "service_type": "pppoe"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "username 'johndoe' already registered"
+# }
+
+### ===== PROSPECT MANAGEMENT (ADMIN ONLY) =====
+
+### 4. List All Prospects
+GET {{base_url}}/internal/customer/prospects/list
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "prospects": [
+#       {
+#         "id": "uuid",
+#         "username": "johndoe",
+#         "name": "John Doe",
+#         "phone": "081234567890",
+#         "email": "john@example.com",
+#         "status": "prospect",
+#         "mikrotik_object_id": null,
+#         "created_at": "2026-01-28T10:00:00Z"
+#       }
+#     ],
+#     "total": 1
+#   }
+# }
+
+### 5. Approve Prospect
+POST {{base_url}}/internal/customer/prospects/approve
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+Content-Type: application/json
+
+{
+  "customer_id": "{{prospect_id}}",
+  "billing_day": 5,
+  "auto_suspension": true,
+  "start_date": "2026-02-01T00:00:00Z",
+  "technician_note": "Approved by admin"
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "message": "Prospect approved and provisioned to MikroTik",
+#     "customer": {
+#       "id": "uuid",
+#       "username": "johndoe",
+#       "name": "John Doe",
+#       "status": "active",
+#       "mikrotik_object_id": "*1A"
+#     }
+#   }
+# }
+
+### 6. Approve Non-Prospect Customer (Should Fail)
+POST {{base_url}}/internal/customer/prospects/approve
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+Content-Type: application/json
+
+{
+  "customer_id": "{{prospect_id}}",
+  "billing_day": 5
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "customer is not a prospect (current status: active)"
+# }
+
+### 7. Reject Prospect
+DELETE {{base_url}}/internal/customer/prospects/{{prospect_id}}/reject
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+Content-Type: application/json
+
+{
+  "reason": "Data tidak lengkap atau tidak valid"
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "message": "Prospect rejected successfully"
+#   }
+# }
+
+### 8. Reject Already Approved Customer (Should Fail)
+DELETE {{base_url}}/internal/customer/prospects/{{prospect_id}}/reject
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+Content-Type: application/json
+
+{
+  "reason": "Test rejection"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "customer is not a prospect (current status: active)"
+# }
+
+### ===== VALIDATION TESTS =====
+
+### 9. Public Registration with Missing Fields
+POST {{base_url}}/public/register/ispbandung
+Content-Type: application/json
+
+{
+  "username": "incomplete",
+  "password": "pass"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "validation error: ..."
+# }
+
+### 10. Public Registration with Invalid Email
+POST {{base_url}}/public/register/ispbandung
+Content-Type: application/json
+
+{
+  "username": "testuser2",
+  "name": "Test User 2",
+  "phone": "081234567890",
+  "email": "invalid-email",
+  "password": "password123",
+  "profile_id": "{{profile_id}}",
+  "service_type": "pppoe"
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "validation error: email format invalid"
+# }
+
+### ===== SECURITY TESTS =====
+
+### 11. List Prospects Without Auth (Should Fail)
+GET {{base_url}}/internal/customer/prospects/list
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "unauthorized"
+# }
+
+### 12. Approve Prospect Without Auth (Should Fail)
+POST {{base_url}}/internal/customer/prospects/approve
+Content-Type: application/json
+
+{
+  "customer_id": "{{prospect_id}}",
+  "billing_day": 5
+}
+
+### Expected Response:
+# {
+#   "success": false,
+#   "error": "unauthorized"
+# }
+
+### ===== HELPER REQUESTS =====
+
+### Get Tenant by ID (to verify slug)
+GET {{base_url}}/internal/tenant/{{tenant_id}}
+Authorization: Bearer {{admin_token}}
+
+### List All Customers (to find prospect_id)
+GET {{base_url}}/internal/customer/list
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+
+### List All Profiles (to get profile_id)
+GET {{base_url}}/internal/profile/list
+Authorization: Bearer {{admin_token}}
+X-Tenant-ID: {{tenant_id}}
+
+### Login as Admin (to get admin_token)
+POST {{base_url}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "superadmin",
+  "password": "admin123"
+}

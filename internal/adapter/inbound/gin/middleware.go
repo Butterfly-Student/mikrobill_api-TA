@@ -292,7 +292,8 @@ func (h *middlewareAdapter) Validator() gin.HandlerFunc {
 		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodDelete &&
 			c.Request.Method != http.MethodOptions {
 			contentType := c.GetHeader("Content-Type")
-			if !strings.HasPrefix(contentType, "application/json") {
+			// Allow empty body (Content-Length: 0) to skip Content-Type check
+			if c.Request.ContentLength > 0 && !strings.HasPrefix(contentType, "application/json") {
 				SendAbort(c, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
 				return
 			}
@@ -322,4 +323,3 @@ func extractTenantIDFromRequest(c *gin.Context) string {
 	}
 	return c.Query("tenant_id")
 }
-

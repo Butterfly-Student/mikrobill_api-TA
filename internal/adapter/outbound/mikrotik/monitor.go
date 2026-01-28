@@ -1,8 +1,8 @@
 package mikrotik_outbound_adapter
 
 import (
-	"context"
 	"MikrOps/internal/model"
+	"context"
 )
 
 func MonitorTraffic(
@@ -16,7 +16,7 @@ func MonitorTraffic(
 		"=interface=" + iface,
 	})
 	if err != nil {
-		if isConnectionError(err) {
+		if IsConnectionError(err) {
 			// Try to reconnect once
 			if recErr := client.Reconnect(); recErr == nil {
 				reply, err = client.ListenArgsContext(ctx, []string{
@@ -80,4 +80,3 @@ func mapToInterfaceTraffic(m map[string]string) model.InterfaceTraffic {
 		Section: m[".section"],
 	}
 }
-

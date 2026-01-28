@@ -413,3 +413,298 @@ func (d *customerDomain) HandlePPPoEDown(ctx context.Context, input model.PPPoEE
 	return nil
 }
 
+// ============================================================================
+// PROSPECT MANAGEMENT METHODS
+// ============================================================================
+
+// RegisterProspect creates a prospect without MikroTik provisioning
+func (d *customerDomain) RegisterProspect(
+	ctx context.Context,
+	tenantID string,
+	input model.PublicRegistrationRequest,
+) (*model.Customer, error) {
+	// Parse tenant ID
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid tenant id")
+	}
+
+	// Get active mikrotik for this tenant
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
+	}
+	if activeMikrotik == nil {
+		return nil, fmt.Errorf("no active mikrotik found")
+	}
+
+	mikrotikID, err := uuid.Parse(activeMikrotik.ID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid mikrotik id")
+	}
+
+	profileID, err := uuid.Parse(input.ProfileID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid profile id")
+	}
+
+	// Validate profile exists
+	profile, err := d.databasePort.Profile().GetByMikrotikID(ctx, mikrotikID, profileID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get profile")
+	}
+	if profile == nil {
+		return nil, fmt.Errorf("profile not found")
+	}
+
+	// Check if username already exists (both active and prospect)
+	existingCustomer, err := d.databasePort.Customer().GetByUsername(ctx, mikrotikID, input.Username)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to check existing customer")
+	}
+	if existingCustomer != nil {
+		return nil, fmt.Errorf("username '%s' already registered", input.Username)
+	}
+
+	// Begin transaction
+	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
+		// 1. Create prospect (NO MikroTik API call yet)
+		prospect, err := txDB.Customer().CreateProspect(ctx, input, tenantUUID, mikrotikID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to create prospect")
+		}
+
+		// 2. Create customer service record
+		prospectID, err := uuid.Parse(prospect.ID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "invalid prospect id")
+		}
+
+		_, err = txDB.Customer().CreateCustomerService(
+			ctx,
+			prospectID,
+			profileID,
+			profile.Price,
+			profile.TaxRate,
+			time.Now(), // Placeholder start date, will be updated on approval
+		)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to create service record")
+		}
+
+		// 3. Get complete prospect
+		prospectWithService, err := txDB.Customer().GetByID(ctx, prospectID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to get created prospect")
+		}
+
+		return prospectWithService, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*model.Customer), nil
+}
+
+// ListProspects retrieves all prospects
+func (d *customerDomain) ListProspects(ctx context.Context) ([]model.Customer, error) {
+	// Get active mikrotik
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
+	}
+	if activeMikrotik == nil {
+		return nil, fmt.Errorf("no active mikrotik found")
+	}
+
+	mikrotikID, err := uuid.Parse(activeMikrotik.ID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid mikrotik id")
+	}
+
+	prospects, err := d.databasePort.Customer().ListProspects(ctx, mikrotikID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to list prospects")
+	}
+
+	return prospects, nil
+}
+
+// ApproveProspect approves a prospect and provisions to MikroTik
+func (d *customerDomain) ApproveProspect(
+	ctx context.Context,
+	input model.ApproveProspectRequest,
+) (*model.Customer, error) {
+	customerID, err := uuid.Parse(input.CustomerID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid customer id")
+	}
+
+	// Get prospect
+	prospect, err := d.databasePort.Customer().GetByID(ctx, customerID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get prospect")
+	}
+
+	// Validate status
+	if prospect.Status != model.CustomerStatusProspect {
+		return nil, fmt.Errorf("customer is not a prospect (current status: %s)", prospect.Status)
+	}
+
+	// Get active mikrotik
+	activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
+	}
+
+	mikrotikID, err := uuid.Parse(activeMikrotik.ID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid mikrotik id")
+	}
+
+	// Get profile from service
+	// Note: Need to preload services first
+	prospectWithServices, err := d.databasePort.Customer().GetByID(ctx, customerID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get prospect with services")
+	}
+
+	if len(prospectWithServices.Services) == 0 {
+		return nil, fmt.Errorf("prospect has no service record")
+	}
+
+	currentService := prospectWithServices.Services[0]
+	profileID, err := uuid.Parse(currentService.ProfileID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "invalid profile id")
+	}
+
+	profile, err := d.databasePort.Profile().GetByMikrotikID(ctx, mikrotikID, profileID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get profile")
+	}
+
+	// Create MikroTik client
+	client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
+	}
+	defer client.Close()
+
+	// Prepare MikroTik PPP Secret parameters
+	// Note: Password needs to be stored during prospect registration
+	args := map[string]string{
+		"name":    prospect.Username,
+		"profile": profile.Name,
+		"service": "pppoe",
+		"comment": prospect.Name,
+	}
+
+	// Add password - in real implementation, this should be retrieved from a secure store
+	// For now, assume it's stored in a customer notes or separate field
+	// TODO: Implement secure password storage and retrieval
+
+	if prospect.ServiceType == model.ServiceTypePPPoE {
+		args["service"] = "pppoe"
+	} else {
+		args["service"] = "any"
+	}
+
+	// Add local/remote address if configured
+	if profile.PPPoEDetails != nil {
+		if profile.PPPoEDetails.LocalAddress != nil {
+			args["local-address"] = *profile.PPPoEDetails.LocalAddress
+		}
+		if profile.PPPoEDetails.RemoteAddress != nil {
+			args["remote-address"] = *profile.PPPoEDetails.RemoteAddress
+		}
+	}
+
+	// Call MikroTik API to create PPPoE secret (ONLY when approving)
+	reply, err := client.RunArgs("/ppp/secret/add", args)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to create ppp secret in mikrotik")
+	}
+
+	// Extract mikrotik object ID from reply
+	var mikrotikObjectID string
+	if reply.Done != nil && reply.Done.Map != nil {
+		if ret, ok := reply.Done.Map["ret"]; ok {
+			mikrotikObjectID = ret
+		} else if after, ok := reply.Done.Map["after"]; ok {
+			mikrotikObjectID = after
+		}
+	}
+	if mikrotikObjectID == "" {
+		return nil, fmt.Errorf("failed to get mikrotik object id from response")
+	}
+
+	// Begin transaction
+	result, err := d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
+		// 1. Update customer status to ACTIVE and set mikrotik_object_id
+		err := txDB.Customer().UpdateProspectToActive(ctx, customerID, mikrotikObjectID, input.BillingDay, input.AutoSuspension)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to update prospect to active")
+		}
+
+		// 2. Update service start date
+		startDate := time.Now()
+		if input.StartDate != nil {
+			startDate = *input.StartDate
+		}
+
+		err = txDB.Customer().UpdateServiceStartDate(ctx, customerID, startDate)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to update service start date")
+		}
+
+		// 3. Get updated customer
+		updatedCustomer, err := txDB.Customer().GetByID(ctx, customerID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to get updated customer")
+		}
+
+		return updatedCustomer, nil
+	})
+
+	if err != nil {
+		// Rollback MikroTik creation
+		_, _ = client.RunArgs("/ppp/secret/remove", map[string]string{
+			".id": mikrotikObjectID,
+		})
+		return nil, err
+	}
+
+	return result.(*model.Customer), nil
+}
+
+// RejectProspect rejects a prospect (soft delete)
+func (d *customerDomain) RejectProspect(ctx context.Context, customerID string, reason *string) error {
+	id, err := uuid.Parse(customerID)
+	if err != nil {
+		return stacktrace.Propagate(err, "invalid customer id")
+	}
+
+	// Get prospect
+	prospect, err := d.databasePort.Customer().GetByID(ctx, id)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get prospect")
+	}
+
+	// Validate status
+	if prospect.Status != model.CustomerStatusProspect {
+		return fmt.Errorf("customer is not a prospect (current status: %s)", prospect.Status)
+	}
+
+	// Soft delete (no MikroTik API needed since not provisioned yet)
+	err = d.databasePort.Customer().Delete(ctx, id)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to reject prospect")
+	}
+
+	// TODO: Optional - Send notification/email to prospect about rejection
+
+	return nil
+}

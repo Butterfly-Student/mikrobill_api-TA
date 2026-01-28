@@ -91,7 +91,7 @@ func (c *Client) Reconnect() error {
 func (c *Client) Run(sentence ...string) (*routeros.Reply, error) {
 	reply, err := c.Client.Run(sentence...)
 	if err != nil {
-		if isConnectionError(err) {
+		if IsConnectionError(err) {
 			// Try to reconnect
 			if recErr := c.Reconnect(); recErr == nil {
 				// Retry command
@@ -112,7 +112,7 @@ func (c *Client) RunArgs(sentence string, args map[string]string) (*routeros.Rep
 
 	reply, err := c.Client.Run(cmd...)
 	if err != nil {
-		if isConnectionError(err) {
+		if IsConnectionError(err) {
 			// Try to reconnect
 			if recErr := c.Reconnect(); recErr == nil {
 				// Retry command
@@ -122,6 +122,17 @@ func (c *Client) RunArgs(sentence string, args map[string]string) (*routeros.Rep
 		return nil, err
 	}
 	return reply, nil
+}
+
+// ... (existing code)
+
+func IsConnectionError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "loop has ended") ||
+		strings.Contains(msg, "closed network connection") ||
+		strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "use of closed network connection") ||
+		strings.Contains(msg, "EOF")
 }
 
 // ListenArgs overrides routeros.Client.ListenArgs (if exists) or implements it

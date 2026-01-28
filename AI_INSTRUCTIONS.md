@@ -4,13 +4,13 @@ This file contains instructions for AI coding assistants working with the Mikrot
 
 ## Project Information
 
-- **Project Name**: Prabogo
+- **Project Name**: MikOps
 - **Author**: Moch Dieqy Dzulqaidar
 - **License**: MIT License
 - **Go Version**: >= go1.23.0
 
 ## Project Structure
-Prabogo uses a hexagonal architecture (ports and adapters) with the following structure:
+MikOps uses a hexagonal architecture (ports and adapters) with the following structure:
 - `cmd/`: Application entry point
   - `main.go`: Main application entrypoint
 - `internal/`: Internal implementations

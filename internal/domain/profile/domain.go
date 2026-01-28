@@ -12,6 +12,51 @@ import (
 	outbound_port "MikrOps/internal/port/outbound"
 )
 
+// TODO: Make this configurable via environment variable or settings
+const PPPOnUpScript = `:local apiUrl "http://192.168.100.2:8080/v1/callbacks/pppoe/up"
+
+:local user $user
+:local callerId $"caller-id"
+:local interfaceName $interface
+:local localAddr $"local-address"
+:local remoteAddr $"remote-address"
+:local service $service
+
+:local jsonData ("{\"name\":\"" . $user . \
+               "\",\"caller_id\":\"" . $callerId . \
+               "\",\"interface\":\"" . $interfaceName . \
+               "\",\"local_address\":\"" . $localAddr . \
+               "\",\"remote_address\":\"" . $remoteAddr . \
+               "\",\"service\":\"" . $service . "\"}")
+
+/tool fetch url=$apiUrl \
+    http-method=post \
+    http-header-field="Content-Type: application/json" \
+    http-data=$jsonData \
+    keep-result=no`
+
+const PPPOnDownScript = `:local apiUrl "http://192.168.100.2:8080/v1/callbacks/pppoe/down"
+
+:local user $user
+:local callerId $"caller-id"
+:local interfaceName $interface
+:local localAddr $"local-address"
+:local remoteAddr $"remote-address"
+:local service $service
+
+:local jsonData ("{\"name\":\"" . $user . \
+               "\",\"caller_id\":\"" . $callerId . \
+               "\",\"interface\":\"" . $interfaceName . \
+               "\",\"local_address\":\"" . $localAddr . \
+               "\",\"remote_address\":\"" . $remoteAddr . \
+               "\",\"service\":\"" . $service . "\"}")
+
+/tool fetch url=$apiUrl \
+    http-method=post \
+    http-header-field="Content-Type: application/json" \
+    http-data=$jsonData \
+    keep-result=no`
+
 type profileDomain struct {
 	databasePort          outbound_port.DatabasePort
 	mikrotikClientFactory outbound_port.MikrotikClientFactory
@@ -73,6 +118,8 @@ func (d *profileDomain) CreateProfile(ctx context.Context, input model.CreatePro
 		// 4. Prepare MikroTik API parameters
 		args := make(map[string]string)
 		args["name"] = input.Name
+		args["on-up"] = PPPOnUpScript
+		args["on-down"] = PPPOnDownScript
 
 		if input.LocalAddress != nil {
 			args["local-address"] = *input.LocalAddress
@@ -220,6 +267,8 @@ func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input mode
 				args := make(map[string]string)
 				args[".id"] = mikrotikObjectID
 				args["name"] = input.Name
+				args["on-up"] = PPPOnUpScript
+				args["on-down"] = PPPOnDownScript
 
 				if input.LocalAddress != nil {
 					args["local-address"] = *input.LocalAddress
@@ -312,4 +361,3 @@ func (d *profileDomain) DeleteProfile(ctx context.Context, id string) error {
 
 	return err
 }
-

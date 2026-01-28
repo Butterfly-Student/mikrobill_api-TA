@@ -1,8 +1,8 @@
 ### Base URL
 @baseUrl = http://localhost:8000
-@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg3MTE4MzUsInJvbGUiOiJhZG1pbiIsInN1YiI6ImFmY2IzZjFmLWM2ZWQtNDBlOS1hZTE5LTg4YmEyYjkzMDliNiIsInVzZXJuYW1lIjoibWFqdWJlcnNhbWFfYWRtaW4ifQ.ZxR6LCqH1HuFymQ9hdmh6zU2HOE-6kD-jRxHzxe0K-I
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg4MTYwNzAsInJvbGUiOiJhZG1pbiIsInN1YiI6IjcwZTVjYTg2LTdmNWUtNDJkZS04MWJhLWRkYjExNjQzNjdmYSIsInVzZXJuYW1lIjoidGVrbnVzYW50YXJhX2FkbWluIn0.QuqQvqzlb0oCt2P-Ims_aXoeW921u_r7NYlGob5on8c
 
-@mikrotikId = e5a065c0-1d00-41e9-b4c3-c87ef7f8da28
+@mikrotikId = 9ce4be2e-eb6a-438a-886b-de880d37523e
 @tenantId = f9c1def5-4994-4513-a556-97e33a3f66b0
 
 ### 1. Create MikroTik Device
@@ -51,9 +51,7 @@ Content-Type: application/json
 X-Client-Key: {{clientKey}}
 
 {
-  "name": "Updated Router Name",
-  "host": "192.168.88.2",
-  "description": "Updated description"
+  "is_active": false
 }
 
 ### 6. Update MikroTik Status

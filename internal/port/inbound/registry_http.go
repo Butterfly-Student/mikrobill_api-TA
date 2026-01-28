@@ -9,6 +9,11 @@ type HttpPort interface {
 	Auth() AuthHttpPort
 	MikrotikPPPSecret() MikrotikPPPSecretPort
 	MikrotikPPPProfile() MikrotikPPPProfilePort
+	MikrotikPPPActive() MikrotikPPPActivePort
+	MikrotikPPPInactive() MikrotikPPPInactivePort
+	MikrotikPool() MikrotikPoolPort
+	MikrotikQueue() MikrotikQueuePort
+	MikrotikLog() MikrotikLogPort
 	Monitor() MonitorPort
 	Profile() ProfilePort
 	Customer() CustomerPort
@@ -16,4 +21,5 @@ type HttpPort interface {
 	Tenant() TenantPort
 	User() UserHttpPort
 	DirectMonitor() DirectMonitorPort
+	PPPRealtime() PPPRealtimePort
 }

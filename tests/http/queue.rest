@@ -1,0 +1,50 @@
+### Base URL
+@baseUrl = http://localhost:8000
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg4MTYwNzAsInJvbGUiOiJhZG1pbiIsInN1YiI6IjcwZTVjYTg2LTdmNWUtNDJkZS04MWJhLWRkYjExNjQzNjdmYSIsInVzZXJuYW1lIjoidGVrbnVzYW50YXJhX2FkbWluIn0.QuqQvqzlb0oCt2P-Ims_aXoeW921u_r7NYlGob5on8c
+@tenantId = f9c1def5-4994-4513-a556-97e33a3f66b0
+@queueId = *1
+
+### 1. List All Queues
+GET {{baseUrl}}/v1/internal/queue/list
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+### 2. Create New Queue
+# @name createQueue
+POST {{baseUrl}}/v1/internal/queue
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+{
+  "name": "test-queue",
+  "target": "10.10.10.50/32",
+  "max_limit": "10M/10M",
+  "limit_at": "5M/5M",
+  "priority": "8"
+}
+
+> {%
+    client.global.set("queueId", response.body.data.id);
+%}
+
+### 3. Get Specific Queue
+GET {{baseUrl}}/v1/internal/queue/{{queueId}}
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+### 4. Update Queue
+PUT {{baseUrl}}/v1/internal/queue/{{queueId}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+{
+  "max_limit": "20M/20M",
+  "disabled": false
+}
+
+### 5. Delete Queue
+DELETE {{baseUrl}}/v1/internal/queue/{{queueId}}
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}

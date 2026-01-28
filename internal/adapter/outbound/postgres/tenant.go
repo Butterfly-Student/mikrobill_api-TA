@@ -23,6 +23,7 @@ func NewTenantAdapter(db *gorm.DB) outbound_port.TenantDatabasePort {
 func (a *tenantAdapter) CreateTenant(ctx context.Context, req model.CreateTenantRequest) (*model.Tenant, error) {
 	tenant := &model.Tenant{
 		Name:            req.Name,
+		Slug:            req.Slug,
 		Subdomain:       req.Subdomain,
 		CompanyName:     req.CompanyName,
 		Phone:           req.Phone,
@@ -98,6 +99,24 @@ func (a *tenantAdapter) GetBySubdomain(ctx context.Context, subdomain string) (*
 	return &tenant, nil
 }
 
+// GetBySlug retrieves a tenant by slug
+func (a *tenantAdapter) GetBySlug(ctx context.Context, slug string) (*model.Tenant, error) {
+	var tenant model.Tenant
+
+	err := a.db.WithContext(ctx).
+		Where("slug = ? AND deleted_at IS NULL", slug).
+		First(&tenant).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // Return nil instead of error for not found case
+		}
+		return nil, fmt.Errorf("failed to get tenant by slug: %w", err)
+	}
+
+	return &tenant, nil
+}
+
 // List retrieves all tenants with filtering and pagination
 func (a *tenantAdapter) List(ctx context.Context, filter model.TenantFilter) ([]model.Tenant, error) {
 	var tenants []model.Tenant
@@ -144,6 +163,9 @@ func (a *tenantAdapter) Update(ctx context.Context, id uuid.UUID, req model.Upda
 	// Build update map
 	if req.Name != nil {
 		updates["name"] = *req.Name
+	}
+	if req.Slug != nil {
+		updates["slug"] = *req.Slug
 	}
 	if req.Subdomain != nil {
 		updates["subdomain"] = *req.Subdomain
@@ -355,4 +377,3 @@ func (a *tenantAdapter) IsSubdomainAvailable(ctx context.Context, subdomain stri
 
 	return count == 0, nil
 }
-

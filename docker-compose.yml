@@ -22,6 +22,7 @@ services:
       - 5432:5432
     volumes:
       - ~/apps/mikrotik_billing:/var/lib/postgresql/data
+    restart: unless-stopped
     environment:
       - POSTGRES_PASSWORD=r00t
       - POSTGRES_USER=admin
@@ -32,6 +33,7 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: r00t

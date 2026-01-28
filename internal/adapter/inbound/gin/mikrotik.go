@@ -197,10 +197,7 @@ func (h *mikrotikAdapter) SetActive(a any) error {
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Success: false,
-			Error:   "Invalid ID format",
-		})
+		SendError(c, http.StatusBadRequest, "Invalid ID format")
 		return nil
 	}
 
@@ -213,4 +210,3 @@ func (h *mikrotikAdapter) SetActive(a any) error {
 	SendResponse(c, http.StatusOK, nil, nil)
 	return nil
 }
-

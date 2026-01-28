@@ -131,22 +131,46 @@ func (a *mikrotikAdapter) Update(ctx context.Context, id uuid.UUID, input model.
 	if input.Description != nil {
 		updates["description"] = *input.Description
 	}
+	// Add IsActive to updates map if present so we don't return early
+	if input.IsActive != nil {
+		updates["is_active"] = *input.IsActive
+	}
 
 	if len(updates) == 0 {
 		return a.GetByID(ctx, id)
 	}
 
-	result := a.db.WithContext(ctx).
-		Model(&model.Mikrotik{}).
-		Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
-		Updates(updates)
+	// If checking IsActive, we need transaction to ensure only one is active
+	err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// If IsActive is present, we handle exclusive activation
+		if input.IsActive != nil {
+			// If setting to active, deactivate all others first
+			if *input.IsActive {
+				if err := tx.Model(&model.Mikrotik{}).
+					Where("tenant_id = ?", tenantID.String()).
+					Update("is_active", false).Error; err != nil {
+					return err
+				}
+			}
+		}
 
-	if result.Error != nil {
-		return nil, stacktrace.Propagate(result.Error, "failed to update mikrotik")
-	}
+		result := tx.Model(&model.Mikrotik{}).
+			Where("id = ? AND tenant_id = ?", id.String(), tenantID.String()).
+			Updates(updates)
 
-	if result.RowsAffected == 0 {
-		return nil, stacktrace.NewError("mikrotik not found")
+		if result.Error != nil {
+			return result.Error
+		}
+
+		if result.RowsAffected == 0 {
+			return stacktrace.NewError("mikrotik not found")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to update mikrotik")
 	}
 
 	return a.GetByID(ctx, id)
@@ -287,4 +311,3 @@ func (a *mikrotikAdapter) DeactivateAll(ctx context.Context) error {
 
 	return nil
 }
-

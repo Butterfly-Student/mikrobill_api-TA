@@ -1,0 +1,10 @@
+### Base URL
+@baseUrl = http://localhost:8000
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg4MTYwNzAsInJvbGUiOiJhZG1pbiIsInN1YiI6IjcwZTVjYTg2LTdmNWUtNDJkZS04MWJhLWRkYjExNjQzNjdmYSIsInVzZXJuYW1lIjoidGVrbnVzYW50YXJhX2FkbWluIn0.QuqQvqzlb0oCt2P-Ims_aXoeW921u_r7NYlGob5on8c
+@tenantId = f9c1def5-4994-4513-a556-97e33a3f66b0
+
+### 1. List Inactive PPP Users
+# This shows users that exist in secrets but are not currently connected
+GET {{baseUrl}}/v1/internal/ppp/inactive/list
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}

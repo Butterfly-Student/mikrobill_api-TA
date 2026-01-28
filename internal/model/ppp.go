@@ -53,6 +53,16 @@ type PPPProfileInput struct {
 	Comment       string `json:"comment"`
 }
 
+type PPPActive struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Address  string `json:"address"`
+	Uptime   string `json:"uptime"`
+	Encoding string `json:"encoding,omitempty"`
+	CallerID string `json:"caller_id,omitempty"`
+	Service  string `json:"service"`
+}
+
 type PPPoEEventInput struct {
 	Name          string `json:"name"`
 	CallerID      string `json:"caller_id"`

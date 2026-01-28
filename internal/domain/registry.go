@@ -4,10 +4,13 @@ import (
 	"MikrOps/internal/domain/auth"
 	"MikrOps/internal/domain/client"
 	"MikrOps/internal/domain/customer"
+	"MikrOps/internal/domain/log"
 	"MikrOps/internal/domain/mikrotik"
 	"MikrOps/internal/domain/monitor"
+	"MikrOps/internal/domain/pool"
 	"MikrOps/internal/domain/ppp"
 	"MikrOps/internal/domain/profile"
+	"MikrOps/internal/domain/queue"
 	"MikrOps/internal/domain/tenant"
 	"MikrOps/internal/domain/testing"
 	"MikrOps/internal/domain/user"
@@ -23,6 +26,11 @@ type Domain interface {
 	Mikrotik() mikrotik.MikrotikDomain
 	MikrotikPPPSecret() inbound_port.MikrotikPPPSecretDomain
 	MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain
+	MikrotikPPPActive() inbound_port.MikrotikPPPActiveDomain
+	MikrotikPPPInactive() inbound_port.MikrotikPPPInactiveDomain
+	MikrotikPool() inbound_port.MikrotikPoolDomain
+	MikrotikQueue() inbound_port.MikrotikQueueDomain
+	MikrotikLog() inbound_port.MikrotikLogDomain
 	Monitor() inbound_port.MonitorDomain
 	DirectMonitor() inbound_port.DirectMonitorDomain
 	Profile() inbound_port.ProfileDomain
@@ -75,6 +83,26 @@ func (d *domain) MikrotikPPPSecret() inbound_port.MikrotikPPPSecretDomain {
 
 func (d *domain) MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain {
 	return ppp.NewPPPDomain(d.databasePort, d.mikrotikClientFactory)
+}
+
+func (d *domain) MikrotikPPPActive() inbound_port.MikrotikPPPActiveDomain {
+	return ppp.NewPPPDomain(d.databasePort, d.mikrotikClientFactory)
+}
+
+func (d *domain) MikrotikPPPInactive() inbound_port.MikrotikPPPInactiveDomain {
+	return ppp.NewPPPDomain(d.databasePort, d.mikrotikClientFactory)
+}
+
+func (d *domain) MikrotikPool() inbound_port.MikrotikPoolDomain {
+	return pool.NewPoolDomain(d.databasePort, d.mikrotikClientFactory)
+}
+
+func (d *domain) MikrotikQueue() inbound_port.MikrotikQueueDomain {
+	return queue.NewQueueDomain(d.databasePort, d.mikrotikClientFactory)
+}
+
+func (d *domain) MikrotikLog() inbound_port.MikrotikLogDomain {
+	return log.NewLogDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort)
 }
 
 func (d *domain) Monitor() inbound_port.MonitorDomain {

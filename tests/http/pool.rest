@@ -1,0 +1,46 @@
+### Base URL
+@baseUrl = http://localhost:8000
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg4MTYwNzAsInJvbGUiOiJhZG1pbiIsInN1YiI6IjcwZTVjYTg2LTdmNWUtNDJkZS04MWJhLWRkYjExNjQzNjdmYSIsInVzZXJuYW1lIjoidGVrbnVzYW50YXJhX2FkbWluIn0.QuqQvqzlb0oCt2P-Ims_aXoeW921u_r7NYlGob5on8c
+@tenantId = f9c1def5-4994-4513-a556-97e33a3f66b0
+@poolId = *1
+
+### 1. List All IP Pools
+GET {{baseUrl}}/v1/internal/pool/list
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+### 2. Create New IP Pool
+# @name createPool
+POST {{baseUrl}}/v1/internal/pool
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+{
+  "name": "test-pool",
+  "ranges": "10.10.10.100-10.10.10.200"
+}
+
+> {%
+    client.global.set("poolId", response.body.data.id);
+%}
+
+### 3. Get Specific Pool
+GET {{baseUrl}}/v1/internal/pool/{{poolId}}
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+### 4. Update Pool
+PUT {{baseUrl}}/v1/internal/pool/{{poolId}}
+Content-Type: application/json
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+{
+  "ranges": "10.10.10.100-10.10.10.250"
+}
+
+### 5. Delete Pool
+DELETE {{baseUrl}}/v1/internal/pool/{{poolId}}
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}

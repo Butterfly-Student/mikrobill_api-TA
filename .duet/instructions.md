@@ -1,16 +1,16 @@
-# Duet AI Instructions for Prabogo Project
+# Duet AI Instructions for Mikops Project
 
-This file contains specific instructions for Duet AI when working with the Prabogo project.
+This file contains specific instructions for Duet AI when working with the Mikops project.
 
 ## Project Information
 
-- **Project Name**: Prabogo
+- **Project Name**: Mikops
 - **Author**: Moch Dieqy Dzulqaidar
 - **License**: MIT License
 - **Go Version**: >= go1.23.0
 
 ## Project Overview
-Prabogo is a Go application that follows hexagonal architecture principles, separating domain logic from adapters. The project uses PostgreSQL for data storage, RabbitMQ for messaging, Redis for caching, and Fiber for HTTP handling.
+Mikops is a Go application that follows hexagonal architecture principles, separating domain logic from adapters. The project uses PostgreSQL for data storage, RabbitMQ for messaging, Redis for caching, and Fiber for HTTP handling.
 
 ## Coding Guidelines for Duet AI
 

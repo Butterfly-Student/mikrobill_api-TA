@@ -1,8 +1,8 @@
 package inbound_port
 
 import (
-	"context"
 	"MikrOps/internal/model"
+	"context"
 )
 
 type CustomerPort interface {
@@ -11,6 +11,12 @@ type CustomerPort interface {
 	ListCustomers(a any) error
 	UpdateCustomer(a any) error
 	DeleteCustomer(a any) error
+
+	// Prospect management
+	PublicRegister(a any) error
+	ListProspects(a any) error
+	ApproveProspect(a any) error
+	RejectProspect(a any) error
 }
 
 type CustomerDomain interface {
@@ -26,5 +32,16 @@ type CustomerDomain interface {
 
 	// HandlePPPoEDown handles on-down callback from MikroTik
 	HandlePPPoEDown(ctx context.Context, input model.PPPoEEventInput) error
-}
 
+	// RegisterProspect creates a prospect without MikroTik provisioning
+	RegisterProspect(ctx context.Context, tenantID string, input model.PublicRegistrationRequest) (*model.Customer, error)
+
+	// ListProspects retrieves all prospects
+	ListProspects(ctx context.Context) ([]model.Customer, error)
+
+	// ApproveProspect approves a prospect and provisions to MikroTik
+	ApproveProspect(ctx context.Context, input model.ApproveProspectRequest) (*model.Customer, error)
+
+	// RejectProspect rejects a prospect (soft delete)
+	RejectProspect(ctx context.Context, customerID string, reason *string) error
+}

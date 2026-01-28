@@ -49,6 +49,26 @@ func (s *adapter) MikrotikPPPProfile() inbound_port.MikrotikPPPProfilePort {
 	return NewMikrotikPPPProfileAdapter(s.domain)
 }
 
+func (s *adapter) MikrotikPPPActive() inbound_port.MikrotikPPPActivePort {
+	return NewMikrotikPPPActiveAdapter(s.domain)
+}
+
+func (s *adapter) MikrotikPPPInactive() inbound_port.MikrotikPPPInactivePort {
+	return NewMikrotikPPPInactiveAdapter(s.domain)
+}
+
+func (s *adapter) MikrotikPool() inbound_port.MikrotikPoolPort {
+	return NewMikrotikPoolAdapter(s.domain)
+}
+
+func (s *adapter) MikrotikQueue() inbound_port.MikrotikQueuePort {
+	return NewMikrotikQueueAdapter(s.domain)
+}
+
+func (s *adapter) MikrotikLog() inbound_port.MikrotikLogPort {
+	return NewLogAdapter(s.domain)
+}
+
 func (s *adapter) Monitor() inbound_port.MonitorPort {
 	return NewMonitorAdapter(s.domain)
 }
@@ -75,4 +95,8 @@ func (s *adapter) User() inbound_port.UserHttpPort {
 
 func (s *adapter) DirectMonitor() inbound_port.DirectMonitorPort {
 	return NewDirectMonitorAdapter(s.domain)
+}
+
+func (s *adapter) PPPRealtime() inbound_port.PPPRealtimePort {
+	return NewPPPRealtimeAdapter(s.domain)
 }

@@ -40,7 +40,7 @@ func upInitSystem(ctx context.Context, tx *sql.Tx) error {
 
 		`DO $$ BEGIN
 			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'customer_status') THEN
-				CREATE TYPE customer_status AS ENUM ('active', 'suspended', 'inactive', 'pending');
+				CREATE TYPE customer_status AS ENUM ('active', 'suspended', 'inactive', 'pending', 'prospect');
 			END IF;
 		END $$;`,
 

@@ -1,0 +1,16 @@
+### Base URL
+@baseUrl = http://localhost:8000
+@clientKey = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg4MTYwNzAsInJvbGUiOiJhZG1pbiIsInN1YiI6IjcwZTVjYTg2LTdmNWUtNDJkZS04MWJhLWRkYjExNjQzNjdmYSIsInVzZXJuYW1lIjoidGVrbnVzYW50YXJhX2FkbWluIn0.QuqQvqzlb0oCt2P-Ims_aXoeW921u_r7NYlGob5on8c
+@tenantId = f9c1def5-4994-4513-a556-97e33a3f66b0
+
+### 1. List Active PPP Connections
+GET {{baseUrl}}/v1/internal/ppp/active/list
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}
+
+### 2. Get Specific Active Connection
+# First get the ID from the list above
+@activeId = *1
+GET {{baseUrl}}/v1/internal/ppp/active/{{activeId}}
+X-Client-Key: {{clientKey}}
+X-Tenant-ID: {{tenantId}}

@@ -1,14 +1,14 @@
 # Instructions for GitHub Copilot
 
-## Prabogo Project Information
+## Mikops Project Information
 
-- **Project Name**: Prabogo
+- **Project Name**: Mikops
 - **Author**: Moch Dieqy Dzulqaidar
 - **License**: MIT License
 - **Go Version**: >= go1.23.0
 
 ## Project Structure
-Prabogo uses a hexagonal architecture (ports and adapters) with the following structure:
+Mikops uses a hexagonal architecture (ports and adapters) with the following structure:
 - `cmd/`: Application entry point
   - `main.go`: Main application entrypoint
 - `internal/`: Internal implementations

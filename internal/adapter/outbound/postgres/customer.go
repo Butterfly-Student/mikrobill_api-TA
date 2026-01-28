@@ -304,3 +304,105 @@ func (a *customerAdapter) UpdateStatus(ctx context.Context, id uuid.UUID, status
 	return nil
 }
 
+// CreateProspect creates a prospect (customer without MikroTik provisioning)
+func (a *customerAdapter) CreateProspect(ctx context.Context, input model.PublicRegistrationRequest, tenantID, mikrotikID uuid.UUID) (*model.Customer, error) {
+	customer := &model.Customer{
+		TenantID:       tenantID.String(),
+		MikrotikID:     mikrotikID.String(),
+		Username:       input.Username,
+		Name:           input.Name,
+		Phone:          input.Phone,
+		Email:          input.Email,
+		Address:        input.Address,
+		ServiceType:    input.ServiceType,
+		Status:         model.CustomerStatusProspect, // PROSPECT status
+		AutoSuspension: true,                         // Default, can be updated on approval
+		BillingDay:     1,                            // Default, can be updated on approval
+		JoinDate:       time.Now(),
+		CustomerNotes:  input.CustomerNotes,
+		// mikrotik_object_id is NULL - no provisioning yet
+	}
+
+	if err := a.db.WithContext(ctx).Create(customer).Error; err != nil {
+		return nil, stacktrace.Propagate(err, "failed to create prospect")
+	}
+
+	return customer, nil
+}
+
+// ListProspects retrieves all prospects for a MikroTik
+func (a *customerAdapter) ListProspects(ctx context.Context, mikrotikID uuid.UUID) ([]model.Customer, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	var prospects []model.Customer
+	if err := a.db.WithContext(ctx).
+		Where("mikrotik_id = ? AND tenant_id = ? AND status = ?",
+			mikrotikID.String(), tenantID.String(), model.CustomerStatusProspect).
+		Preload("Services.Profile").
+		Preload("Mikrotik").
+		Order("created_at DESC").
+		Find(&prospects).Error; err != nil {
+		return nil, stacktrace.Propagate(err, "failed to list prospects")
+	}
+
+	return prospects, nil
+}
+
+// UpdateProspectToActive updates a prospect to active with MikroTik object ID
+func (a *customerAdapter) UpdateProspectToActive(ctx context.Context, customerID uuid.UUID, mikrotikObjectID string, billingDay *int, autoSuspension *bool) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	updates := map[string]interface{}{
+		"status":             model.CustomerStatusActive,
+		"mikrotik_object_id": mikrotikObjectID,
+		"updated_at":         time.Now(),
+	}
+
+	if billingDay != nil {
+		updates["billing_day"] = *billingDay
+	}
+	if autoSuspension != nil {
+		updates["auto_suspension"] = *autoSuspension
+	}
+
+	result := a.db.WithContext(ctx).
+		Model(&model.Customer{}).
+		Where("id = ? AND tenant_id = ?", customerID.String(), tenantID.String()).
+		Updates(updates)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update prospect to active")
+	}
+
+	if result.RowsAffected == 0 {
+		return stacktrace.NewError("prospect not found")
+	}
+
+	return nil
+}
+
+// UpdateServiceStartDate updates the start date of a customer's active service
+func (a *customerAdapter) UpdateServiceStartDate(ctx context.Context, customerID uuid.UUID, startDate time.Time) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	result := a.db.WithContext(ctx).
+		Model(&model.CustomerService{}).
+		Where("customer_id = ? AND tenant_id = ? AND status = ?",
+			customerID.String(), tenantID.String(), model.ServiceStatusActive).
+		Update("start_date", startDate)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update service start date")
+	}
+
+	return nil
+}

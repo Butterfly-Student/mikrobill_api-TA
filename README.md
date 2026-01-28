@@ -1,8 +1,8 @@
-# Prabogo
+# Mikops
 
-![Alt text](./design-docs/images/icon.png "Prabogo Icon")
+![Alt text](./design-docs/images/icon.png "Mikops Icon")
 
-**Prabogo** is a Go framework designed to simplify project development by providing an interactive command interface and built-in instructions for AI assistance. This framework streamlines common engineering tasks, making it easier for software engineers to scaffold, generate, and manage project components efficiently. With Prabogo, developers benefit from automation and intelligent guidance, accelerating the software development process.
+**Mikops** is a Go framework designed to simplify project development by providing an interactive command interface and built-in instructions for AI assistance. This framework streamlines common engineering tasks, making it easier for software engineers to scaffold, generate, and manage project components efficiently. With Mikops, developers benefit from automation and intelligent guidance, accelerating the software development process.
 
 ## Design Docs
 

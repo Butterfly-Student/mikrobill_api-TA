@@ -1,0 +1,104 @@
+package gin_inbound_adapter
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"MikrOps/internal/domain"
+	"MikrOps/internal/model"
+	inbound_port "MikrOps/internal/port/inbound"
+	"MikrOps/utils/activity"
+)
+
+type mikrotikPoolAdapter struct {
+	domain domain.Domain
+}
+
+func NewMikrotikPoolAdapter(domain domain.Domain) inbound_port.MikrotikPoolPort {
+	return &mikrotikPoolAdapter{
+		domain: domain,
+	}
+}
+
+func (h *mikrotikPoolAdapter) MikrotikCreatePool(a any) error {
+	c := a.(*gin.Context)
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_create_pool")
+
+	var input model.IPPoolInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, model.Response{Success: false, Error: "Invalid inputs: " + err.Error()})
+		return nil
+	}
+
+	res, err := h.domain.MikrotikPool().MikrotikCreatePool(ctx, input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.Response{Success: false, Error: err.Error()})
+		return nil
+	}
+
+	c.JSON(http.StatusCreated, model.Response{Success: true, Data: res})
+	return nil
+}
+
+func (h *mikrotikPoolAdapter) MikrotikGetPool(a any) error {
+	c := a.(*gin.Context)
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_get_pool")
+	id := c.Param("id")
+
+	res, err := h.domain.MikrotikPool().MikrotikGetPool(ctx, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.Response{Success: false, Error: err.Error()})
+		return nil
+	}
+	c.JSON(http.StatusOK, model.Response{Success: true, Data: res})
+	return nil
+}
+
+func (h *mikrotikPoolAdapter) MikrotikUpdatePool(a any) error {
+	c := a.(*gin.Context)
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_update_pool")
+	id := c.Param("id")
+
+	var input model.IPPoolUpdateInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, model.Response{Success: false, Error: err.Error()})
+		return nil
+	}
+
+	_, err := h.domain.MikrotikPool().MikrotikUpdatePool(ctx, id, input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.Response{Success: false, Error: err.Error()})
+		return nil
+	}
+
+	c.JSON(http.StatusOK, model.Response{Success: true, Data: "Updated successfully"})
+	return nil
+}
+
+func (h *mikrotikPoolAdapter) MikrotikDeletePool(a any) error {
+	c := a.(*gin.Context)
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_delete_pool")
+	id := c.Param("id")
+
+	err := h.domain.MikrotikPool().MikrotikDeletePool(ctx, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.Response{Success: false, Error: err.Error()})
+		return nil
+	}
+	c.JSON(http.StatusOK, model.Response{Success: true, Data: "Deleted successfully"})
+	return nil
+}
+
+func (h *mikrotikPoolAdapter) MikrotikListPools(a any) error {
+	c := a.(*gin.Context)
+	ctx := activity.NewContext(c.Request.Context(), "http_mikrotik_list_pools")
+
+	res, err := h.domain.MikrotikPool().MikrotikListPools(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.Response{Success: false, Error: err.Error()})
+		return nil
+	}
+	c.JSON(http.StatusOK, model.Response{Success: true, Data: res})
+	return nil
+}

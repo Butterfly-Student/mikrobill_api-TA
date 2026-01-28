@@ -131,10 +131,10 @@ domain:
 	printf "}\n" >> $$DOMAIN_FILE; \
 	echo "[INFO] Created domain file: $$DOMAIN_FILE"; \
 	REGISTRY_FILE=internal/domain/registry.go; \
-	if grep -q "\"prabogo/internal/domain/$$LOWER\"" "$$REGISTRY_FILE"; then \
+	if grep -q "\"mikops/internal/domain/$$LOWER\"" "$$REGISTRY_FILE"; then \
 		echo "[INFO] Import for $$LOWER already exists in $$REGISTRY_FILE"; \
 	else \
-		awk '/^import \($$/{print;print "\t\"prabogo/internal/domain/'"$$LOWER"'\"";next}1' "$$REGISTRY_FILE" > "$$REGISTRY_FILE.tmp" && mv "$$REGISTRY_FILE.tmp" "$$REGISTRY_FILE"; \
+		awk '/^import \($$/{print;print "\t\"mikops/internal/domain/'"$$LOWER"'\"";next}1' "$$REGISTRY_FILE" > "$$REGISTRY_FILE.tmp" && mv "$$REGISTRY_FILE.tmp" "$$REGISTRY_FILE"; \
 		echo "[INFO] Added import for $$LOWER to $$REGISTRY_FILE"; \
 	fi; \
 	if grep -q "$${PASCAL}() $${LOWER}.$${PASCAL}Domain" "$$REGISTRY_FILE"; then \
@@ -247,8 +247,8 @@ inbound-http-fiber:
 		printf "package fiber_inbound_adapter\n" >> $$FIBER_ADAPTER_DST; \
 		printf "\n" >> $$FIBER_ADAPTER_DST; \
 		printf "import (\n" >> $$FIBER_ADAPTER_DST; \
-		printf "\t\"prabogo/internal/domain\"\n" >> $$FIBER_ADAPTER_DST; \
-		printf "\tinbound_port \"prabogo/internal/port/inbound\"\n" >> $$FIBER_ADAPTER_DST; \
+		printf "\t\"mikops/internal/domain\"\n" >> $$FIBER_ADAPTER_DST; \
+		printf "\tinbound_port \"mikops/internal/port/inbound\"\n" >> $$FIBER_ADAPTER_DST; \
 		printf ")\n" >> $$FIBER_ADAPTER_DST; \
 		printf "\n" >> $$FIBER_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {\n" >> $$FIBER_ADAPTER_DST; \
@@ -320,8 +320,8 @@ inbound-http-gin:
 		printf "package gin_inbound_adapter\n" >> $$GIN_ADAPTER_DST; \
 		printf "\n" >> $$GIN_ADAPTER_DST; \
 		printf "import (\n" >> $$GIN_ADAPTER_DST; \
-		printf "\t\"prabogo/internal/domain\"\n" >> $$GIN_ADAPTER_DST; \
-		printf "\tinbound_port \"prabogo/internal/port/inbound\"\n" >> $$GIN_ADAPTER_DST; \
+		printf "\t\"mikops/internal/domain\"\n" >> $$GIN_ADAPTER_DST; \
+		printf "\tinbound_port \"mikops/internal/port/inbound\"\n" >> $$GIN_ADAPTER_DST; \
 		printf ")\n" >> $$GIN_ADAPTER_DST; \
 		printf "\n" >> $$GIN_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {\n" >> $$GIN_ADAPTER_DST; \
@@ -393,8 +393,8 @@ inbound-message-rabbitmq:
 		printf "package rabbitmq_inbound_adapter\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "import (\n" >> $$RABBITMQ_ADAPTER_DST; \
-		printf "\t\"prabogo/internal/domain\"\n" >> $$RABBITMQ_ADAPTER_DST; \
-		printf "\tinbound_port \"prabogo/internal/port/inbound\"\n" >> $$RABBITMQ_ADAPTER_DST; \
+		printf "\t\"mikops/internal/domain\"\n" >> $$RABBITMQ_ADAPTER_DST; \
+		printf "\tinbound_port \"mikops/internal/port/inbound\"\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf ")\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {\n" >> $$RABBITMQ_ADAPTER_DST; \
@@ -467,8 +467,8 @@ inbound-command:
 		printf "package command_inbound_adapter\n" >> $$COMMAND_ADAPTER_DST; \
 		printf "\n" >> $$COMMAND_ADAPTER_DST; \
 		printf "import (\n" >> $$COMMAND_ADAPTER_DST; \
-		printf "\t\"prabogo/internal/domain\"\n" >> $$COMMAND_ADAPTER_DST; \
-		printf "\tinbound_port \"prabogo/internal/port/inbound\"\n" >> $$COMMAND_ADAPTER_DST; \
+		printf "\t\"mikops/internal/domain\"\n" >> $$COMMAND_ADAPTER_DST; \
+		printf "\tinbound_port \"mikops/internal/port/inbound\"\n" >> $$COMMAND_ADAPTER_DST; \
 		printf ")\n" >> $$COMMAND_ADAPTER_DST; \
 		printf "\n" >> $$COMMAND_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {\n" >> $$COMMAND_ADAPTER_DST; \
@@ -541,7 +541,7 @@ outbound-database-postgres:
 		printf "package postgres_outbound_adapter\n" >> $$POSTGRES_ADAPTER_DST; \
 		printf "\n" >> $$POSTGRES_ADAPTER_DST; \
 		printf "import (\n" >> $$POSTGRES_ADAPTER_DST; \
-		printf "\toutbound_port \"prabogo/internal/port/outbound\"\n" >> $$POSTGRES_ADAPTER_DST; \
+		printf "\toutbound_port \"mikops/internal/port/outbound\"\n" >> $$POSTGRES_ADAPTER_DST; \
 		printf ")\n" >> $$POSTGRES_ADAPTER_DST; \
 		printf "\n" >> $$POSTGRES_ADAPTER_DST; \
 		printf "const table$${PASCAL} = \"$${LOWER}s\"\n" >> $$POSTGRES_ADAPTER_DST; \
@@ -617,7 +617,7 @@ outbound-http:
 		printf "package http_outbound_adapter\n" >> $$HTTP_ADAPTER_DST; \
 		printf "\n" >> $$HTTP_ADAPTER_DST; \
 		printf "import (\n" >> $$HTTP_ADAPTER_DST; \
-		printf "\toutbound_port \"prabogo/internal/port/outbound\"\n" >> $$HTTP_ADAPTER_DST; \
+		printf "\toutbound_port \"mikops/internal/port/outbound\"\n" >> $$HTTP_ADAPTER_DST; \
 		printf ")\n" >> $$HTTP_ADAPTER_DST; \
 		printf "\n" >> $$HTTP_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {}\n" >> $$HTTP_ADAPTER_DST; \
@@ -686,7 +686,7 @@ outbound-message-rabbitmq:
 		printf "package rabbitmq_outbound_adapter\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "import (\n" >> $$RABBITMQ_ADAPTER_DST; \
-		printf "\toutbound_port \"prabogo/internal/port/outbound\"\n" >> $$RABBITMQ_ADAPTER_DST; \
+		printf "\toutbound_port \"mikops/internal/port/outbound\"\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf ")\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "\n" >> $$RABBITMQ_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {}\n" >> $$RABBITMQ_ADAPTER_DST; \
@@ -755,7 +755,7 @@ outbound-cache-redis:
 		printf "package redis_outbound_adapter\n" >> $$REDIS_ADAPTER_DST; \
 		printf "\n" >> $$REDIS_ADAPTER_DST; \
 		printf "import (\n" >> $$REDIS_ADAPTER_DST; \
-		printf "\toutbound_port \"prabogo/internal/port/outbound\"\n" >> $$REDIS_ADAPTER_DST; \
+		printf "\toutbound_port \"mikops/internal/port/outbound\"\n" >> $$REDIS_ADAPTER_DST; \
 		printf ")\n" >> $$REDIS_ADAPTER_DST; \
 		printf "\n" >> $$REDIS_ADAPTER_DST; \
 		printf "type $${CAMEL}Adapter struct {}\n" >> $$REDIS_ADAPTER_DST; \

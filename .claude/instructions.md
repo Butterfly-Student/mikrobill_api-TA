@@ -1,16 +1,16 @@
-# Claude Instructions for Prabogo Project
+# Claude Instructions for Mikops Project
 
-This file contains specific instructions for Claude AI when working with the Prabogo project.
+This file contains specific instructions for Claude AI when working with the Mikops project.
 
 ## Project Information
 
-- **Project Name**: Prabogo
+- **Project Name**: Mikops
 - **Author**: Moch Dieqy Dzulqaidar
 - **License**: MIT License
 - **Go Version**: >= go1.23.0
 
 ## Project Overview
-Prabogo is a Go application using hexagonal architecture that separates business logic from external concerns. The codebase is organized with clean separation between domain logic and adapters that connect to external systems.
+Mikops is a Go application using hexagonal architecture that separates business logic from external concerns. The codebase is organized with clean separation between domain logic and adapters that connect to external systems.
 
 ## Coding Guidelines for Claude
 

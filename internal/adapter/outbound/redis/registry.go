@@ -22,3 +22,7 @@ func (s *adapter) PubSub() outbound_port.RedisPubSubPort {
 func (s *adapter) AuthCache() outbound_port.AuthCachePort {
 	return NewAuthCacheAdapter()
 }
+
+func (s *adapter) PPPCache() outbound_port.PPPCachePort {
+	return NewPPPCacheAdapter()
+}

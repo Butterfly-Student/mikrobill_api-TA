@@ -3,8 +3,8 @@ package outbound_port
 //go:generate mockgen -source=customer.go -destination=./../../../tests/mocks/port/mock_customer.go
 
 import (
-	"context"
 	"MikrOps/internal/model"
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,5 +40,16 @@ type CustomerDatabasePort interface {
 
 	// UpdateStatus updates customer status and connection info
 	UpdateStatus(ctx context.Context, id uuid.UUID, status model.CustomerStatus, ip, mac, interfaceName *string) error
-}
 
+	// CreateProspect creates a prospect (customer without MikroTik provisioning)
+	CreateProspect(ctx context.Context, input model.PublicRegistrationRequest, tenantID, mikrotikID uuid.UUID) (*model.Customer, error)
+
+	// ListProspects retrieves all prospects for a MikroTik
+	ListProspects(ctx context.Context, mikrotikID uuid.UUID) ([]model.Customer, error)
+
+	// UpdateProspectToActive updates a prospect to active with MikroTik object ID
+	UpdateProspectToActive(ctx context.Context, customerID uuid.UUID, mikrotikObjectID string, billingDay *int, autoSuspension *bool) error
+
+	// UpdateServiceStartDate updates the start date of a customer's active service
+	UpdateServiceStartDate(ctx context.Context, customerID uuid.UUID, startDate time.Time) error
+}

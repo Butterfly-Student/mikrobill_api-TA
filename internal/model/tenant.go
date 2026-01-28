@@ -9,15 +9,16 @@ import (
 )
 
 type Tenant struct {
-	ID          string         `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	Name        string         `gorm:"type:varchar(200);not null" json:"name"`
-	Subdomain   *string        `gorm:"type:varchar(100);unique" json:"subdomain,omitempty"`
-	CompanyName *string        `gorm:"type:varchar(200)" json:"company_name,omitempty"`
-	Phone       *string        `gorm:"type:varchar(50)" json:"phone,omitempty"`
-	Address     *string        `gorm:"type:text" json:"address,omitempty"`
-	Timezone    string         `gorm:"type:varchar(50);default:'Asia/Jakarta'" json:"timezone"`
-	IsActive    bool           `gorm:"default:true" json:"is_active"`
-	Status      string         `gorm:"type:varchar(20);default:'active'" json:"status"`
+	ID          string  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	Name        string  `gorm:"type:varchar(200);not null" json:"name"`
+	Slug        *string `gorm:"type:varchar(100);unique" json:"slug,omitempty"`
+	Subdomain   *string `gorm:"type:varchar(100);unique" json:"subdomain,omitempty"`
+	CompanyName *string `gorm:"type:varchar(200)" json:"company_name,omitempty"`
+	Phone       *string `gorm:"type:varchar(50)" json:"phone,omitempty"`
+	Address     *string `gorm:"type:text" json:"address,omitempty"`
+	Timezone    string  `gorm:"type:varchar(50);default:'Asia/Jakarta'" json:"timezone"`
+	IsActive    bool    `gorm:"default:true" json:"is_active"`
+	Status      string  `gorm:"type:varchar(20);default:'active'" json:"status"`
 
 	// Limit Management
 	MaxMikrotiks    int `gorm:"default:3" json:"max_mikrotiks"`
@@ -35,18 +36,19 @@ type Tenant struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
-	Users         []User            `gorm:"foreignKey:TenantID" json:"-"`
-	Mikrotiks     []Mikrotik        `gorm:"foreignKey:TenantID" json:"-"`
-	Roles         []Role            `gorm:"foreignKey:TenantID" json:"-"`
-	Customers     []Customer        `gorm:"foreignKey:TenantID" json:"-"`
-	Profiles      []MikrotikProfile `gorm:"foreignKey:TenantID" json:"-"`
-	ActivityLogs  []ActivityLog     `gorm:"foreignKey:TenantID" json:"-"`
-	TenantUsers   []TenantUser      `gorm:"foreignKey:TenantID" json:"-"`
+	Users        []User            `gorm:"foreignKey:TenantID" json:"-"`
+	Mikrotiks    []Mikrotik        `gorm:"foreignKey:TenantID" json:"-"`
+	Roles        []Role            `gorm:"foreignKey:TenantID" json:"-"`
+	Customers    []Customer        `gorm:"foreignKey:TenantID" json:"-"`
+	Profiles     []MikrotikProfile `gorm:"foreignKey:TenantID" json:"-"`
+	ActivityLogs []ActivityLog     `gorm:"foreignKey:TenantID" json:"-"`
+	TenantUsers  []TenantUser      `gorm:"foreignKey:TenantID" json:"-"`
 }
 
 func (Tenant) TableName() string {
 	return "tenants"
 }
+
 // TenantUser - User association with tenant
 type TenantUser struct {
 	TenantID  uuid.UUID  `gorm:"type:uuid;primaryKey" json:"tenant_id"`
@@ -73,6 +75,7 @@ func (TenantUser) TableName() string {
 
 type CreateTenantRequest struct {
 	Name            string         `json:"name" binding:"required,min=3,max=200"`
+	Slug            *string        `json:"slug,omitempty" binding:"omitempty,min=3,max=100,alphanum,lowercase"`
 	Subdomain       *string        `json:"subdomain,omitempty" binding:"omitempty,min=3,max=100,alphanum"`
 	CompanyName     *string        `json:"company_name,omitempty" binding:"omitempty,max=200"`
 	Phone           *string        `json:"phone,omitempty" binding:"omitempty,max=50"`
@@ -87,6 +90,7 @@ type CreateTenantRequest struct {
 
 type UpdateTenantRequest struct {
 	Name            *string        `json:"name,omitempty" binding:"omitempty,min=3,max=200"`
+	Slug            *string        `json:"slug,omitempty" binding:"omitempty,min=3,max=100,alphanum,lowercase"`
 	Subdomain       *string        `json:"subdomain,omitempty" binding:"omitempty,min=3,max=100,alphanum"`
 	CompanyName     *string        `json:"company_name,omitempty" binding:"omitempty,max=200"`
 	Phone           *string        `json:"phone,omitempty" binding:"omitempty,max=50"`
@@ -104,6 +108,7 @@ type UpdateTenantRequest struct {
 type TenantResponse struct {
 	ID              string         `json:"id"`
 	Name            string         `json:"name"`
+	Slug            *string        `json:"slug,omitempty"`
 	Subdomain       *string        `json:"subdomain,omitempty"`
 	CompanyName     *string        `json:"company_name,omitempty"`
 	Phone           *string        `json:"phone,omitempty"`
@@ -137,10 +142,6 @@ type TenantFilter struct {
 	Offset   int     `json:"offset" binding:"omitempty,min=0"`
 }
 
-
-
-
-
 // TenantStatsResponse represents usage statistics for a tenant
 type TenantStatsResponse struct {
 	TenantID                 uuid.UUID `json:"tenant_id"`
@@ -160,6 +161,7 @@ func (t *Tenant) ToResponse() *TenantResponse {
 	return &TenantResponse{
 		ID:              t.ID,
 		Name:            t.Name,
+		Slug:            t.Slug,
 		Subdomain:       t.Subdomain,
 		CompanyName:     t.CompanyName,
 		Phone:           t.Phone,
@@ -195,15 +197,14 @@ func (t *Tenant) HasFeature(feature string) bool {
 	if t.Features == nil {
 		return false
 	}
-	
+
 	var features map[string]interface{}
 	if err := t.Features.Scan(&features); err != nil {
 		return false
 	}
-	
+
 	if enabled, ok := features[feature].(bool); ok {
 		return enabled
 	}
 	return false
 }
-

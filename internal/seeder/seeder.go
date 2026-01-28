@@ -19,7 +19,8 @@ func NewSeeder(db *gorm.DB) *Seeder {
 type Tenant struct {
 	ID          string `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Name        string
-	Subdomain   string `gorm:"uniqueIndex"`
+	Slug        *string `gorm:"uniqueIndex"`
+	Subdomain   string  `gorm:"uniqueIndex"`
 	CompanyName string
 	Status      string
 	IsActive    bool
@@ -180,10 +181,14 @@ func (s *Seeder) fixEnum() error {
 }
 
 func (s *Seeder) seedTenants() error {
+	slugTeknusantara := "teknusantara"
+	slugMajubersama := "ispbandung" // Changed to ispbandung for testing
+	slugDigiindo := "digiindo"
+
 	tenants := []Tenant{
-		{Name: "PT Teknologi Nusantara", Subdomain: "teknusantara", CompanyName: "PT Teknologi Nusantara", Status: "active", IsActive: true},
-		{Name: "CV Maju Bersama", Subdomain: "majubersama", CompanyName: "CV Maju Bersama Sejahtera", Status: "active", IsActive: true},
-		{Name: "PT Digital Indonesia", Subdomain: "digiindo", CompanyName: "PT Digital Indonesia Jaya", Status: "active", IsActive: true},
+		{Name: "PT Teknologi Nusantara", Slug: &slugTeknusantara, Subdomain: "teknusantara", CompanyName: "PT Teknologi Nusantara", Status: "active", IsActive: true},
+		{Name: "CV Maju Bersama", Slug: &slugMajubersama, Subdomain: "majubersama", CompanyName: "CV Maju Bersama Sejahtera", Status: "active", IsActive: true},
+		{Name: "PT Digital Indonesia", Slug: &slugDigiindo, Subdomain: "digiindo", CompanyName: "PT Digital Indonesia Jaya", Status: "active", IsActive: true},
 	}
 
 	for _, tenant := range tenants {
@@ -192,10 +197,17 @@ func (s *Seeder) seedTenants() error {
 			if err := s.db.Create(&tenant).Error; err != nil {
 				log.Printf("Error creating tenant %s: %v", tenant.Subdomain, err)
 			} else {
-				log.Printf("Created tenant: %s", tenant.Subdomain)
+				log.Printf("Created tenant: %s with slug: %s", tenant.Subdomain, *tenant.Slug)
 			}
 		} else {
-			log.Printf("Tenant %s already exists, skipping...", tenant.Subdomain)
+			// Update existing tenant with slug if not set
+			if existing.Slug == nil {
+				existing.Slug = tenant.Slug
+				s.db.Save(&existing)
+				log.Printf("Updated tenant %s with slug: %s", tenant.Subdomain, *tenant.Slug)
+			} else {
+				log.Printf("Tenant %s already exists with slug: %s, skipping...", tenant.Subdomain, *existing.Slug)
+			}
 		}
 	}
 	return nil
@@ -305,16 +317,16 @@ func (s *Seeder) seedTenantsWithUsersAndMikrotiks() error {
 		mikrotiks []struct{ name, host, location, description string }
 	}{
 		{
-			subdomain: "teknusantara",
+			subdomain: "aengpanas",
 			users: []struct{ username, email, fullname, role string }{
-				{"teknusantara_admin", "admin@teknusantara.com", "Admin Teknologi Nusantara", "admin"},
-				{"teknusantara_tech", "tech@teknusantara.com", "Teknisi Teknologi Nusantara", "technician"},
-				{"teknusantara_viewer", "viewer@teknusantara.com", "Viewer Teknologi Nusantara", "viewer"},
+				{"aengpanas", "aengpanas@mikops.com", "Aeng Panas", "admin"},
+				{"aengpanas_tech", "tech@aengpanas.com", "Teknisi Teknologi Nusantara", "technician"},
+				{"aengpanas_viewer", "viewer@aengpanas.com", "Viewer Teknologi Nusantara", "viewer"},
 			},
 			mikrotiks: []struct{ name, host, location, description string }{
-				{"MikroTik Jakarta Pusat", "192.168.1.1", "Jakarta Pusat", "Router utama kantor pusat"},
-				{"MikroTik Jakarta Selatan", "192.168.2.1", "Jakarta Selatan", "Router cabang selatan"},
-				{"MikroTik Tangerang", "192.168.3.1", "Tangerang", "Router cabang Tangerang"},
+				{"MikroTik Utama", "103.139.193.128", "Jakarta Pusat", "Router utama"},
+				{"MikroTik Cabang 1", "192.168.2.1", "Jakarta Selatan", "Router cabang selatan"},
+				{"MikroTik Cabang 2", "192.168.3.1", "Tangerang", "Router cabang Tangerang"},
 			},
 		},
 		{

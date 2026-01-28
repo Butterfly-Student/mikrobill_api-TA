@@ -37,6 +37,15 @@ func InitRoute(
 	// Versioning Group
 	v1 := engine.Group("/v1")
 
+	// ===== PUBLIC ROUTES (No Authentication) =====
+	public := v1.Group("/public")
+	{
+		// Public registration endpoint - NO AUTH REQUIRED
+		public.POST("/register/:tenant_slug", func(c *gin.Context) {
+			port.Customer().PublicRegister(c)
+		})
+	}
+
 	// Auth group
 	auth := v1.Group("/auth")
 	auth.POST("/login", func(c *gin.Context) {
@@ -135,6 +144,35 @@ func InitRoute(
 		ppp.PUT("/profile/:id", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikUpdateProfile(c) })
 		ppp.DELETE("/profile/:id", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikDeleteProfile(c) })
 		ppp.GET("/profile/list", func(c *gin.Context) { port.MikrotikPPPProfile().MikrotikListProfiles(c) })
+
+		ppp.GET("/active/list", func(c *gin.Context) { port.MikrotikPPPActive().MikrotikListActive(c) })
+		ppp.GET("/active/:id", func(c *gin.Context) { port.MikrotikPPPActive().MikrotikGetActive(c) })
+		// WebSocket for real-time PPP active updates
+		ppp.GET("/active/stream", func(c *gin.Context) { port.PPPRealtime().StreamPPPActive(c) })
+
+		ppp.GET("/inactive/list", func(c *gin.Context) { port.MikrotikPPPInactive().MikrotikListInactive(c) })
+		// WebSocket for real-time PPP inactive updates
+		ppp.GET("/inactive/stream", func(c *gin.Context) { port.PPPRealtime().StreamPPPInactive(c) })
+	}
+
+	// Pool Routes
+	pool := resources.Group("/pool")
+	{
+		pool.POST("", func(c *gin.Context) { port.MikrotikPool().MikrotikCreatePool(c) })
+		pool.GET("/:id", func(c *gin.Context) { port.MikrotikPool().MikrotikGetPool(c) })
+		pool.PUT("/:id", func(c *gin.Context) { port.MikrotikPool().MikrotikUpdatePool(c) })
+		pool.DELETE("/:id", func(c *gin.Context) { port.MikrotikPool().MikrotikDeletePool(c) })
+		pool.GET("/list", func(c *gin.Context) { port.MikrotikPool().MikrotikListPools(c) })
+	}
+
+	// Queue Routes
+	queueGroup := resources.Group("/queue")
+	{
+		queueGroup.POST("", func(c *gin.Context) { port.MikrotikQueue().MikrotikCreateQueue(c) })
+		queueGroup.GET("/:id", func(c *gin.Context) { port.MikrotikQueue().MikrotikGetQueue(c) })
+		queueGroup.PUT("/:id", func(c *gin.Context) { port.MikrotikQueue().MikrotikUpdateQueue(c) })
+		queueGroup.DELETE("/:id", func(c *gin.Context) { port.MikrotikQueue().MikrotikDeleteQueue(c) })
+		queueGroup.GET("/list", func(c *gin.Context) { port.MikrotikQueue().MikrotikListQueues(c) })
 	}
 
 	// Profile & Customer Routes
@@ -151,6 +189,13 @@ func InitRoute(
 		customer.GET("/list", func(c *gin.Context) { port.Customer().ListCustomers(c) })
 		customer.PUT("/:id", func(c *gin.Context) { port.Customer().UpdateCustomer(c) })
 		customer.DELETE("/:id", func(c *gin.Context) { port.Customer().DeleteCustomer(c) })
+
+		// Prospect management (Admin only)
+		customer.GET("/prospects/list", func(c *gin.Context) { port.Customer().ListProspects(c) })
+		customer.POST("/prospects/approve", func(c *gin.Context) { port.Customer().ApproveProspect(c) })
+		customer.DELETE("/prospects/:id/reject", func(c *gin.Context) { port.Customer().RejectProspect(c) })
+
+		// Monitoring routes
 		customer.GET("/:id/traffic/stream", func(c *gin.Context) { port.Monitor().StreamTraffic(c) })
 		customer.GET("/:id/ping", func(c *gin.Context) { port.Monitor().PingCustomer(c) })
 		customer.GET("/:id/ping/stream", func(c *gin.Context) { port.Monitor().StreamPing(c) })
@@ -159,6 +204,11 @@ func InitRoute(
 	// Monitor
 	resources.GET("/monitor/traffic/:interface", func(c *gin.Context) {
 		port.Monitor().StreamTraffic(c)
+	})
+
+	// Log Streaming (WebSocket)
+	resources.GET("/logs/stream", func(c *gin.Context) {
+		port.MikrotikLog().StreamLogs(c)
 	})
 
 	// Direct Monitor

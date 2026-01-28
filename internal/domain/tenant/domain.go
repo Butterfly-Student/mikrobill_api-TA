@@ -15,6 +15,7 @@ import (
 type TenantDomain interface {
 	CreateTenant(ctx context.Context, input model.CreateTenantRequest, createdBy uuid.UUID) (*model.Tenant, error)
 	GetTenant(ctx context.Context, id uuid.UUID) (*model.Tenant, error)
+	GetBySlug(ctx context.Context, slug string) (*model.Tenant, error)
 	ListTenants(ctx context.Context, filter model.TenantFilter) ([]model.Tenant, error)
 	UpdateTenant(ctx context.Context, id uuid.UUID, input model.UpdateTenantRequest, updatedBy uuid.UUID) (*model.Tenant, error)
 	DeleteTenant(ctx context.Context, id uuid.UUID, deletedBy uuid.UUID) error
@@ -72,6 +73,24 @@ func (d *tenantDomain) GetTenant(ctx context.Context, id uuid.UUID) (*model.Tena
 			zap.String("tenant_id", id.String()),
 		)
 		return nil, stacktrace.Propagate(err, "tenant not found")
+	}
+
+	return tenant, nil
+}
+
+// GetBySlug retrieves a tenant by slug
+func (d *tenantDomain) GetBySlug(ctx context.Context, slug string) (*model.Tenant, error) {
+	tenant, err := d.databasePort.Tenant().GetBySlug(ctx, slug)
+	if err != nil {
+		d.logger.Error("Failed to get tenant by slug",
+			zap.Error(err),
+			zap.String("slug", slug),
+		)
+		return nil, stacktrace.Propagate(err, "tenant not found")
+	}
+
+	if tenant == nil {
+		return nil, fmt.Errorf("tenant with slug '%s' not found", slug)
 	}
 
 	return tenant, nil
@@ -206,4 +225,3 @@ func (d *tenantDomain) CheckResourceLimit(ctx context.Context, tenantID uuid.UUI
 
 	return nil
 }
-
