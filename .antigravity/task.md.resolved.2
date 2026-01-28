@@ -1,0 +1,122 @@
+# Task: Enhance Multi-Tenant ISP System - Public Registration & Customer Portal
+
+## Overview
+Implement public registration and customer portal features leveraging existing Redis (caching) and RabbitMQ (worker) infrastructure. Excludes invoicing and payment gateways.
+
+## Task Breakdown
+
+### [/] Phase 1: Infrastructure Audit & Planning
+- [x] Analyze existing Redis implementation
+- [x] Analyze existing RabbitMQ implementation  
+- [x] Review current "listening" logic for traffic data
+- [x] Review Customer domain and prospect flow
+- [x] Create implementation plan
+- [ ] Get user approval on plan
+
+### [/] Phase 2: Database Schema & Models  
+- [ ] Create migration `14_customer_portal_credentials.go`
+  - [ ] Add `portal_email` and `portal_password_hash` to customers table
+  - [ ] Rename `username` → `service_username` (clarity)
+  - [ ] Add `service_password_encrypted` and `service_password_visible` columns
+  - [ ] Create UNIQUE constraint on (`tenant_id`, `portal_email`, `deleted_at`)
+  - [ ] Create `customer_sessions` table
+  - [ ] Add provisioning status fields
+- [ ] Update Customer model with separated credentials
+- [ ] Create CustomerLoginRequest, CustomerPortalProfileResponse models
+- [ ] Create encryption utility service (AES-256-GCM)
+
+### [ ] Phase 3: Public Registration Module (Portal Credentials Only)
+- [ ] Implement GET `/public/tenant/:slug` endpoint (branding info)
+  - [ ] Create TenantPublicPort interface
+  - [ ] Implement GetBySlug in Tenant repository
+  - [ ] Create HTTP handler for public tenant info
+  - [ ] Add route without authentication
+- [ ] Implement POST `/public/register/:slug` endpoint
+  - [ ] Accept `portal_email` and `portal_password` (for portal login)
+  - [ ] Hash portal password with bcrypt
+  - [ ] Store prospect with portal credentials ONLY
+  - [ ] Service credentials remain NULL (generated during provisioning)
+  - [ ] Create HTTP handler for public registration
+  - [ ] Add route without authentication
+  - [ ] Ensure tenant_id isolation from slug
+
+### [ ] Phase 4: Provisioning Flow (RabbitMQ Worker)
+- [ ] Design provisioning message structure
+- [ ] Update ApproveProspect to publish RabbitMQ message (not direct API call)
+- [ ] Create provisioning worker (RabbitMQ consumer)
+  - [ ] Select optimal MikroTik (load balancing across 3)
+  - [ ] Execute RouterOS API command
+  - [ ] Update customer status to ACTIVE
+  - [ ] Record mikrotik_id used
+  - [ ] Handle provisioning errors (retry logic)
+- [ ] Add rabbitmq route for provisioning worker
+- [ ] Update app.go to start provisioning worker
+
+### [ ] Phase 5: Customer Portal Authentication
+- [ ] Create Customer Auth domain
+  - [ ] Implement CustomerLogin method
+  - [ ] Implement CustomerLogout method
+  - [ ] Implement CustomerRefreshToken method
+  - [ ] Use Redis for session storage (similar to Admin auth)
+- [ ] Create Customer Auth repository
+  - [ ] GetByUsername/Email for login
+  - [ ] Validate password hash
+- [ ] Create Customer Auth HTTP handlers
+  - [ ] POST `/v1/customer/auth/login`
+  - [ ] POST `/v1/customer/auth/logout`
+  - [ ] POST `/v1/customer/auth/refresh`
+  - [ ] GET `/v1/customer/auth/profile`
+- [ ] Create CustomerAuth middleware
+  - [ ] Validate customer JWT token
+  - [ ] Inject customer context
+  - [ ] Ensure tenant_id isolation
+
+### [ ] Phase 6: Customer Portal API (Redis-backed)
+- [ ] Create customer portal routes group
+- [ ] Implement traffic monitoring endpoint
+  - [ ] Create Redis cache aggregator for traffic data
+  - [ ] GET `/v1/customer/portal/traffic` (fetch from Redis)
+  - [ ] WebSocket `/v1/customer/portal/traffic/stream`
+- [ ] Implement session reset endpoint  
+  - [ ] POST `/v1/customer/portal/session/reset`
+  - [ ] Publish RabbitMQ task to disconnect PPP/Hotspot
+  - [ ] Create disconnect worker
+- [ ] Implement customer profile endpoint
+  - [ ] GET `/v1/customer/portal/profile`
+  - [ ] PUT `/v1/customer/portal/profile` (limited fields)
+- [ ] Implement usage history endpoint
+  - [ ] GET `/v1/customer/portal/usage/history`
+
+### [ ] Phase 7: Traffic Data Aggregation (Redis)
+- [ ] Analyze current traffic [StreamTraffic](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/domain/monitor/service.go#37-110) logic
+- [ ] Create periodic aggregator service
+  - [ ] Aggregate traffic per customer per minute
+  - [ ] Store in Redis with TTL (24 hours)
+  - [ ] Use Redis sorted sets for time-series data
+- [ ] Update Monitor domain to publish to Redis
+- [ ] Create background job to aggregate data
+
+### [ ] Phase 8: Security & Middleware Audit
+- [ ] Review CustomerAuth middleware for tenant isolation
+- [ ] Ensure customers can only access own data
+- [ ] Add rate limiting to public registration endpoint
+- [ ] Add rate limiting to customer portal endpoints
+- [ ] Review password hashing algorithm (bcrypt)
+- [ ] Add CSRF protection for customer portal
+
+### [ ] Phase 9: Testing & Verification
+- [ ] Test public registration flow (all service types)
+- [ ] Test admin approval workflow
+- [ ] Test RabbitMQ provisioning worker
+- [ ] Test customer portal login
+- [ ] Test customer portal traffic monitoring
+- [ ] Test session reset functionality
+- [ ] Test tenant isolation for customers
+- [ ] Performance test Redis traffic aggregation
+
+### [ ] Phase 10: Documentation
+- [ ] Update API.md with new endpoints
+- [ ] Document RabbitMQ message formats
+- [ ] Document Redis cache keys
+- [ ] Create customer portal API documentation
+- [ ] Update README with provisioning worker setup

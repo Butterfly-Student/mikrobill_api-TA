@@ -1,0 +1,5 @@
+{
+  "artifactType": "ARTIFACT_TYPE_TASK",
+  "summary": "Comprehensive task breakdown for implementing public registration and customer portal features in the multi-tenant ISP system. Organized into 10 phases covering infrastructure audit, database changes, public endpoints, RabbitMQ provisioning worker, customer authentication, portal API, traffic aggregation, security, testing, and documentation.",
+  "updatedAt": "2026-01-28T07:56:18.750840400Z"
+}

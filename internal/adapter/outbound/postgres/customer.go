@@ -305,22 +305,41 @@ func (a *customerAdapter) UpdateStatus(ctx context.Context, id uuid.UUID, status
 }
 
 // CreateProspect creates a prospect (customer without MikroTik provisioning)
+// Portal credentials are provided, service credentials are NULL (auto-generated on approval)
 func (a *customerAdapter) CreateProspect(ctx context.Context, input model.PublicRegistrationRequest, tenantID, mikrotikID uuid.UUID) (*model.Customer, error) {
+	// Generate temporary service_username from phone number (will be replaced during provisioning)
+	// This is required because service_username is NOT NULL in database
+	tempUsername := "temp_" + input.Phone
+
+	portalEmail := input.PortalEmail
 	customer := &model.Customer{
-		TenantID:       tenantID.String(),
-		MikrotikID:     mikrotikID.String(),
-		Username:       input.Username,
-		Name:           input.Name,
-		Phone:          input.Phone,
-		Email:          input.Email,
-		Address:        input.Address,
-		ServiceType:    input.ServiceType,
-		Status:         model.CustomerStatusProspect, // PROSPECT status
-		AutoSuspension: true,                         // Default, can be updated on approval
-		BillingDay:     1,                            // Default, can be updated on approval
+		TenantID:   tenantID.String(),
+		MikrotikID: mikrotikID.String(),
+
+		// Portal Login Credentials (set during registration)
+		PortalEmail: &portalEmail,
+		// PortalPasswordHash will be set by domain layer after hashing
+
+		// Service Credentials (NULL - will be auto-generated during provisioning)
+		ServiceUsername: tempUsername, // Temporary, replaced on approval
+		// ServicePasswordEncrypted: nil (stays NULL until provisioning)
+		// ServicePasswordVisible: false (default)
+
+		// Basic Info
+		Name:        input.Name,
+		Phone:       input.Phone,
+		Email:       input.Email,
+		Address:     input.Address,
+		ServiceType: input.ServiceType,
+
+		// Status & Provisioning
+		Status:             model.CustomerStatusProspect,
+		ProvisioningStatus: "pending",
+
+		// Billing (defaults, updated on approval)
+		AutoSuspension: true,
+		BillingDay:     1,
 		JoinDate:       time.Now(),
-		CustomerNotes:  input.CustomerNotes,
-		// mikrotik_object_id is NULL - no provisioning yet
 	}
 
 	if err := a.db.WithContext(ctx).Create(customer).Error; err != nil {
@@ -402,6 +421,136 @@ func (a *customerAdapter) UpdateServiceStartDate(ctx context.Context, customerID
 
 	if result.Error != nil {
 		return stacktrace.Propagate(result.Error, "failed to update service start date")
+	}
+
+	return nil
+}
+
+// ===========================================================================
+// CUSTOMER PORTAL & CREDENTIALS
+// ===========================================================================
+
+// GetByPortalEmail retrieves a customer by portal_email (for portal login)
+func (a *customerAdapter) GetByPortalEmail(ctx context.Context, tenantID uuid.UUID, email string) (*model.Customer, error) {
+	var customer model.Customer
+	err := a.db.WithContext(ctx).
+		Where("portal_email = ? AND tenant_id = ?", email, tenantID.String()).
+		Preload("Services", "status = ?", model.ServiceStatusActive).
+		First(&customer).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, stacktrace.NewError("customer not found with that email")
+	}
+
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get customer by portal email")
+	}
+
+	return &customer, nil
+}
+
+// GetByServiceUsername retrieves a customer by service_username (for MikroTik callbacks)
+func (a *customerAdapter) GetByServiceUsername(ctx context.Context, tenantID uuid.UUID, username string) (*model.Customer, error) {
+	var customer model.Customer
+	err := a.db.WithContext(ctx).
+		Where("service_username = ? AND tenant_id = ?", username, tenantID.String()).
+		First(&customer).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil // Not found is valid for callbacks
+	}
+
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get customer by service username")
+	}
+
+	return &customer, nil
+}
+
+// UpdatePortalPassword updates the portal_password_hash only
+func (a *customerAdapter) UpdatePortalPassword(ctx context.Context, customerID uuid.UUID, passwordHash string) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	result := a.db.WithContext(ctx).
+		Model(&model.Customer{}).
+		Where("id = ? AND tenant_id = ?", customerID.String(), tenantID.String()).
+		Update("portal_password_hash", passwordHash)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update portal password")
+	}
+
+	if result.RowsAffected == 0 {
+		return stacktrace.NewError("customer not found")
+	}
+
+	return nil
+}
+
+// UpdateServiceCredentials sets service_username, service_password_encrypted, service_password_visible
+func (a *customerAdapter) UpdateServiceCredentials(ctx context.Context, customerID uuid.UUID, username, encryptedPassword string, visible bool) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	updates := map[string]interface{}{
+		"service_username":           username,
+		"service_password_encrypted": encryptedPassword,
+		"service_password_visible":   visible,
+	}
+
+	result := a.db.WithContext(ctx).
+		Model(&model.Customer{}).
+		Where("id = ? AND tenant_id = ?", customerID.String(), tenantID.String()).
+		Updates(updates)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update service credentials")
+	}
+
+	if result.RowsAffected == 0 {
+		return stacktrace.NewError("customer not found")
+	}
+
+	return nil
+}
+
+// UpdateProvisioningStatus updates provisioning workflow status
+func (a *customerAdapter) UpdateProvisioningStatus(ctx context.Context, customerID uuid.UUID, status, errorMsg string, provisionedAt *time.Time) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	updates := map[string]interface{}{
+		"provisioning_status": status,
+	}
+
+	if errorMsg != "" {
+		updates["provisioning_error"] = errorMsg
+	} else {
+		updates["provisioning_error"] = nil
+	}
+
+	if provisionedAt != nil {
+		updates["provisioned_at"] = provisionedAt
+	}
+
+	result := a.db.WithContext(ctx).
+		Model(&model.Customer{}).
+		Where("id = ? AND tenant_id = ?", customerID.String(), tenantID.String()).
+		Updates(updates)
+
+	if result.Error != nil {
+		return stacktrace.Propagate(result.Error, "failed to update provisioning status")
+	}
+
+	if result.RowsAffected == 0 {
+		return stacktrace.NewError("customer not found")
 	}
 
 	return nil

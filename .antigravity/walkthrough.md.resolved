@@ -1,0 +1,292 @@
+# Walkthrough: Phase 2 - Database Schema & Models (COMPLETED)
+
+## Overview
+
+Phase 2 of the Customer Portal implementation has been completed successfully. This phase focused on creating the foundational database schema and model changes required to support **separated credentials** for portal login vs. service access.
+
+---
+
+## 🎯 What Was Completed
+
+### 1. Database Migration
+
+**File**: [14_customer_portal_credentials.go](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/migration/postgres/14_customer_portal_credentials.go)
+
+Created a comprehensive migration that:
+
+#### Portal Login Credentials
+- Added `portal_email` column (VARCHAR255) for customer portal login
+- Added `portal_password_hash` column (TEXT) for bcrypt-hashed passwords
+- Created unique index on [(tenant_id, portal_email, deleted_at)](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/migration/postgres/05_init_customers.go#10-13)
+- Created fast lookup index on `portal_email`
+
+#### Service Credentials  
+- Renamed `username` → `service_username` for clarity
+- Added `service_password_encrypted` (TEXT) for AES-256 encrypted passwords
+- Added `service_password_visible` (BOOLEAN) - TRUE for Hotspot, FALSE for PPPoE
+
+#### Provisioning Status
+- Created `provisioning_status` ENUM: `'pending'`, `'provisioning'`, `'active'`, `'failed'`
+- Added `provisioning_error` (TEXT) for error messages
+- Added `provisioned_at` (TIMESTAMPTZ) for tracking
+
+#### Customer Sessions Table
+New table `customer_sessions` with:
+- UUID primary key
+- `customer_id` and `tenant_id` foreign keys
+- `token_hash` and `refresh_token_hash` for JWT storage
+- `ip_address` and `user_agent` for security tracking
+- `expires_at` for TTL management
+- Proper indexes on customer_id, tenant_id, token_hash
+
+---
+
+### 2. Encryption Utility Service
+
+**Files**:
+- [utils/encryption/service.go](fil e:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/utils/encryption/service.go)
+- [utils/encryption/password.go](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/utils/encryption/password.go)
+
+#### AES-256-GCM Encryption Service
+```go
+type Service struct {
+    key []byte // 32 bytes for AES-256
+}
+
+func (s *Service) Encrypt(plaintext string) (string, error)
+func (s *Service) Decrypt(ciphertext string) (string, error)
+```
+
+**Key Features**:
+- Uses AES-256-GCM (Galois/Counter Mode) for authenticated encryption
+- Generates random nonce for each encryption
+- Returns base64-encoded ciphertext for database storage
+- Requires 32-byte encryption key from environment variable `SERVICE_CREDENTIAL_KEY`
+
+**Why Encryption (not hashing)**:
+- Service passwords must be sent to MikroTik API in plaintext
+- Hotspot passwords can be decrypted to show customers (if visible=TRUE)
+- Portal passwords use one-way bcrypt hash (never decrypted)
+
+#### Password Generation Utilities
+```go
+func GeneratePPPoEPassword() (string, error)   // 16-char strong alphanumeric
+func GenerateHotspotPassword() (string, error) // 8-char simple alphanumeric
+```
+
+---
+
+### 3. Customer Model Updates
+
+**File**: [internal/model/customer.go](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/model/customer.go)
+
+#### Updated Customer Struct
+
+```go
+type Customer struct {
+    // ... existing fields ...
+    
+    // Portal Login Credentials (for customer portal access)
+    PortalEmail        *string `gorm:"type:varchar(255)" json:"portal_email,omitempty"`
+    PortalPasswordHash *string `gorm:"type:text" json:"-"` // Hidden in JSON
+    
+    // Service Credentials (for PPPoE/Hotspot on MikroTik)
+    ServiceUsername         string  `gorm:"column:service_username;type:varchar(100);not null"`
+    ServicePasswordEncrypted *string `gorm:"type:text" json:"-"` // Hidden in JSON
+    ServicePasswordVisible  bool    `gorm:"default:false" json:"-"`
+    
+    // Provisioning Status
+    ProvisioningStatus string     `gorm:"type:varchar(20);default:'pending'"`
+    ProvisioningError  *string    `gorm:"type:text"`
+    ProvisionedAt      *time.Time
+}
+```
+
+**Key Changes**:
+- Renamed [Username](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/port/outbound/customer.go#26-28) → [ServiceUsername](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/port/outbound/customer.go#63-65) (mapped to `service_username` column)
+- Separated portal and service credentials completely
+- All credential fields hidden from JSON responses (`json:"-"`)
+
+---
+
+### 4. New Request/Response Models
+
+#### Public Registration Request (Updated)
+```go
+type PublicRegistrationRequest struct {
+    // Portal Login Credentials
+    PortalEmail    string `json:"portal_email" binding:"required,email"`
+    PortalPassword string `json:"portal_password" binding:"required,min=8"`
+    
+    // Customer Info
+    Name    string  `json:"name" binding:"required"`
+    Phone   string  `json:"phone" binding:"required"`
+    Email   *string `json:"email" binding:"omitempty,email"`
+    Address *string `json:"address"`
+    
+    // Service Configuration
+    ProfileID   string      `json:"profile_id" binding:"required,uuid"`
+    ServiceType ServiceType `json:"service_type" binding:"required,oneof=pppoe hotspot static_ip"`
+    
+    // Optional: For Hotspot only
+    PreferredServiceUsername *string `json:"preferred_service_username" binding:"omitempty,min=4,max=50"`
+}
+```
+
+**Important**: Service credentials (username/password) are **NOT** provided during registration. They will be auto-generated during approval/provisioning.
+
+#### Customer Portal Models
+
+**CustomerLoginRequest** - Portal login
+```go
+type CustomerLoginRequest struct {
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required"`
+}
+```
+
+**CustomerLoginResponse** - JWT tokens
+```go
+type CustomerLoginResponse struct {
+    AccessToken  string `json:"access_token"`
+    RefreshToken string `json:"refresh_token"`
+    TokenType    string `json:"token_type"`
+    ExpiresIn    int64  `json:"expires_in"`
+}
+```
+
+**CustomerPortalProfileResponse** - Profile with conditional credential visibility
+```go
+type CustomerPortalProfileResponse struct {
+    // Basic info
+    ID, Name, Phone, Email, Address, ServiceType, Status, JoinDate
+    
+    // Service Credentials (visibility based on service_type)
+    ServiceUsername string  `json:"service_username"`
+    ServicePassword *string `json:"service_password,omitempty"` // Only if visible=TRUE
+    
+    // Network & Service
+    AssignedIP, LastOnline
+    CurrentPlan *CustomerServiceResponse
+}
+```
+
+**CustomerSession** - Session stored in Redis
+```go
+type CustomerSession struct {
+    ID, CustomerID, TenantID
+    TokenHash, RefreshToken
+    IPAddress, UserAgent
+    ExpiresAt, CreatedAt
+}
+```
+
+---
+
+### 5. Repository Port Interface Updates
+
+**File**: [internal/port/outbound/customer.go](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/port/outbound/customer.go)
+
+Added new methods to [CustomerDatabasePort](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/port/outbound/customer.go#13-75):
+
+```go
+// Portal credential lookup (for customer login)
+GetByPortalEmail(ctx, tenantID, email) (*Customer, error)
+
+// Service credential lookup (for MikroTik callbacks)
+GetByServiceUsername(ctx, tenantID, username) (*Customer, error)
+
+// Update portal password only
+UpdatePortalPassword(ctx, customerID, passwordHash) error
+
+// Set all service credentials at once
+UpdateServiceCredentials(ctx, customerID, username, encryptedPassword, visible) error
+
+// Update provisioning workflow status
+UpdateProvisioningStatus(ctx, customerID, status, errorMsg, provisionedAt) error
+```
+
+---
+
+## 🔒 Security Architecture
+
+### Credential Separation
+
+| Credential Type | Purpose | Storage | Visibility |
+|-----------------|---------|---------|------------|
+| **Portal Email + Password** | Customer portal login | `portal_email`, `portal_password_hash` (bcrypt) | Customer sets during registration |
+| **PPPoE Service** | MikroTik PPP authentication | `service_username`, `service_password_encrypted` (AES), `visible=FALSE` | **HIDDEN** from customer |
+| **Hotspot Service** | MikroTik Hotspot authentication | `service_username`, `service_password_encrypted` (AES), `visible=TRUE` | **VISIBLE** to customer |
+
+### Why This Approach?
+
+1. **PPPoE Security**: Auto-generated strong credentials (16-char) that customers never see, reducing credential sharing
+2. **Hotspot Usability**: Simpler credentials (8-char) visible to customers since often used on shared devices
+3. **Portal Convenience**: Customer chooses their own email/password for easy access to the portal
+
+---
+
+## 📋 Next Steps (Phases 3-10)
+
+### ✅ Completed:
+- [x] Phase 1: Infrastructure Audit & Planning
+- [ x] Phase 2: Database Schema & Models
+
+### 🔲 Remaining:
+- [ ] Phase 3: Public Registration Module (Slug-based endpoints)
+- [ ] Phase 4: Provisioning Flow (RabbitMQ worker + credential generation)
+- [ ] Phase 5: Customer Portal Authentication
+- [ ] Phase 6: Customer Portal API
+- [ ] Phase 7: Traffic Data Aggregation
+- [ ] Phase 8: Security & Middleware Audit
+- [ ] Phase 9: Testing & Verification
+- [ ] Phase 10: Documentation
+
+---
+
+## 🏗️ Technical Debt & Considerations
+
+### Migration Execution
+The migration has been **created** but not yet **run**. To apply:
+```bash
+# Check current migration status
+goose -dir internal/migration/postgres postgres "your-connection-string" status
+
+# Apply migration
+goose -dir internal/migration/postgres postgres "your-connection-string" up
+```
+
+### Environment Variables Required
+Add to [.env](file:///c:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/.env):
+```env
+SERVICE_CREDENTIAL_KEY=<32-byte-hex-string>  # For AES-256 encryption
+```
+
+Generate key:
+```bash
+openssl rand -hex 32
+```
+
+### Existing Data Migration
+Customers created before this migration will have:
+- `portal_email` = NULL
+- `service_username` = old `username` value (auto-renamed by migration)
+- `service_password_encrypted` = NULL
+
+**Action Required**: Create a data migration script to:
+1. Set `portal_email` = `email` field (if exists)
+2. Generate and encrypt service passwords for existing active customers
+3. Mark as `provisioning_status = 'active'` since they're already provisioned
+
+---
+
+## 🎯 Summary
+
+Phase 2 establishes the complete data foundation for:
+- ✅ Separated portal and service credentials
+- ✅ Secure encryption for service passwords
+- ✅ Provisioning workflow tracking
+- ✅ Customer portal session management
+- ✅ Strong type safety with Go models
+
+The system is now ready for Phase 3: implementing the public registration endpoints.

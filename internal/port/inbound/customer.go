@@ -33,8 +33,8 @@ type CustomerDomain interface {
 	// HandlePPPoEDown handles on-down callback from MikroTik
 	HandlePPPoEDown(ctx context.Context, input model.PPPoEEventInput) error
 
-	// RegisterProspect creates a prospect without MikroTik provisioning
-	RegisterProspect(ctx context.Context, tenantID string, input model.PublicRegistrationRequest) (*model.Customer, error)
+	// RegisterProspect creates a prospect without MikroTik provisioning (public endpoint)
+	RegisterProspect(ctx context.Context, slug string, input model.PublicRegistrationRequest) (*model.Customer, error)
 
 	// ListProspects retrieves all prospects
 	ListProspects(ctx context.Context) ([]model.Customer, error)

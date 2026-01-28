@@ -29,29 +29,50 @@ const (
 
 // Customer - Customer model
 type Customer struct {
-	ID               string         `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	TenantID         string         `gorm:"type:uuid;not null;index" json:"tenant_id"`
-	MikrotikID       string         `gorm:"type:uuid;not null;index" json:"mikrotik_id"`
-	Username         string         `gorm:"type:varchar(100);not null" json:"username"`
-	Name             string         `gorm:"type:varchar(255);not null" json:"name"`
-	Phone            string         `gorm:"type:varchar(20);not null" json:"phone"`
-	Email            *string        `gorm:"type:varchar(255)" json:"email,omitempty"`
-	Address          *string        `gorm:"type:text" json:"address,omitempty"`
-	MikrotikObjectID *string        `gorm:"type:varchar(50)" json:"mikrotik_object_id,omitempty"`
-	ServiceType      ServiceType    `gorm:"type:service_type;not null" json:"service_type"`
-	AssignedIP       *string        `gorm:"type:inet" json:"assigned_ip,omitempty"`
-	MacAddress       *string        `gorm:"type:macaddr" json:"mac_address,omitempty"`
-	Interface        *string        `gorm:"type:varchar(50)" json:"interface,omitempty"`
-	LastOnline       *time.Time     `json:"last_online,omitempty"`
-	LastIP           *string        `gorm:"type:inet" json:"last_ip,omitempty"`
-	Status           CustomerStatus `gorm:"type:customer_status;default:'inactive'" json:"status"`
-	AutoSuspension   bool           `gorm:"default:true" json:"auto_suspension"`
-	BillingDay       int            `gorm:"default:1" json:"billing_day"`
-	JoinDate         time.Time      `gorm:"type:date;default:CURRENT_DATE" json:"join_date"`
-	CustomerNotes    *string        `gorm:"type:text" json:"customer_notes,omitempty"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
+	ID         string `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	TenantID   string `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	MikrotikID string `gorm:"type:uuid;not null;index" json:"mikrotik_id"`
+
+	// Portal Login Credentials (for customer portal access)
+	PortalEmail        *string `gorm:"type:varchar(255)" json:"portal_email,omitempty"`
+	PortalPasswordHash *string `gorm:"type:text" json:"-"`
+
+	// Service Credentials (for PPPoE/Hotspot on MikroTik)
+	ServiceUsername          string  `gorm:"column:service_username;type:varchar(100);not null" json:"service_username"`
+	ServicePasswordEncrypted *string `gorm:"type:text" json:"-"`
+	ServicePasswordVisible   bool    `gorm:"default:false" json:"-"`
+
+	// Basic info
+	Name             string      `gorm:"type:varchar(255);not null" json:"name"`
+	Phone            string      `gorm:"type:varchar(20);not null" json:"phone"`
+	Email            *string     `gorm:"type:varchar(255)" json:"email,omitempty"`
+	Address          *string     `gorm:"type:text" json:"address,omitempty"`
+	MikrotikObjectID *string     `gorm:"type:varchar(50)" json:"mikrotik_object_id,omitempty"`
+	ServiceType      ServiceType `gorm:"type:service_type;not null" json:"service_type"`
+
+	// Network info
+	AssignedIP *string    `gorm:"type:inet" json:"assigned_ip,omitempty"`
+	MacAddress *string    `gorm:"type:macaddr" json:"mac_address,omitempty"`
+	Interface  *string    `gorm:"type:varchar(50)" json:"interface,omitempty"`
+	LastOnline *time.Time `json:"last_online,omitempty"`
+	LastIP     *string    `gorm:"type:inet" json:"last_ip,omitempty"`
+
+	// Status & Provisioning
+	Status             CustomerStatus `gorm:"type:customer_status;default:'inactive'" json:"status"`
+	ProvisioningStatus string         `gorm:"type:varchar(20);default:'pending'" json:"provisioning_status"`
+	ProvisioningError  *string        `gorm:"type:text" json:"provisioning_error,omitempty"`
+	ProvisionedAt      *time.Time     `json:"provisioned_at,omitempty"`
+
+	// Billing
+	AutoSuspension bool      `gorm:"default:true" json:"auto_suspension"`
+	BillingDay     int       `gorm:"default:1" json:"billing_day"`
+	JoinDate       time.Time `gorm:"type:date;default:CURRENT_DATE" json:"join_date"`
+	CustomerNotes  *string   `gorm:"type:text" json:"customer_notes,omitempty"`
+
+	// Audit
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Tenant   Tenant            `gorm:"foreignKey:TenantID" json:"tenant"`
@@ -161,7 +182,7 @@ func (c *Customer) ToResponse() *CustomerResponse {
 		ID:               c.ID,
 		TenantID:         c.TenantID,
 		MikrotikID:       c.MikrotikID,
-		Username:         c.Username,
+		Username:         c.ServiceUsername, // Use ServiceUsername instead of Username
 		Name:             c.Name,
 		Phone:            c.Phone,
 		Email:            c.Email,
@@ -206,15 +227,82 @@ func (cs *CustomerService) ToResponse() *CustomerServiceResponse {
 
 // PublicRegistrationRequest - Request payload for public self-registration
 type PublicRegistrationRequest struct {
-	Username      string      `json:"username" binding:"required,min=3,max=100"`
-	Name          string      `json:"name" binding:"required,min=3,max=255"`
-	Phone         string      `json:"phone" binding:"required,min=10,max=20"`
-	Email         *string     `json:"email,omitempty" binding:"omitempty,email"`
-	Address       *string     `json:"address,omitempty"`
-	Password      string      `json:"password" binding:"required,min=8"`
-	ProfileID     string      `json:"profile_id" binding:"required,uuid4"`
-	ServiceType   ServiceType `json:"service_type" binding:"required,oneof=pppoe hotspot static_ip"`
-	CustomerNotes *string     `json:"customer_notes,omitempty"`
+	// Portal Login Credentials
+	PortalEmail    string `json:"portal_email" binding:"required,email"`
+	PortalPassword string `json:"portal_password" binding:"required,min=8"`
+
+	// Customer Info
+	Name    string  `json:"name" binding:"required"`
+	Phone   string  `json:"phone" binding:"required"`
+	Email   *string `json:"email" binding:"omitempty,email"`
+	Address *string `json:"address"`
+
+	// Service Configuration
+	ProfileID   string      `json:"profile_id" binding:"required,uuid"`
+	ServiceType ServiceType `json:"service_type" binding:"required,oneof=pppoe hotspot static_ip"`
+
+	// Optional: For Hotspot only, customer can provide preferred service username
+	// For PPPoE, this will be auto-generated
+	PreferredServiceUsername *string `json:"preferred_service_username" binding:"omitempty,min=4,max=50"`
+}
+
+// ============================================================================
+// CUSTOMER PORTAL MODELS
+// ============================================================================
+
+// CustomerLoginRequest - Customer portal login request
+type CustomerLoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// CustomerLoginResponse - Customer portal login response
+type CustomerLoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+// CustomerPortalProfileResponse - Customer profile response for portal
+type CustomerPortalProfileResponse struct {
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Phone       string      `json:"phone"`
+	Email       *string     `json:"email,omitempty"`
+	Address     *string     `json:"address,omitempty"`
+	ServiceType ServiceType `json:"service_type"`
+	Status      string      `json:"status"`
+	JoinDate    string      `json:"join_date"`
+
+	// Service Credentials (visibility based on service_type)
+	ServiceUsername string  `json:"service_username"`
+	ServicePassword *string `json:"service_password,omitempty"` // Only shown if service_password_visible=TRUE (Hotspot)
+
+	// Network Info
+	AssignedIP *string    `json:"assigned_ip,omitempty"`
+	LastOnline *time.Time `json:"last_online,omitempty"`
+
+	// Service Info
+	CurrentPlan *CustomerServiceResponse `json:"current_plan,omitempty"`
+}
+
+// CustomerSessionResetRequest - Request to reset customer PPP/Hotspot session
+type CustomerSessionResetRequest struct {
+	// No body needed, customer identified from JWT token
+}
+
+// CustomerSession - Customer portal session (stored in Redis)
+type CustomerSession struct {
+	ID           string    `json:"id"`
+	CustomerID   string    `json:"customer_id"`
+	TenantID     string    `json:"tenant_id"`
+	TokenHash    string    `json:"token_hash"`
+	RefreshToken string    `json:"refresh_token,omitempty"`
+	IPAddress    *string   `json:"ip_address,omitempty"`
+	UserAgent    *string   `json:"user_agent,omitempty"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // ApproveProspectRequest - Request for approving prospect and provisioning to MikroTik

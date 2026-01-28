@@ -52,4 +52,23 @@ type CustomerDatabasePort interface {
 
 	// UpdateServiceStartDate updates the start date of a customer's active service
 	UpdateServiceStartDate(ctx context.Context, customerID uuid.UUID, startDate time.Time) error
+
+	// ===========================================================================
+	// CUSTOMER PORTAL & CREDENTIALS
+	// ===========================================================================
+
+	// GetByPortalEmail retrieves a customer by portal_email (for portal login)
+	GetByPortalEmail(ctx context.Context, tenantID uuid.UUID, email string) (*model.Customer, error)
+
+	// GetByServiceUsername retrieves a customer by service_username (for MikroTik callbacks)
+	GetByServiceUsername(ctx context.Context, tenantID uuid.UUID, username string) (*model.Customer, error)
+
+	// UpdatePortalPassword updates the portal_password_hash only
+	UpdatePortalPassword(ctx context.Context, customerID uuid.UUID, passwordHash string) error
+
+	// UpdateServiceCredentials sets service_username, service_password_encrypted, service_password_visible
+	UpdateServiceCredentials(ctx context.Context, customerID uuid.UUID, username, encryptedPassword string, visible bool) error
+
+	// UpdateProvisioningStatus updates provisioning workflow status
+	UpdateProvisioningStatus(ctx context.Context, customerID uuid.UUID, status, errorMsg string, provisionedAt *time.Time) error
 }
