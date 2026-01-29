@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	joonix "github.com/joonix/log"
 	"github.com/sirupsen/logrus"
 
 	command_inbound_adapter "MikrOps/internal/adapter/inbound/command"
@@ -25,6 +24,7 @@ import (
 	"MikrOps/utils"
 	"MikrOps/utils/activity"
 	"MikrOps/utils/database"
+	"MikrOps/utils/encryption"
 	"MikrOps/utils/log"
 	"MikrOps/utils/rabbitmq"
 	"MikrOps/utils/redis"
@@ -50,18 +50,22 @@ func NewApp() *App {
 	ctx = activity.WithClientID(ctx, "system")
 	godotenv.Load(".env")
 	configureLogging()
-	
+
 	outboundDatabaseDriver = os.Getenv("OUTBOUND_DATABASE_DRIVER")
 	outboundMessageDriver = os.Getenv("OUTBOUND_MESSAGE_DRIVER")
 	outboundCacheDriver = os.Getenv("OUTBOUND_CACHE_DRIVER")
 	inboundHttpDriver = os.Getenv("INBOUND_HTTP_DRIVER")
 	inboundMessageDriver = os.Getenv("INBOUND_MESSAGE_DRIVER")
-	
+
+	// Initialize encryption service for service credentials
+	encryptionSvc := initEncryptionService(ctx)
+
 	domain := domain.NewDomain(
 		databaseOutbound(ctx),
 		messageOutbound(ctx),
 		cacheOutbound(ctx),
 		mikrotik_outbound_adapter.NewMikrotikClientFactory(),
+		encryptionSvc,
 	)
 
 	return &App{
@@ -86,7 +90,7 @@ func databaseOutbound(ctx context.Context) outbound_port.DatabasePort {
 		log.WithContext(ctx).Fatal("database driver is not supported")
 		os.Exit(1)
 	}
-	
+
 	// InitDatabase now returns *gorm.DB instead of *sql.DB
 	db := database.InitDatabase(ctx, outboundDatabaseDriver)
 
@@ -94,7 +98,7 @@ func databaseOutbound(ctx context.Context) outbound_port.DatabasePort {
 	case "postgres":
 		return postgres_outbound_adapter.NewAdapter(db)
 	}
-	
+
 	return nil
 }
 
@@ -109,7 +113,7 @@ func messageOutbound(ctx context.Context) outbound_port.MessagePort {
 		rabbitmq.InitMessage()
 		return rabbitmq_outbound_adapter.NewAdapter()
 	}
-	
+
 	return nil
 }
 
@@ -125,7 +129,7 @@ func cacheOutbound(ctx context.Context) outbound_port.CachePort {
 		redis.InitPubsub()
 		return redis_outbound_adapter.NewAdapter()
 	}
-	
+
 	return nil
 }
 
@@ -141,7 +145,7 @@ func (a *App) httpInbound() {
 		app := gin.New()
 		inboundHttpAdapter := gin_inbound_adapter.NewAdapter(a.domain)
 		gin_inbound_adapter.InitRoute(ctx, app, inboundHttpAdapter)
-		
+
 		go func() {
 			if err := app.Run(":" + os.Getenv("SERVER_PORT")); err != nil {
 				log.WithContext(ctx).Fatalf("failed to listen and serve: %+v", err)
@@ -167,8 +171,14 @@ func (a *App) messageInbound() {
 
 	switch inboundMessageDriver {
 	case "rabbitmq":
-		inboundMessageAdapter := rabbitmq_inbound_adapter.NewAdapter(a.domain)
+		inboundMessageAdapter := rabbitmq_inbound_adapter.NewAdapter(a.domain, mikrotik_outbound_adapter.NewMikrotikClientFactory())
 		rabbitmq_inbound_adapter.InitRoute(ctx, os.Args, inboundMessageAdapter)
+
+		// NOTE: Traffic aggregation uses STREAMING (not polling)
+		// Data flows: MikroTik /interface/monitor-traffic (PUSH)
+		//   -> Monitor.publishTrafficData()
+		//   -> Redis cache (for customer portal)
+		// No worker needed - streaming happens on-demand when customers connect
 	}
 }
 
@@ -178,6 +188,25 @@ func (a *App) commandInbound() {
 	command_inbound_adapter.InitRoute(ctx, os.Args, inboundCommandAdapter)
 }
 
+func initEncryptionService(ctx context.Context) *encryption.Service {
+	// Get encryption key from environment (must be 32 bytes for AES-256)
+	encryptionKey := os.Getenv("SERVICE_CREDENTIAL_KEY")
+	if encryptionKey == "" {
+		log.WithContext(ctx).Fatal("SERVICE_CREDENTIAL_KEY environment variable is required (must be 32 bytes)")
+		os.Exit(1)
+	}
+
+	// Initialize encryption service
+	encryptionSvc, err := encryption.NewService(encryptionKey)
+	if err != nil {
+		log.WithContext(ctx).Fatalf("failed to initialize encryption service: %v", err)
+		os.Exit(1)
+	}
+
+	log.WithContext(ctx).Info("Encryption service initialized successfully")
+	return encryptionSvc
+}
+
 func configureLogging() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.AddHook(utils.LogrusSourceContextHook{})
@@ -185,6 +214,8 @@ func configureLogging() {
 	if os.Getenv("APP_MODE") != "release" {
 		logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
 	} else {
-		logrus.SetFormatter(&joonix.FluentdFormatter{})
+		// TODO: Fix joonix import issue
+		// logrus.SetFormatter(&joonix.FluentdFormatter{})
+		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 }

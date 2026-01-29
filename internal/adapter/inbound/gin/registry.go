@@ -100,3 +100,11 @@ func (s *adapter) DirectMonitor() inbound_port.DirectMonitorPort {
 func (s *adapter) PPPRealtime() inbound_port.PPPRealtimePort {
 	return NewPPPRealtimeAdapter(s.domain)
 }
+
+func (s *adapter) CustomerAuth() interface{} {
+	return NewCustomerAuthHandler(s.domain.CustomerAuth())
+}
+
+func (s *adapter) CustomerPortal() interface{} {
+	return NewCustomerPortalHandler(s.domain)
+}

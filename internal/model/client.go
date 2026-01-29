@@ -6,7 +6,9 @@ import (
 )
 
 const (
-	UpsertClientMessage = "client.upsert"
+	UpsertClientMessage       = "client.upsert"
+	ProvisionCustomerMessage  = "customer.provision"
+	DisconnectCustomerMessage = "customer.disconnect"
 )
 
 type Client struct {
@@ -41,4 +43,3 @@ func (c ClientFilter) IsEmpty() bool {
 	}
 	return false
 }
-

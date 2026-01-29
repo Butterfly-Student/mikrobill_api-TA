@@ -54,3 +54,11 @@ func SMembers(ctx context.Context, key string) ([]string, error) {
 func Expire(ctx context.Context, key string, ttl time.Duration) error {
 	return dbClient.Expire(ctx, key, ttl).Err()
 }
+
+func Incr(ctx context.Context, key string) (int64, error) {
+	return dbClient.Incr(ctx, key).Result()
+}
+
+func TTL(ctx context.Context, key string) (time.Duration, error) {
+	return dbClient.TTL(ctx, key).Result()
+}

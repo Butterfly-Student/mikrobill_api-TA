@@ -186,12 +186,38 @@ func (d *customerDomain) ApproveProspect(ctx context.Context, req model.ApproveP
 		return nil, stacktrace.Propagate(err, "failed to update provisioning status")
 	}
 
-	// 6. Publish RabbitMQ message for async provisioning (PHASE 4)
-	// TODO: Implement RabbitMQ publisher
-	// Message should contain: {customer_id, tenant_id, profile_id, service_username, service_password_plain, service_type}
-	// Worker will call MikroTik API, update customer status, and set mikrotik_object_id
+	// 6. Get profile information (needed for provisioning message)
+	// Get customer with services preloaded
+	customerWithServices, err := d.databasePort.Customer().GetByID(ctx, customerID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get customer with services")
+	}
 
-	// 7. Reload customer
+	if len(customerWithServices.Services) == 0 {
+		return nil, fmt.Errorf("customer has no service record")
+	}
+
+	// 7. Decrypt password for publishing (workers need plain text for MikroTik API)
+	decryptedPassword, err := encryptionService.Decrypt(encryptedPassword)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to decrypt service password for publishing")
+	}
+
+	// 8. Publish provisioning message to RabbitMQ
+	provisioningMsg := model.ProvisioningMessage{
+		CustomerID:      customer.ID,
+		TenantID:        customer.TenantID,
+		ProfileID:       customerWithServices.Services[0].ProfileID,
+		ServiceUsername: serviceUsername,
+		ServicePassword: decryptedPassword, // Plain text for worker
+		ServiceType:     string(customer.ServiceType),
+	}
+
+	if err := d.messagePort.Provisioning().PublishProvisioning(ctx, provisioningMsg); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to publish provisioning message")
+	}
+
+	// 9. Reload customer (status should be 'provisioning')
 	return d.databasePort.Customer().GetByID(ctx, customerID)
 }
 

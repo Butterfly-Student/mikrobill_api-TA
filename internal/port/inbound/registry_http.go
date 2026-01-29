@@ -7,6 +7,8 @@ type HttpPort interface {
 	Ping() PingHttpPort
 	Client() ClientHttpPort
 	Auth() AuthHttpPort
+	CustomerAuth() interface{}   // Returns *CustomerAuthHandler
+	CustomerPortal() interface{} // Returns *CustomerPortalHandler
 	MikrotikPPPSecret() MikrotikPPPSecretPort
 	MikrotikPPPProfile() MikrotikPPPProfilePort
 	MikrotikPPPActive() MikrotikPPPActivePort

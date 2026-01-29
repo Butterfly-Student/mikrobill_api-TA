@@ -21,4 +21,8 @@ type PPPCachePort interface {
 	GetCached(ctx context.Context, key string) (string, error)
 	SetCached(ctx context.Context, key, value string, ttl time.Duration) error
 	InvalidateCache(ctx context.Context, key string) error
+
+	// Traffic data for customer portal
+	GetTrafficData(ctx context.Context, key string) (*model.TrafficData, error)
+	SetTrafficData(ctx context.Context, key string, data *model.TrafficData) error
 }

@@ -36,7 +36,7 @@ func (a *customerAdapter) CreateCustomer(ctx context.Context, input model.Create
 	customer := &model.Customer{
 		TenantID:         tenantID.String(),
 		MikrotikID:       mikrotikID.String(),
-		Username:         input.Username,
+		ServiceUsername:  input.Username,
 		Name:             input.Name,
 		Phone:            input.Phone,
 		Email:            input.Email,
@@ -172,13 +172,13 @@ func (a *customerAdapter) Update(ctx context.Context, id uuid.UUID, input model.
 
 	// Update customer
 	customerUpdates := map[string]interface{}{
-		"username":       input.Username,
-		"name":           input.Name,
-		"phone":          input.Phone,
-		"email":          input.Email,
-		"address":        input.Address,
-		"service_type":   input.ServiceType,
-		"customer_notes": input.CustomerNotes,
+		"service_username": input.Username,
+		"name":             input.Name,
+		"phone":            input.Phone,
+		"email":            input.Email,
+		"address":          input.Address,
+		"service_type":     input.ServiceType,
+		"customer_notes":   input.CustomerNotes,
 	}
 
 	if input.AutoSuspension != nil {

@@ -36,6 +36,44 @@ func InitRoute(
 				close(done)
 			}()
 			<-done
+		case "provisioning":
+			log.WithContext(ctx).Info("message subscribe provisioning started")
+			done := make(chan struct{})
+			go func() {
+				err := rabbitmq.Subscriber(
+					model.ProvisionCustomerMessage,
+					rabbitmq.KindTopic,
+					"customer.provision",
+					"",
+					func(msg []byte) bool {
+						return port.Provisioning().ProcessProvisioning(msg)
+					},
+				)
+				if err != nil {
+					log.WithContext(ctx).Errorf("failed to subscribe to %s: %s", model.ProvisionCustomerMessage, err)
+				}
+				close(done)
+			}()
+			<-done
+		case "disconnect":
+			log.WithContext(ctx).Info("message subscribe disconnect started")
+			done := make(chan struct{})
+			go func() {
+				err := rabbitmq.Subscriber(
+					model.DisconnectCustomerMessage,
+					rabbitmq.KindTopic,
+					"customer.disconnect",
+					"",
+					func(msg []byte) bool {
+						return port.Provisioning().ProcessDisconnect(msg)
+					},
+				)
+				if err != nil {
+					log.WithContext(ctx).Errorf("failed to subscribe to %s: %s", model.DisconnectCustomerMessage, err)
+				}
+				close(done)
+			}()
+			<-done
 		default:
 			log.WithContext(ctx).Info("message subscribe not found")
 		}
@@ -43,4 +81,3 @@ func InitRoute(
 		log.WithContext(ctx).Info("message subscribe not found")
 	}
 }
-

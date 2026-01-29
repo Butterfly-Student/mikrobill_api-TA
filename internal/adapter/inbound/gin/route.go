@@ -28,6 +28,9 @@ func InitRoute(
 	// 4. CORS
 	engine.Use(middlewareAdapter.CORS())
 
+	// 4.5. Security Headers
+	engine.Use(middlewareAdapter.SecurityHeaders())
+
 	// 5. Rate Limiting (Global)
 	// engine.Use(middlewareAdapter.RateLimit())
 
@@ -40,10 +43,17 @@ func InitRoute(
 	// ===== PUBLIC ROUTES (No Authentication) =====
 	public := v1.Group("/public")
 	{
-		// Public registration endpoint - NO AUTH REQUIRED
-		public.POST("/register/:tenant_slug", func(c *gin.Context) {
-			port.Customer().PublicRegister(c)
+		// Get tenant info by slug (for registration page branding)
+		public.GET("/tenant/:slug", func(c *gin.Context) {
+			port.Tenant().GetTenantInfo(c)
 		})
+
+		// Public registration endpoint - NO AUTH REQUIRED (with rate limiting)
+		public.POST("/register/:tenant_slug",
+			middlewareAdapter.PublicRegistrationRateLimit(),
+			func(c *gin.Context) {
+				port.Customer().PublicRegister(c)
+			})
 	}
 
 	// Auth group
@@ -220,6 +230,42 @@ func InitRoute(
 	callbacks := v1.Group("/callbacks")
 	callbacks.POST("/pppoe/up", func(c *gin.Context) { port.Callback().HandlePPPoEUp(c) })
 	callbacks.POST("/pppoe/down", func(c *gin.Context) { port.Callback().HandlePPPoEDown(c) })
+
+	// ===== CUSTOMER PORTAL ROUTES =====
+	// Customer Authentication (no tenant context or auth required for login/refresh)
+	customerAuthHandler := port.CustomerAuth().(*CustomerAuthHandler)
+	customerAuth := v1.Group("/customer/auth")
+	{
+		// Public customer auth endpoints (with rate limiting)
+		customerAuth.POST("/login", middlewareAdapter.CustomerLoginRateLimit(), customerAuthHandler.CustomerLogin)
+		customerAuth.POST("/refresh", customerAuthHandler.RefreshToken)
+
+		// Protected customer auth endpoints (require CustomerAuth middleware)
+		customerAuth.POST("/logout", middlewareAdapter.CustomerAuth(), customerAuthHandler.CustomerLogout)
+		customerAuth.GET("/profile", middlewareAdapter.CustomerAuth(), customerAuthHandler.GetProfile)
+	}
+
+	// Customer Portal (All routes require CustomerAuth middleware + rate limiting + origin validation)
+	customerPortalHandler := port.CustomerPortal().(*CustomerPortalHandler)
+	customerPortal := v1.Group("/customer/portal")
+	customerPortal.Use(middlewareAdapter.CustomerAuth())
+	customerPortal.Use(middlewareAdapter.CustomerPortalRateLimit())
+	customerPortal.Use(middlewareAdapter.OriginValidation())
+	{
+		// Profile
+		customerPortal.GET("/profile", customerPortalHandler.GetProfile)
+		customerPortal.PUT("/profile", customerPortalHandler.UpdateProfile)
+
+		// Traffic
+		customerPortal.GET("/traffic", customerPortalHandler.GetTraffic)
+		customerPortal.GET("/traffic/stream", customerPortalHandler.StreamTraffic)
+
+		// Session
+		customerPortal.POST("/session/reset", customerPortalHandler.ResetSession)
+
+		// Usage
+		customerPortal.GET("/usage", customerPortalHandler.GetUsageHistory)
+	}
 
 	// Legacy client compat if needed, but versioned is better
 	clientCompat := v1.Group("/client")

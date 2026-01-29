@@ -23,6 +23,10 @@ func (s *adapter) AuthCache() outbound_port.AuthCachePort {
 	return NewAuthCacheAdapter()
 }
 
+func (s *adapter) PPP() outbound_port.PPPCachePort {
+	return NewPPPCacheAdapter()
+}
+
 func (s *adapter) PPPCache() outbound_port.PPPCachePort {
 	return NewPPPCacheAdapter()
 }

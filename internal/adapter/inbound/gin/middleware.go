@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
@@ -322,4 +323,79 @@ func extractTenantIDFromRequest(c *gin.Context) string {
 		return tenantID
 	}
 	return c.Query("tenant_id")
+}
+
+// CustomerAuth Middleware - Validates customer JWT tokens for customer portal
+func (h *middlewareAdapter) CustomerAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			SendAbort(c, http.StatusUnauthorized, "Unauthorized - missing token")
+			return
+		}
+
+		token := authHeader[7:]
+
+		// Import customer_auth domain to validate customer token
+		// Note: We need to add customer auth domain to middleware dependencies
+		// For now, we'll use a simpler validation approach
+		// Extract claims from JWT manually
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			secret = "default_secret_please_change"
+		}
+
+		// Parse JWT and extract customer_id and tenant_id
+		parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return []byte(secret), nil
+		})
+
+		if err != nil || !parsedToken.Valid {
+			SendAbort(c, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		claims, ok := parsedToken.Claims.(jwt.MapClaims)
+		if !ok {
+			SendAbort(c, http.StatusUnauthorized, "Invalid token claims")
+			return
+		}
+
+		// Verify this is a customer token (not admin token)
+		tokenType, _ := claims["type"].(string)
+		if tokenType != "customer" {
+			SendAbort(c, http.StatusUnauthorized, "Invalid token type")
+			return
+		}
+
+		// Extract customer ID and tenant ID
+		customerID, ok := claims["sub"].(string)
+		if !ok {
+			SendAbort(c, http.StatusUnauthorized, "Invalid customer ID in token")
+			return
+		}
+
+		tenantIDStr, ok := claims["tenant_id"].(string)
+		if !ok {
+			SendAbort(c, http.StatusUnauthorized, "Invalid tenant ID in token")
+			return
+		}
+
+		tenantID, err := uuid.Parse(tenantIDStr)
+		if err != nil {
+			SendAbort(c, http.StatusUnauthorized, "Invalid tenant ID format")
+			return
+		}
+
+		// Set customer context
+		c.Set("customer_id", customerID)
+		c.Set("tenant_id", tenantID)
+		c.Set("customer_email", claims["email"])
+		c.Set("is_customer", true)
+
+		c.Next()
+	}
 }

@@ -4,6 +4,7 @@ package model
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -307,9 +308,73 @@ type CustomerSession struct {
 
 // ApproveProspectRequest - Request for approving prospect and provisioning to MikroTik
 type ApproveProspectRequest struct {
-	CustomerID     string     `json:"customer_id" binding:"required,uuid4"`
-	BillingDay     *int       `json:"billing_day,omitempty" binding:"omitempty,min=1,max=31"`
-	AutoSuspension *bool      `json:"auto_suspension,omitempty"`
-	StartDate      *time.Time `json:"start_date,omitempty"`
-	TechnicianNote *string    `json:"technician_note,omitempty"`
+	CustomerID               string     `json:"customer_id" binding:"required,uuid4"`
+	BillingDay               *int       `json:"billing_day,omitempty" binding:"omitempty,min=1,max=31"`
+	AutoSuspension           *bool      `json:"auto_suspension,omitempty"`
+	StartDate                *time.Time `json:"start_date,omitempty"`
+	TechnicianNote           *string    `json:"technician_note,omitempty"`
+	PreferredServiceUsername *string    `json:"preferred_service_username,omitempty"` // Optional: for Hotspot only
+}
+
+// ============================================================================
+// CUSTOMER PORTAL MODELS
+// ============================================================================
+
+// CustomerProfileResponse - Customer profile for portal (with conditional credential visibility)
+type CustomerProfileResponse struct {
+	ID                     uuid.UUID `json:"id"`
+	Name                   string    `json:"name"`
+	Email                  *string   `json:"email"` // portal_email
+	Phone                  *string   `json:"phone"`
+	Address                *string   `json:"address"`
+	ServiceType            string    `json:"service_type"`
+	ServiceUsername        string    `json:"service_username"`
+	ServicePassword        *string   `json:"service_password,omitempty"` // only if visible
+	ServicePasswordVisible bool      `json:"service_password_visible"`
+	Status                 string    `json:"status"`
+	ProvisioningStatus     string    `json:"provisioning_status"`
+}
+
+// UpdateCustomerProfileRequest - Request to update customer profile
+type UpdateCustomerProfileRequest struct {
+	Name           *string `json:"name"`
+	Phone          *string `json:"phone"`
+	Address        *string `json:"address"`
+	PortalPassword *string `json:"portal_password"` // new password
+}
+
+// CustomerTrafficResponse - Traffic stats for customer portal
+type CustomerTrafficResponse struct {
+	ServiceUsername string `json:"service_username"`
+	UploadBytes     int64  `json:"upload_bytes"`
+	DownloadBytes   int64  `json:"download_bytes"`
+	TotalBytes      int64  `json:"total_bytes"`
+	SessionDuration int64  `json:"session_duration_seconds"`
+	LastUpdate      string `json:"last_update"`
+}
+
+// UsageHistoryResponse - Historical usage data
+type UsageHistoryResponse struct {
+	Date          string `json:"date"`
+	UploadBytes   int64  `json:"upload_bytes"`
+	DownloadBytes int64  `json:"download_bytes"`
+	TotalBytes    int64  `json:"total_bytes"`
+}
+
+// TrafficData - Traffic data structure stored in Redis cache
+type TrafficData struct {
+	UploadBytes     int64     `json:"upload_bytes"`
+	DownloadBytes   int64     `json:"download_bytes"`
+	SessionDuration int64     `json:"session_duration"`
+	LastUpdate      time.Time `json:"last_update"`
+}
+
+// TrafficSnapshot - Single traffic measurement snapshot for aggregation
+type TrafficSnapshot struct {
+	ServiceUsername string    `json:"service_username"`
+	TenantID        string    `json:"tenant_id"`
+	UploadBytes     int64     `json:"upload_bytes"`
+	DownloadBytes   int64     `json:"download_bytes"`
+	SessionActive   bool      `json:"session_active"`
+	Timestamp       time.Time `json:"timestamp"`
 }

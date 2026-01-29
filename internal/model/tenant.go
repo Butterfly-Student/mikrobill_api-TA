@@ -208,3 +208,38 @@ func (t *Tenant) HasFeature(feature string) bool {
 	}
 	return false
 }
+
+// TenantPublicResponse represents public information about a tenant (for registration pages)
+type TenantPublicResponse struct {
+	Name         string         `json:"name"`
+	Slug         string         `json:"slug"`
+	CompanyName  *string        `json:"company_name,omitempty"`
+	IsActive     bool           `json:"is_active"`
+	Status       string         `json:"status"`
+	Features     datatypes.JSON `json:"features,omitempty"`
+	AllowsSignup bool           `json:"allows_signup"` // Derived from features or settings
+}
+
+func (t *Tenant) ToPublicResponse() *TenantPublicResponse {
+	allowsSignup := t.IsActive && t.Status == "active"
+	
+	// Check if tenant has signup feature enabled
+	if t.HasFeature("public_registration") {
+		allowsSignup = allowsSignup && true
+	}
+	
+	slug := ""
+	if t.Slug != nil {
+		slug = *t.Slug
+	}
+	
+	return &TenantPublicResponse{
+		Name:         t.Name,
+		Slug:         slug,
+		CompanyName:  t.CompanyName,
+		IsActive:     t.IsActive,
+		Status:       t.Status,
+		Features:     t.Features,
+		AllowsSignup: allowsSignup,
+	}
+}

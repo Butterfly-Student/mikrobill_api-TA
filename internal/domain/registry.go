@@ -4,6 +4,8 @@ import (
 	"MikrOps/internal/domain/auth"
 	"MikrOps/internal/domain/client"
 	"MikrOps/internal/domain/customer"
+	"MikrOps/internal/domain/customer_auth"
+	"MikrOps/internal/domain/customer_portal"
 	"MikrOps/internal/domain/log"
 	"MikrOps/internal/domain/mikrotik"
 	"MikrOps/internal/domain/monitor"
@@ -16,6 +18,7 @@ import (
 	"MikrOps/internal/domain/user"
 	inbound_port "MikrOps/internal/port/inbound"
 	outbound_port "MikrOps/internal/port/outbound"
+	"MikrOps/utils/encryption"
 	"MikrOps/utils/logger"
 )
 
@@ -23,6 +26,8 @@ type Domain interface {
 	Testing() testing.TestingDomain
 	Client() client.ClientDomain
 	Auth() auth.AuthDomain
+	CustomerAuth() customer_auth.CustomerAuthDomain
+	CustomerPortal() customer_portal.CustomerPortalDomain
 	Mikrotik() mikrotik.MikrotikDomain
 	MikrotikPPPSecret() inbound_port.MikrotikPPPSecretDomain
 	MikrotikPPPProfile() inbound_port.MikrotikPPPProfileDomain
@@ -45,6 +50,7 @@ type domain struct {
 	messagePort           outbound_port.MessagePort
 	cachePort             outbound_port.CachePort
 	mikrotikClientFactory outbound_port.MikrotikClientFactory
+	encryptionService     *encryption.Service
 }
 
 func NewDomain(
@@ -52,12 +58,14 @@ func NewDomain(
 	messagePort outbound_port.MessagePort,
 	cachePort outbound_port.CachePort,
 	mikrotikClientFactory outbound_port.MikrotikClientFactory,
+	encryptionService *encryption.Service,
 ) Domain {
 	return &domain{
 		databasePort:          databasePort,
 		messagePort:           messagePort,
 		cachePort:             cachePort,
 		mikrotikClientFactory: mikrotikClientFactory,
+		encryptionService:     encryptionService,
 	}
 }
 
@@ -118,7 +126,7 @@ func (d *domain) Profile() inbound_port.ProfileDomain {
 }
 
 func (d *domain) Customer() inbound_port.CustomerDomain {
-	return customer.NewCustomerDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort)
+	return customer.NewCustomerDomain(d.databasePort, d.mikrotikClientFactory, d.cachePort, d.messagePort)
 }
 
 func (d *domain) Tenant() inbound_port.TenantDomain {
@@ -127,6 +135,23 @@ func (d *domain) Tenant() inbound_port.TenantDomain {
 
 func (d *domain) User() inbound_port.UserDomain {
 	return user.NewUserDomain(d.databasePort)
+}
+
+func (d *domain) CustomerAuth() customer_auth.CustomerAuthDomain {
+	return customer_auth.NewCustomerAuthDomain(
+		d.databasePort.Customer(),
+		d.cachePort,
+		d.encryptionService,
+	)
+}
+
+func (d *domain) CustomerPortal() customer_portal.CustomerPortalDomain {
+	return customer_portal.NewCustomerPortalDomain(
+		d.databasePort.Customer(),
+		d.cachePort.PPP(),
+		d.messagePort.Provisioning(),
+		d.encryptionService,
+	)
 }
 
 func (d *domain) Database() outbound_port.DatabasePort {

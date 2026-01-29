@@ -129,6 +129,40 @@ func (a *pppCacheAdapter) InvalidateCache(ctx context.Context, key string) error
 	return redis.Del(ctx, key)
 }
 
+// ============= Traffic Data =============
+
+func (a *pppCacheAdapter) GetTrafficData(ctx context.Context, key string) (*model.TrafficData, error) {
+	// Get traffic data from Redis
+	dataStr, err := redis.Get(ctx, key)
+	if err != nil {
+		// Return empty traffic data if not found
+		return nil, stacktrace.NewError("traffic data not found in cache")
+	}
+
+	// Unmarshal traffic data
+	var trafficData model.TrafficData
+	if err := json.Unmarshal([]byte(dataStr), &trafficData); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to unmarshal traffic data")
+	}
+
+	return &trafficData, nil
+}
+
+func (a *pppCacheAdapter) SetTrafficData(ctx context.Context, key string, data *model.TrafficData) error {
+	// Marshal traffic data
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to marshal traffic data")
+	}
+
+	// Set with 24 hour TTL
+	if err := redis.SetWithExpiry(ctx, key, string(dataBytes), 24*time.Hour); err != nil {
+		return stacktrace.Propagate(err, "failed to set traffic data")
+	}
+
+	return nil
+}
+
 // ============= Utility Functions =============
 
 // GenerateHash creates SHA256 hash dari data untuk change detection

@@ -5,4 +5,5 @@ type CachePort interface {
 	Client() ClientCachePort
 	PubSub() RedisPubSubPort
 	AuthCache() AuthCachePort
+	PPP() PPPCachePort
 }

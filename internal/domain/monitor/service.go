@@ -100,10 +100,10 @@ func (d *monitorDomain) StreamTraffic(ctx context.Context, customerID string) (<
 	mu.Unlock()
 
 	// Start the actual background monitoring for this customer
-	go d.runMonitorLoop(monitorCtx, customer.ID, customer.Name, customer.Username, customer.ServiceType, interfaceName)
+	go d.runMonitorLoop(monitorCtx, customer.ID, customer.Name, customer.ServiceUsername, customer.ServiceType, interfaceName)
 
 	log.Printf("[OnDemand] Started monitoring for customer %s (%s) on interface %s",
-		customer.Name, customer.Username, interfaceName)
+		customer.Name, customer.ServiceUsername, interfaceName)
 
 	return d.addObserver(ctx, customerID)
 }
@@ -321,12 +321,35 @@ func (d *monitorDomain) addObserver(ctx context.Context, customerID string) (<-c
 }
 
 func (d *monitorDomain) publishTrafficData(data model.CustomerTrafficData) {
-	// 1. Publish to Redis (optional, for history/other consumers)
+	// 1. Store to Redis cache for customer portal (Phase 7)
+	// This leverages existing streaming - MikroTik pushes via /interface/monitor-traffic
+	// We passively cache it to Redis so customer portal REST API can read without querying MikroTik
+	if data.CustomerID != "" {
+		customerUUID, err := uuid.Parse(data.CustomerID)
+		if err == nil {
+			customer, err := d.databasePort.Customer().GetByID(context.Background(), customerUUID)
+			if err == nil && customer != nil && data.Username != "" {
+				// Build Redis key: traffic:{tenant_id}:{service_username}
+				redisKey := fmt.Sprintf("traffic:%s:%s", customer.TenantID, data.Username)
+
+				// Build TrafficData for Redis cache
+				trafficData := &model.TrafficData{
+					UploadBytes:     parseInt64(data.TxBitsPerSecond) / 8, // Convert bits to bytes
+					DownloadBytes:   parseInt64(data.RxBitsPerSecond) / 8, // Convert bits to bytes
+					SessionDuration: 0,                                    // Can be calculated if needed
+					LastUpdate:      data.Timestamp,
+				}
+				// Store to Redis with 24h TTL (fire and forget - don't fail streaming on cache error)
+				_ = d.cachePort.PPP().SetTrafficData(context.Background(), redisKey, trafficData)
+			}
+		}
+	}
+
+	// 2. Publish to Redis PubSub (existing - for other consumers)
 	jsonData, _ := json.Marshal(data)
-	// Ignore error on publish for now as it's fire-and-forget
 	_ = d.cachePort.PubSub().Publish("mikrotik:traffic:customers", string(jsonData))
 
-	// 2. Broadcast to in-memory observers (active websockets)
+	// 3. Broadcast to in-memory observers (existing - active websockets)
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -339,6 +362,13 @@ func (d *monitorDomain) publishTrafficData(data model.CustomerTrafficData) {
 			}
 		}
 	}
+}
+
+// parseInt64 safely converts string to int64
+func parseInt64(s string) int64 {
+	var val int64
+	fmt.Sscanf(s, "%d", &val)
+	return val
 }
 
 func formatSpeed(bps string) string {
@@ -539,4 +569,3 @@ func (d *monitorDomain) getCustomerIPAddress(customer *model.Customer) (string, 
 		return "", fmt.Errorf("unsupported service type or no IP: %s", customer.ServiceType)
 	}
 }
-

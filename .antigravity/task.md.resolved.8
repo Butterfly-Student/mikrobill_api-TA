@@ -40,18 +40,18 @@ Implement public registration and customer portal features leveraging existing R
   - [x] Generate PPPoE username (auto, hidden) & password (16-char strong)
   - [x] Generate Hotspot username (custom/auto, visible) & password (8-char simple)
   - [x] Encrypt service passwords with AES-256
-- [ ] HTTP layer (Gin handlers & routes)
-  - [ ] GET `/public/tenant/:slug` - tenant branding info
-  - [ ] POST `/public/register/:slug` - public registration endpoint
-  - [ ] Add routes without authentication middleware
+- [x] HTTP layer (Gin handlers & routes)
+  - [x] GET `/public/tenant/:slug` - tenant branding info
+  - [x] POST `/public/register/:slug` - public registration endpoint
+  - [x] Add routes without authentication middleware
 
-### [ ] Phase 4: Provisioning Flow (Service Credential Generation + RabbitMQ)
-- [ ] Update ApproveProspect domain method
-  - [ ] Generate service_username (auto or based on pattern)
-  - [ ] Generate service_password (strong for PPPoE, simpler for Hotspot)
-  - [ ] Set service_password_visible (FALSE for PPPoE, TRUE for Hotspot)
-  - [ ] Encrypt service_password and store in database
-  - [ ] Publish RabbitMQ message with service credentials
+### [x] Phase 4: Provisioning Flow (Service Credential Generation + RabbitMQ)
+- [x] Update ApproveProspect domain method
+  - [x] Generate service_username (auto or based on pattern)
+  - [x] Generate service_password (strong for PPPoE, simpler for Hotspot)
+  - [x] Set service_password_visible (FALSE for PPPoE, TRUE for Hotspot)
+  - [x] Encrypt service_password and store in database
+  - [x] Publish RabbitMQ message with service credentials
   - [ ] Do NOT call MikroTik API directly
 - [ ] Create provisioning worker (RabbitMQ consumer)
   - [ ] Subscribe to `customer.provisioning` queue

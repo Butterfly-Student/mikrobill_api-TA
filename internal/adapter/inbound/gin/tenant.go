@@ -69,6 +69,33 @@ func (a *tenantAdapter) GetTenant(c *gin.Context) {
 	})
 }
 
+// GetTenantInfo retrieves public tenant information by slug (no authentication required)
+func (a *tenantAdapter) GetTenantInfo(c *gin.Context) {
+	slug := c.Param("slug")
+	if slug == "" {
+		c.JSON(http.StatusBadRequest, model.Response{
+			Success: false,
+			Error:   "Tenant slug is required",
+		})
+		return
+	}
+
+	tenant, err := a.domainRegistry.Tenant().GetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, model.Response{
+			Success: false,
+			Error:   "Tenant not found",
+		})
+		return
+	}
+
+	// Return only public-safe information
+	c.JSON(http.StatusOK, model.Response{
+		Success: true,
+		Data:    tenant.ToPublicResponse(),
+	})
+}
+
 func (a *tenantAdapter) ListTenants(c *gin.Context) {
 	var filter model.TenantFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
@@ -173,4 +200,3 @@ func (a *tenantAdapter) GetTenantStats(c *gin.Context) {
 		Data:    stats,
 	})
 }
-

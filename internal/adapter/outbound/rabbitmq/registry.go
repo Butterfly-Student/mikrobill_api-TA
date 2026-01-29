@@ -5,13 +5,21 @@ import (
 )
 
 type adapter struct {
+	client       outbound_port.ClientMessagePort
+	provisioning outbound_port.ProvisioningMessagePort
 }
 
 func NewAdapter() outbound_port.MessagePort {
-	return &adapter{}
+	return &adapter{
+		client:       NewClientAdapter(),
+		provisioning: NewProvisioningAdapter(),
+	}
 }
 
 func (s *adapter) Client() outbound_port.ClientMessagePort {
-	return NewClientAdapter()
+	return s.client
 }
 
+func (s *adapter) Provisioning() outbound_port.ProvisioningMessagePort {
+	return s.provisioning
+}
