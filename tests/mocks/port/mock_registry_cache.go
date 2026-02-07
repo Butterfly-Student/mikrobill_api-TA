@@ -34,6 +34,20 @@ func (m *MockCachePort) EXPECT() *MockCachePortMockRecorder {
 	return m.recorder
 }
 
+// AuthCache mocks base method.
+func (m *MockCachePort) AuthCache() outbound_port.AuthCachePort {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AuthCache")
+	ret0, _ := ret[0].(outbound_port.AuthCachePort)
+	return ret0
+}
+
+// AuthCache indicates an expected call of AuthCache.
+func (mr *MockCachePortMockRecorder) AuthCache() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthCache", reflect.TypeOf((*MockCachePort)(nil).AuthCache))
+}
+
 // Client mocks base method.
 func (m *MockCachePort) Client() outbound_port.ClientCachePort {
 	m.ctrl.T.Helper()
@@ -46,6 +60,20 @@ func (m *MockCachePort) Client() outbound_port.ClientCachePort {
 func (mr *MockCachePortMockRecorder) Client() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Client", reflect.TypeOf((*MockCachePort)(nil).Client))
+}
+
+// PPP mocks base method.
+func (m *MockCachePort) PPP() outbound_port.PPPCachePort {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PPP")
+	ret0, _ := ret[0].(outbound_port.PPPCachePort)
+	return ret0
+}
+
+// PPP indicates an expected call of PPP.
+func (mr *MockCachePortMockRecorder) PPP() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PPP", reflect.TypeOf((*MockCachePort)(nil).PPP))
 }
 
 // PubSub mocks base method.
@@ -61,4 +89,3 @@ func (mr *MockCachePortMockRecorder) PubSub() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PubSub", reflect.TypeOf((*MockCachePort)(nil).PubSub))
 }
-

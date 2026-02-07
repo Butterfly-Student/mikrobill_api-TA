@@ -253,8 +253,9 @@ type PublicRegistrationRequest struct {
 
 // CustomerLoginRequest - Customer portal login request
 type CustomerLoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email      string `json:"email" binding:"required,email"`
+	Password   string `json:"password" binding:"required"`
+	TenantSlug string `json:"tenant_slug"`
 }
 
 // CustomerLoginResponse - Customer portal login response

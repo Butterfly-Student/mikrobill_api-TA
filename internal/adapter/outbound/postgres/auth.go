@@ -10,6 +10,7 @@ import (
 
 	"MikrOps/internal/model"
 	outbound_port "MikrOps/internal/port/outbound"
+	contextutil "MikrOps/utils/context"
 )
 
 const (
@@ -34,9 +35,20 @@ func (a *authAdapter) SaveUser(ctx context.Context, user model.User) error {
 
 func (a *authAdapter) FindUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
-	err := a.db.WithContext(ctx).
-		Where("email = ?", email).
-		First(&user).Error
+	query := a.db.WithContext(ctx)
+
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("email = ?", email).First(&user).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -49,9 +61,20 @@ func (a *authAdapter) FindUserByEmail(ctx context.Context, email string) (*model
 
 func (a *authAdapter) FindUserByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	err := a.db.WithContext(ctx).
-		Where("username = ?", username).
-		First(&user).Error
+	query := a.db.WithContext(ctx)
+
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("username = ?", username).First(&user).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -65,10 +88,20 @@ func (a *authAdapter) FindUserByUsername(ctx context.Context, username string) (
 // Di file: internal/adapter/outbound/postgres/auth.go
 func (a *authAdapter) FindUserByEmailOrUsername(ctx context.Context, identifier string) (*model.User, error) {
 	var user model.User
+	query := a.db.WithContext(ctx)
 
-	err := a.db.WithContext(ctx).
-		Where("email = ? OR username = ?", identifier, identifier).
-		First(&user).Error
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("email = ? OR username = ?", identifier, identifier).First(&user).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -77,10 +110,16 @@ func (a *authAdapter) FindUserByEmailOrUsername(ctx context.Context, identifier 
 		return nil, stacktrace.Propagate(err, "failed to find user")
 	}
 
-	// Load role if needed
+	// Load role if needed - with tenant filtering
 	if user.RoleID != nil && *user.RoleID != "" {
 		var role model.Role
-		if err := a.db.WithContext(ctx).First(&role, "id = ?", *user.RoleID).Error; err == nil {
+		roleQuery := a.db.WithContext(ctx)
+
+		if !isSuperAdmin {
+			roleQuery = roleQuery.Where("tenant_id = ?", tenantID.String())
+		}
+
+		if err := roleQuery.First(&role, "id = ?", *user.RoleID).Error; err == nil {
 			user.UserRole = model.UserRole(role.Name)
 		}
 	}
@@ -90,9 +129,20 @@ func (a *authAdapter) FindUserByEmailOrUsername(ctx context.Context, identifier 
 
 func (a *authAdapter) FindUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	var user model.User
-	err := a.db.WithContext(ctx).
-		Where("id = ?", id.String()).
-		First(&user).Error
+	query := a.db.WithContext(ctx)
+
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("id = ?", id.String()).First(&user).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -105,10 +155,20 @@ func (a *authAdapter) FindUserByID(ctx context.Context, id uuid.UUID) (*model.Us
 
 func (a *authAdapter) FindRoleByName(ctx context.Context, name string) (*model.Role, error) {
 	var role model.Role
+	query := a.db.WithContext(ctx)
 
-	err := a.db.WithContext(ctx).
-		Where("name = ?", name).
-		First(&role).Error
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("name = ?", name).First(&role).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -122,10 +182,20 @@ func (a *authAdapter) FindRoleByName(ctx context.Context, name string) (*model.R
 
 func (a *authAdapter) FindRoleByID(ctx context.Context, id uuid.UUID) (*model.Role, error) {
 	var role model.Role
+	query := a.db.WithContext(ctx)
 
-	err := a.db.WithContext(ctx).
-		Where("id = ?", id.String()).
-		First(&role).Error
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("id = ?", id.String()).First(&role).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil

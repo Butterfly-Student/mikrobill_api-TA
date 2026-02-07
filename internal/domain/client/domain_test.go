@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/redis/go-redis/v9"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"MikrOps/internal/domain"
+	"MikrOps/internal/domain/client"
 	"MikrOps/internal/model"
 	mock_outbound_port "MikrOps/tests/mocks/port"
 )
@@ -33,16 +32,16 @@ func TestClient(t *testing.T) {
 		mockMessagePort.EXPECT().Client().Return(mockClientMessagePort).AnyTimes()
 		mockCachePort.EXPECT().Client().Return(mockClientCachePort).AnyTimes()
 
-		clientDomain := domain.NewDomain(mockDatabasePort, mockMessagePort, mockCachePort, nil)
+		clientDomain := client.NewClientDomain(mockDatabasePort, mockMessagePort, mockCachePort)
 
 		inputs := []model.ClientInput{
-			model.ClientInput{
+			{
 				Name: "Test Client",
 			},
 		}
 
 		outputs := []model.Client{
-			model.Client{
+			{
 				ID: 1,
 				ClientInput: model.ClientInput{
 					Name:      "Test Client",
@@ -61,30 +60,30 @@ func TestClient(t *testing.T) {
 
 		Convey("Upsert", func() {
 			Convey("Input is empty", func() {
-				_, err := clientDomain.Client().Upsert(context.Background(), []model.ClientInput{})
+				_, err := clientDomain.Upsert(context.Background(), []model.ClientInput{})
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Database client upsert error", func() {
-				mockClientDatabasePort.EXPECT().Upsert(gomock.Any()).Return(errors.New("error")).Times(1)
+				mockClientDatabasePort.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
 
-				_, err := clientDomain.Client().Upsert(context.Background(), inputs)
+				_, err := clientDomain.Upsert(context.Background(), inputs)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Database client find by filter error", func() {
-				mockClientDatabasePort.EXPECT().Upsert(gomock.Any()).Return(nil).Times(1)
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
+				mockClientDatabasePort.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
-				_, err := clientDomain.Client().Upsert(context.Background(), inputs)
+				_, err := clientDomain.Upsert(context.Background(), inputs)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Success", func() {
-				mockClientDatabasePort.EXPECT().Upsert(gomock.Any()).Return(nil).Times(1)
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
+				mockClientDatabasePort.EXPECT().Upsert(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
 
-				results, err := clientDomain.Client().Upsert(context.Background(), inputs)
+				results, err := clientDomain.Upsert(context.Background(), inputs)
 				So(err, ShouldBeNil)
 				So(results, ShouldNotBeEmpty)
 				So(results[0].Name, ShouldEqual, "Test Client")
@@ -93,21 +92,21 @@ func TestClient(t *testing.T) {
 
 		Convey("FindByFilter", func() {
 			Convey("Filter is empty", func() {
-				_, err := clientDomain.Client().FindByFilter(context.Background(), model.ClientFilter{})
+				_, err := clientDomain.FindByFilter(context.Background(), model.ClientFilter{})
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Database client find by filter error", func() {
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
-				_, err := clientDomain.Client().FindByFilter(context.Background(), filter)
+				_, err := clientDomain.FindByFilter(context.Background(), filter)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Success", func() {
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
 
-				results, err := clientDomain.Client().FindByFilter(context.Background(), filter)
+				results, err := clientDomain.FindByFilter(context.Background(), filter)
 				So(err, ShouldBeNil)
 				So(results, ShouldNotBeEmpty)
 				So(results[0].Name, ShouldEqual, "Test Client")
@@ -116,106 +115,97 @@ func TestClient(t *testing.T) {
 
 		Convey("DeleteByFilter", func() {
 			Convey("Filter is empty", func() {
-				err := clientDomain.Client().DeleteByFilter(context.Background(), model.ClientFilter{})
+				err := clientDomain.DeleteByFilter(context.Background(), model.ClientFilter{})
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Database client delete by filter error", func() {
-				mockClientDatabasePort.EXPECT().DeleteByFilter(gomock.Any()).Return(errors.New("error")).Times(1)
+				mockClientDatabasePort.EXPECT().DeleteByFilter(gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
 
-				err := clientDomain.Client().DeleteByFilter(context.Background(), filter)
+				err := clientDomain.DeleteByFilter(context.Background(), filter)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Success", func() {
-				mockClientDatabasePort.EXPECT().DeleteByFilter(gomock.Any()).Return(nil).Times(1)
+				mockClientDatabasePort.EXPECT().DeleteByFilter(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-				err := clientDomain.Client().DeleteByFilter(context.Background(), filter)
+				err := clientDomain.DeleteByFilter(context.Background(), filter)
 				So(err, ShouldBeNil)
 			})
 		})
 
 		Convey("PublishUpsert", func() {
 			Convey("Input is empty", func() {
-				err := clientDomain.Client().PublishUpsert(context.Background(), []model.ClientInput{})
+				err := clientDomain.PublishUpsert(context.Background(), []model.ClientInput{})
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Message client publish upsert error", func() {
-				mockClientMessagePort.EXPECT().PublishUpsert(gomock.Any()).Return(errors.New("error")).Times(1)
+				mockClientMessagePort.EXPECT().PublishUpsert(gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
 
-				err := clientDomain.Client().PublishUpsert(context.Background(), inputs)
+				err := clientDomain.PublishUpsert(context.Background(), inputs)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Success", func() {
-				mockClientMessagePort.EXPECT().PublishUpsert(gomock.Any()).Return(nil).Times(1)
+				mockClientMessagePort.EXPECT().PublishUpsert(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-				err := clientDomain.Client().PublishUpsert(context.Background(), inputs)
+				err := clientDomain.PublishUpsert(context.Background(), inputs)
 				So(err, ShouldBeNil)
 			})
 		})
 
 		Convey("IsExists", func() {
 			Convey("Bearer key is empty", func() {
-				_, err := clientDomain.Client().IsExists(context.Background(), "")
+				_, err := clientDomain.IsExists(context.Background(), "")
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("Cache client get error", func() {
-				mockClientCachePort.EXPECT().Get(gomock.Any()).Return(model.Client{}, errors.New("error")).Times(1)
+			Convey("Cache miss, database error", func() {
+				mockClientCachePort.EXPECT().GetClient(gomock.Any(), gomock.Any()).Return(model.Client{}, false).Times(1)
+				mockClientDatabasePort.EXPECT().IsExists(gomock.Any(), gomock.Any()).Return(false, errors.New("error")).Times(1)
 
-				_, err := clientDomain.Client().IsExists(context.Background(), "test-bearer-key")
+				_, err := clientDomain.IsExists(context.Background(), "test-bearer-key")
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("Database client is exists error", func() {
-				mockClientCachePort.EXPECT().Get(gomock.Any()).Return(model.Client{}, redis.Nil).Times(1)
-				mockClientDatabasePort.EXPECT().IsExists(gomock.Any()).Return(false, errors.New("error")).Times(1)
+			Convey("Cache miss, database find by filter error", func() {
+				mockClientCachePort.EXPECT().GetClient(gomock.Any(), gomock.Any()).Return(model.Client{}, false).Times(1)
+				mockClientDatabasePort.EXPECT().IsExists(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
-				_, err := clientDomain.Client().IsExists(context.Background(), "test-bearer-key")
+				_, err := clientDomain.IsExists(context.Background(), "test-bearer-key")
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("Database client find by filter error", func() {
-				mockClientCachePort.EXPECT().Get(gomock.Any()).Return(model.Client{}, redis.Nil).Times(1)
-				mockClientDatabasePort.EXPECT().IsExists(gomock.Any()).Return(true, nil).Times(1)
+			Convey("Cache miss, set client error", func() {
+				mockClientCachePort.EXPECT().GetClient(gomock.Any(), gomock.Any()).Return(model.Client{}, false).Times(1)
+				mockClientDatabasePort.EXPECT().IsExists(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
+				mockClientCachePort.EXPECT().SetClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
 
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
-
-				_, err := clientDomain.Client().IsExists(context.Background(), "test-bearer-key")
+				_, err := clientDomain.IsExists(context.Background(), "test-bearer-key")
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("Cache client set error", func() {
-				mockClientCachePort.EXPECT().Get(gomock.Any()).Return(model.Client{}, redis.Nil).Times(1)
-				mockClientDatabasePort.EXPECT().IsExists(gomock.Any()).Return(true, nil).Times(1)
+			Convey("Cache miss, DB found, cache set success", func() {
+				mockClientCachePort.EXPECT().GetClient(gomock.Any(), gomock.Any()).Return(model.Client{}, false).Times(1)
+				mockClientDatabasePort.EXPECT().IsExists(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
+				mockClientCachePort.EXPECT().SetClient(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
-				mockClientCachePort.EXPECT().Set(gomock.Any()).Return(errors.New("error")).Times(1)
-
-				_, err := clientDomain.Client().IsExists(context.Background(), "test-bearer-key")
-				So(err, ShouldNotBeNil)
+				result, err := clientDomain.IsExists(context.Background(), "test-bearer-key")
+				So(err, ShouldBeNil)
+				So(result, ShouldBeFalse)
 			})
 
-			Convey("Success", func() {
-				mockClientCachePort.EXPECT().Get(gomock.Any()).Return(model.Client{}, redis.Nil).Times(1)
-				mockClientDatabasePort.EXPECT().IsExists(gomock.Any()).Return(true, nil).Times(1)
-				mockClientDatabasePort.EXPECT().FindByFilter(gomock.Any(), gomock.Any()).Return(outputs, nil).Times(1)
-				mockClientCachePort.EXPECT().Set(gomock.Any()).Return(nil).Times(1)
+			Convey("Cache hit", func() {
+				mockClientCachePort.EXPECT().GetClient(gomock.Any(), gomock.Any()).Return(outputs[0], true).Times(1)
 
-				result, err := clientDomain.Client().IsExists(context.Background(), "test-bearer-key")
+				result, err := clientDomain.IsExists(context.Background(), "test-bearer-key")
 				So(err, ShouldBeNil)
 				So(result, ShouldBeTrue)
-			})
-
-			Convey("Cache client exists", func() {
-				mockClientCachePort.EXPECT().Get(gomock.Any()).Return(outputs[0], nil).Times(1)
-
-				_, err := clientDomain.Client().IsExists(context.Background(), "test-bearer-key")
-				So(err, ShouldBeNil)
 			})
 		})
 	})
 }
-

@@ -30,7 +30,10 @@ func (h *callbackHandler) HandlePPPoEUp(c *gin.Context) {
 		return
 	}
 
-	err := h.domain.Customer().HandlePPPoEUp(c, input)
+	// Resolve tenant from customer before calling domain
+	h.resolveCallbackTenantContext(c, input.Name)
+
+	err := h.domain.Customer().HandlePPPoEUp(c.Request.Context(), input)
 
 	// Always Invalidate PPP active/inactive cache and broadcast to WebSocket
 	// This ensures real-time updates happen even if DB logging fails
@@ -51,7 +54,10 @@ func (h *callbackHandler) HandlePPPoEDown(c *gin.Context) {
 		return
 	}
 
-	err := h.domain.Customer().HandlePPPoEDown(c, input)
+	// Resolve tenant from customer before calling domain
+	h.resolveCallbackTenantContext(c, input.Name)
+
+	err := h.domain.Customer().HandlePPPoEDown(c.Request.Context(), input)
 
 	// Always Invalidate PPP active/inactive cache and broadcast to WebSocket
 	h.invalidatePPPCacheAndBroadcast(c, "down", input)
@@ -62,6 +68,17 @@ func (h *callbackHandler) HandlePPPoEDown(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"status": "success"})
+}
+
+// resolveCallbackTenantContext looks up the customer by PPPoE username and sets the tenant context
+// This allows callbacks (which don't go through auth middleware) to have proper tenant context
+func (h *callbackHandler) resolveCallbackTenantContext(c *gin.Context, username string) {
+	customer, err := h.domain.Database().Customer().GetByPPPoEUsername(c.Request.Context(), username)
+	if err != nil {
+		log.Warnf("Failed to resolve tenant for callback username %s: %v", username, err)
+		return
+	}
+	c.Set("tenant_id", customer.TenantID)
 }
 
 // invalidatePPPCacheAndBroadcast invalidates cache dan broadcast event ke WebSocket subscribers

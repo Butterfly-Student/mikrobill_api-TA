@@ -9,11 +9,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
-	log "github.com/sirupsen/logrus"
 
 	mikrotik_adapter "MikrOps/internal/adapter/outbound/mikrotik"
 	"MikrOps/internal/model"
 	contextutil "MikrOps/utils/context"
+	"MikrOps/utils/logger"
+	"go.uber.org/zap"
 )
 
 // Global state for active monitors
@@ -52,7 +53,7 @@ func (d *monitorDomain) StreamTraffic(ctx context.Context, customerID string) (<
 		// Already monitoring, just increment client count
 		custMonitor.Clients++
 		mu.Unlock()
-		log.Printf("[OnDemand] Customer %s: Client count incremented to %d", customerID, custMonitor.Clients)
+		logger.Info("[OnDemand] Client count incremented", zap.String("customer_id", customerID), zap.Int("clients", custMonitor.Clients))
 
 		// Subscribe to existing monitor
 		return d.addObserver(ctx, customerID)
@@ -102,8 +103,7 @@ func (d *monitorDomain) StreamTraffic(ctx context.Context, customerID string) (<
 	// Start the actual background monitoring for this customer
 	go d.runMonitorLoop(monitorCtx, customer.ID, customer.Name, customer.ServiceUsername, customer.ServiceType, interfaceName)
 
-	log.Printf("[OnDemand] Started monitoring for customer %s (%s) on interface %s",
-		customer.Name, customer.ServiceUsername, interfaceName)
+	logger.Info("[OnDemand] Started monitoring", zap.String("name", customer.Name), zap.String("username", customer.ServiceUsername), zap.String("interface", interfaceName))
 
 	return d.addObserver(ctx, customerID)
 }
@@ -128,7 +128,7 @@ func (d *monitorDomain) StopMonitoring(customerID string) {
 	}
 
 	custMonitor.Clients--
-	log.Printf("[OnDemand] Customer %s: Client count decremented to %d", customerID, custMonitor.Clients)
+	logger.Info("[OnDemand] Client count decremented", zap.String("customer_id", customerID), zap.Int("clients", custMonitor.Clients))
 
 	if custMonitor.Clients <= 0 {
 		// No more clients, stop monitoring
@@ -140,7 +140,7 @@ func (d *monitorDomain) StopMonitoring(customerID string) {
 			close(ch)
 		}
 
-		log.Printf("[OnDemand] Stopped monitoring for customer %s", customerID)
+		logger.Info("[OnDemand] Stopped monitoring", zap.String("customer_id", customerID))
 	}
 	mu.Unlock()
 }
@@ -153,13 +153,13 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[OnDemand] Monitor context cancelled for %s", name)
+			logger.Info("[OnDemand] Monitor context cancelled", zap.String("name", name))
 			return
 		default:
 			// check active mikrotik first
 			activeMikrotik, err := d.databasePort.Mikrotik().GetActiveMikrotik(ctx)
 			if err != nil || activeMikrotik == nil {
-				log.Errorf("failed to get active mikrotik for monitor: %v", err)
+				logger.Error("failed to get active mikrotik for monitor", zap.Error(err))
 				time.Sleep(restartDelay)
 				continue
 			}
@@ -167,7 +167,7 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 			// Create dedicated client
 			client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
 			if err != nil {
-				log.Errorf("failed to create mikrotik client for monitor: %v", err)
+				logger.Error("failed to create mikrotik client for monitor", zap.Error(err))
 				time.Sleep(restartDelay)
 				continue
 			}
@@ -184,8 +184,7 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 			}
 
 			if custMonitor.restartCount >= maxRestarts {
-				log.Printf("[OnDemand] Max restart attempts (%d) reached for %s, stopping monitor",
-					maxRestarts, name)
+				logger.Info("[OnDemand] Max restart attempts reached, stopping monitor", zap.Int("max_restarts", maxRestarts), zap.String("name", name))
 				custMonitor.Cancel()
 				delete(activeMonitors, customerID)
 
@@ -211,15 +210,14 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 			// Start monitoring stream
 			concreteClient, ok := client.(*mikrotik_adapter.Client)
 			if !ok {
-				log.Errorf("client is not of type *mikrotik_adapter.Client")
+				logger.Error("client is not of type *mikrotik_adapter.Client")
 				client.Close()
 				return
 			}
 
 			trafficChan, err := mikrotik_adapter.MonitorTraffic(ctx, concreteClient, interfaceName)
 			if err != nil {
-				log.Printf("[OnDemand] Failed to start monitor for %s on %s: %v",
-					name, interfaceName, err)
+				logger.Error("[OnDemand] Failed to start monitor", zap.String("name", name), zap.String("interface", interfaceName), zap.Error(err))
 
 				mu.Lock()
 				if mon, ok := activeMonitors[customerID]; ok {
@@ -232,7 +230,7 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 				continue
 			}
 
-			log.Printf("[OnDemand] Monitor stream active for %s on %s", name, interfaceName)
+			logger.Info("[OnDemand] Monitor stream active", zap.String("name", name), zap.String("interface", interfaceName))
 
 			// Process traffic data
 			// This blocks until stream closes or context done
@@ -241,7 +239,7 @@ func (d *monitorDomain) runMonitorLoop(ctx context.Context, customerID, name, us
 			client.Close()
 
 			if streamClosed {
-				log.Printf("[OnDemand] Stream closed for %s, attempting restart...", name)
+				logger.Info("[OnDemand] Stream closed, attempting restart", zap.String("name", name))
 
 				mu.Lock()
 				if mon, ok := activeMonitors[customerID]; ok {
@@ -267,7 +265,7 @@ func (d *monitorDomain) processTrafficStream(
 			return false
 		case traffic, ok := <-trafficChan:
 			if !ok {
-				log.Printf("[OnDemand] Traffic channel closed for %s", name)
+				logger.Info("[OnDemand] Traffic channel closed", zap.String("name", name))
 				return true // Stream closed
 			}
 

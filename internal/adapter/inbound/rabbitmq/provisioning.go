@@ -13,6 +13,7 @@ import (
 	inbound_port "MikrOps/internal/port/inbound"
 	outbound_port "MikrOps/internal/port/outbound"
 	"MikrOps/utils/activity"
+	contextutil "MikrOps/utils/context"
 	"MikrOps/utils/log"
 )
 
@@ -44,14 +45,20 @@ func (h *provisioningAdapter) ProcessProvisioning(a any) bool {
 	}
 	ctx = context.WithValue(ctx, activity.Payload, payload)
 
+	// Set tenant context for DB queries
+	tenantID, err := uuid.Parse(payload.TenantID)
+	if err != nil {
+		log.WithContext(ctx).Errorf("invalid tenant_id: %s", err.Error())
+		return true // ACK invalid messages
+	}
+	ctx = contextutil.SetTenantID(ctx, tenantID)
+
 	// Parse IDs
 	customerID, err := uuid.Parse(payload.CustomerID)
 	if err != nil {
 		log.WithContext(ctx).Errorf("invalid customer_id: %s", err.Error())
 		return true // ACK invalid messages
 	}
-
-	// Removed tenantID parsing as it's not used in the worker logic
 
 	profileID, err := uuid.Parse(payload.ProfileID)
 	if err != nil {
@@ -230,6 +237,14 @@ func (h *provisioningAdapter) ProcessDisconnect(a any) bool {
 		return true // ACK malformed messages
 	}
 	ctx = context.WithValue(ctx, activity.Payload, payload)
+
+	// Set tenant context for DB queries
+	disconnectTenantID, err := uuid.Parse(payload.TenantID)
+	if err != nil {
+		log.WithContext(ctx).Errorf("invalid tenant_id: %s", err.Error())
+		return true // ACK invalid messages
+	}
+	ctx = contextutil.SetTenantID(ctx, disconnectTenantID)
 
 	// Parse IDs
 	customerID, err := uuid.Parse(payload.CustomerID)

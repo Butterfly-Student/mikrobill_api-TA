@@ -1,0 +1,97 @@
+### ========================================
+### MONITOR & LOGGING API TESTS
+### Includes: Direct Monitor, Log Streaming
+### Requires: Authentication + Tenant Context
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### ========================================
+### TRAFFIC MONITORING
+### ========================================
+
+### 1. STREAM TRAFFIC BY INTERFACE (WebSocket)
+GET {{baseUrl}}/v1/internal/monitor/traffic/ether1
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### Note: Will upgrade to WebSocket connection
+### Real-time bandwidth monitoring untuk interface
+
+### ========================================
+### LOG STREAMING
+### ========================================
+
+### 2. STREAM MIKROTIK LOGS (WebSocket)
+GET {{baseUrl}}/v1/internal/logs/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### Note: Real-time MikroTik log stream
+
+### ========================================
+### DIRECT MONITOR (Without Customer Entity)
+### ========================================
+
+### 3. STREAM TRAFFIC BY INTERFACE (Direct)
+GET {{baseUrl}}/v1/internal/monitor/direct/traffic/ether1/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### 4. PING HOST (Direct)
+POST {{baseUrl}}/v1/internal/monitor/direct/ping
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "host": "192.168.1.1",
+  "count": 4
+}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "host": "192.168.1.1",
+#     "sent": 4,
+#     "received": 4,
+#     "packet_loss": 0,
+#     "min_rtt": "1ms",
+#     "avg_rtt": "3ms",
+#     "max_rtt": "5ms"
+#   }
+# }
+
+### 5. STREAM PING HOST (Direct - WebSocket)
+GET {{baseUrl}}/v1/internal/monitor/direct/ping/192.168.1.1/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Ping invalid host (Should Fail)
+POST {{baseUrl}}/v1/internal/monitor/direct/ping
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "host": "invalid-host",
+  "count": 4
+}
+
+### Monitor non-existent interface (Should Handle Gracefully)
+GET {{baseUrl}}/v1/internal/monitor/traffic/nonexistent
+Authorization: Bearer {{token}}

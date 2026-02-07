@@ -6,6 +6,7 @@ package mock_outbound_port
 
 import (
 	model "MikrOps/internal/model"
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -36,147 +37,146 @@ func (m *MockMikrotikDatabasePort) EXPECT() *MockMikrotikDatabasePortMockRecorde
 }
 
 // Create mocks base method.
-func (m *MockMikrotikDatabasePort) Create(tenantID uuid.UUID, input model.MikrotikInput) (*model.Mikrotik, error) {
+func (m *MockMikrotikDatabasePort) Create(ctx context.Context, input model.CreateMikrotikRequest) (*model.Mikrotik, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", tenantID, input)
+	ret := m.ctrl.Call(m, "Create", ctx, input)
 	ret0, _ := ret[0].(*model.Mikrotik)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockMikrotikDatabasePortMockRecorder) Create(tenantID, input interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) Create(ctx, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).Create), tenantID, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).Create), ctx, input)
 }
 
 // DeactivateAll mocks base method.
-func (m *MockMikrotikDatabasePort) DeactivateAll(tenantID uuid.UUID) error {
+func (m *MockMikrotikDatabasePort) DeactivateAll(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeactivateAll", tenantID)
+	ret := m.ctrl.Call(m, "DeactivateAll", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeactivateAll indicates an expected call of DeactivateAll.
-func (mr *MockMikrotikDatabasePortMockRecorder) DeactivateAll(tenantID interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) DeactivateAll(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateAll", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).DeactivateAll), tenantID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateAll", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).DeactivateAll), ctx)
 }
 
 // Delete mocks base method.
-func (m *MockMikrotikDatabasePort) Delete(tenantID, id uuid.UUID) error {
+func (m *MockMikrotikDatabasePort) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", tenantID, id)
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockMikrotikDatabasePortMockRecorder) Delete(tenantID, id interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).Delete), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).Delete), ctx, id)
 }
 
 // GetActiveMikrotik mocks base method.
-func (m *MockMikrotikDatabasePort) GetActiveMikrotik(tenantID uuid.UUID) (*model.Mikrotik, error) {
+func (m *MockMikrotikDatabasePort) GetActiveMikrotik(ctx context.Context) (*model.Mikrotik, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetActiveMikrotik", tenantID)
+	ret := m.ctrl.Call(m, "GetActiveMikrotik", ctx)
 	ret0, _ := ret[0].(*model.Mikrotik)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetActiveMikrotik indicates an expected call of GetActiveMikrotik.
-func (mr *MockMikrotikDatabasePortMockRecorder) GetActiveMikrotik(tenantID interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) GetActiveMikrotik(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveMikrotik", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).GetActiveMikrotik), tenantID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveMikrotik", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).GetActiveMikrotik), ctx)
 }
 
 // GetByID mocks base method.
-func (m *MockMikrotikDatabasePort) GetByID(tenantID, id uuid.UUID) (*model.Mikrotik, error) {
+func (m *MockMikrotikDatabasePort) GetByID(ctx context.Context, id uuid.UUID) (*model.Mikrotik, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByID", tenantID, id)
+	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*model.Mikrotik)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByID indicates an expected call of GetByID.
-func (mr *MockMikrotikDatabasePortMockRecorder) GetByID(tenantID, id interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).GetByID), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).GetByID), ctx, id)
 }
 
 // List mocks base method.
-func (m *MockMikrotikDatabasePort) List(tenantID uuid.UUID, filter model.MikrotikFilter) ([]model.Mikrotik, error) {
+func (m *MockMikrotikDatabasePort) List(ctx context.Context) ([]model.Mikrotik, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", tenantID, filter)
+	ret := m.ctrl.Call(m, "List", ctx)
 	ret0, _ := ret[0].([]model.Mikrotik)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockMikrotikDatabasePortMockRecorder) List(tenantID, filter interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) List(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).List), tenantID, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).List), ctx)
 }
 
 // SetActive mocks base method.
-func (m *MockMikrotikDatabasePort) SetActive(tenantID, id uuid.UUID) error {
+func (m *MockMikrotikDatabasePort) SetActive(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetActive", tenantID, id)
+	ret := m.ctrl.Call(m, "SetActive", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetActive indicates an expected call of SetActive.
-func (mr *MockMikrotikDatabasePortMockRecorder) SetActive(tenantID, id interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) SetActive(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetActive", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).SetActive), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetActive", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).SetActive), ctx, id)
 }
 
 // Update mocks base method.
-func (m *MockMikrotikDatabasePort) Update(tenantID, id uuid.UUID, input model.MikrotikUpdateInput) (*model.Mikrotik, error) {
+func (m *MockMikrotikDatabasePort) Update(ctx context.Context, id uuid.UUID, input model.UpdateMikrotikRequest) (*model.Mikrotik, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", tenantID, id, input)
+	ret := m.ctrl.Call(m, "Update", ctx, id, input)
 	ret0, _ := ret[0].(*model.Mikrotik)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockMikrotikDatabasePortMockRecorder) Update(tenantID, id, input interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) Update(ctx, id, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).Update), tenantID, id, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).Update), ctx, id, input)
 }
 
 // UpdateLastSync mocks base method.
-func (m *MockMikrotikDatabasePort) UpdateLastSync(tenantID, id uuid.UUID) error {
+func (m *MockMikrotikDatabasePort) UpdateLastSync(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateLastSync", tenantID, id)
+	ret := m.ctrl.Call(m, "UpdateLastSync", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateLastSync indicates an expected call of UpdateLastSync.
-func (mr *MockMikrotikDatabasePortMockRecorder) UpdateLastSync(tenantID, id interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) UpdateLastSync(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLastSync", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).UpdateLastSync), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLastSync", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).UpdateLastSync), ctx, id)
 }
 
 // UpdateStatus mocks base method.
-func (m *MockMikrotikDatabasePort) UpdateStatus(tenantID, id uuid.UUID, status model.MikrotikStatus) error {
+func (m *MockMikrotikDatabasePort) UpdateStatus(ctx context.Context, id uuid.UUID, status model.MikrotikStatus) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateStatus", tenantID, id, status)
+	ret := m.ctrl.Call(m, "UpdateStatus", ctx, id, status)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateStatus indicates an expected call of UpdateStatus.
-func (mr *MockMikrotikDatabasePortMockRecorder) UpdateStatus(tenantID, id, status interface{}) *gomock.Call {
+func (mr *MockMikrotikDatabasePortMockRecorder) UpdateStatus(ctx, id, status interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).UpdateStatus), tenantID, id, status)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockMikrotikDatabasePort)(nil).UpdateStatus), ctx, id, status)
 }
-

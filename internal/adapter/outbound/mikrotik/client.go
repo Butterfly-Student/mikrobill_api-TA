@@ -188,11 +188,3 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func isConnectionError(err error) bool {
-	msg := err.Error()
-	return strings.Contains(msg, "loop has ended") ||
-		strings.Contains(msg, "closed network connection") ||
-		strings.Contains(msg, "broken pipe") ||
-		strings.Contains(msg, "use of closed network connection") ||
-		strings.Contains(msg, "EOF")
-}

@@ -23,20 +23,19 @@ func TestMikrotik(t *testing.T) {
 	mockDB.EXPECT().Mikrotik().Return(mockMikDB).AnyTimes()
 
 	domain := NewMikrotikDomain(mockDB)
-	tenantID := uuid.New()
-	ctx := context.WithValue(context.Background(), "tenant_id", tenantID)
+	ctx := context.Background()
 
 	Convey("Test Mikrotik Domain", t, func() {
 		Convey("Create", func() {
-			input := model.MikrotikInput{Name: "Mik1", Host: "1.1.1.1"}
+			input := model.CreateMikrotikRequest{Name: "Mik1", Host: "1.1.1.1"}
 			Convey("Success", func() {
-				mockMikDB.EXPECT().Create(tenantID, input).Return(&model.Mikrotik{ID: uuid.New()}, nil)
+				mockMikDB.EXPECT().Create(gomock.Any(), input).Return(&model.Mikrotik{ID: uuid.New().String()}, nil)
 				res, err := domain.Create(ctx, input)
 				So(err, ShouldBeNil)
 				So(res, ShouldNotBeNil)
 			})
 			Convey("Error", func() {
-				mockMikDB.EXPECT().Create(tenantID, input).Return(nil, errors.New("error"))
+				mockMikDB.EXPECT().Create(gomock.Any(), input).Return(nil, errors.New("error"))
 				res, err := domain.Create(ctx, input)
 				So(err, ShouldNotBeNil)
 				So(res, ShouldBeNil)
@@ -46,18 +45,17 @@ func TestMikrotik(t *testing.T) {
 		Convey("GetByID", func() {
 			id := uuid.New()
 			Convey("Success", func() {
-				mockMikDB.EXPECT().GetByID(tenantID, id).Return(&model.Mikrotik{ID: id}, nil)
+				mockMikDB.EXPECT().GetByID(gomock.Any(), id).Return(&model.Mikrotik{ID: id.String()}, nil)
 				res, err := domain.GetByID(ctx, id)
 				So(err, ShouldBeNil)
-				So(res.ID, ShouldEqual, id)
+				So(res.ID, ShouldEqual, id.String())
 			})
 		})
 
 		Convey("List", func() {
-			filter := model.MikrotikFilter{}
 			Convey("Success", func() {
-				mockMikDB.EXPECT().List(tenantID, filter).Return([]model.Mikrotik{{}}, nil)
-				res, err := domain.List(ctx, filter)
+				mockMikDB.EXPECT().List(gomock.Any()).Return([]model.Mikrotik{{}}, nil)
+				res, err := domain.List(ctx)
 				So(err, ShouldBeNil)
 				So(len(res), ShouldEqual, 1)
 			})
@@ -66,7 +64,7 @@ func TestMikrotik(t *testing.T) {
 		Convey("SetActive", func() {
 			id := uuid.New()
 			Convey("Success", func() {
-				mockMikDB.EXPECT().SetActive(tenantID, id).Return(nil)
+				mockMikDB.EXPECT().SetActive(gomock.Any(), id).Return(nil)
 				err := domain.SetActive(ctx, id)
 				So(err, ShouldBeNil)
 			})
@@ -74,7 +72,7 @@ func TestMikrotik(t *testing.T) {
 
 		Convey("GetActiveMikrotik", func() {
 			Convey("Success", func() {
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(&model.Mikrotik{}, nil)
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(&model.Mikrotik{}, nil)
 				res, err := domain.GetActiveMikrotik(ctx)
 				So(err, ShouldBeNil)
 				So(res, ShouldNotBeNil)
@@ -82,4 +80,3 @@ func TestMikrotik(t *testing.T) {
 		})
 	})
 }
-

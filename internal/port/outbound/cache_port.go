@@ -8,7 +8,6 @@ import (
 )
 
 //go:generate mockgen -source=cache_port.go -destination=./../../../tests/mocks/port/mock_cache_port.go
-
 type PPPCachePort interface {
 	// PPP Active/Inactive dengan hash untuk change detection
 	GetPPPActive(ctx context.Context, tenantId string) (data []model.PPPActive, hash string, err error)
@@ -25,4 +24,8 @@ type PPPCachePort interface {
 	// Traffic data for customer portal
 	GetTrafficData(ctx context.Context, key string) (*model.TrafficData, error)
 	SetTrafficData(ctx context.Context, key string, data *model.TrafficData) error
+
+	// Client cache methods
+	GetClient(ctx context.Context, bearerKey string) (model.Client, bool)
+	SetClient(ctx context.Context, bearerKey string, client model.Client) error
 }

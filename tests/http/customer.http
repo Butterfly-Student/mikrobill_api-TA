@@ -1,0 +1,199 @@
+### ========================================
+### CUSTOMER MANAGEMENT API TESTS
+### Includes: Customer CRUD + Prospect Management
+### Consolidates: customer.rest + prospect.rest
+### Requires: Authentication + Tenant Context
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### Get profile ID for customer creation
+# @name getProfiles
+GET {{baseUrl}}/v1/internal/profile/list
+Authorization: Bearer {{token}}
+
+@profileId = {{getProfiles.response.body.data.profiles.0.id}}
+
+### ========================================
+### CUSTOMER CRUD OPERATIONS
+### ========================================
+
+### 1. CREATE CUSTOMER (Direct - No Approval Needed)
+# @name createCustomer
+POST {{baseUrl}}/v1/internal/customer
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "customer01",
+  "name": "Customer Test 01",
+  "phone": "081234567890",
+  "email": "customer01@example.com",
+  "address": "Jl. Test No. 123",
+  "password": "servicepass123",
+  "profile_id": "{{profileId}}",
+  "service_type": "pppoe",
+  "billing_day": 1,
+  "auto_suspension": true,
+  "customer_notes": "Created via API test"
+}
+
+@customerId = {{createCustomer.response.body.data.id}}
+
+### 2. LIST ALL CUSTOMERS
+# @name listCustomers
+GET {{baseUrl}}/v1/internal/customer/list
+Authorization: Bearer {{token}}
+
+### 3. GET CUSTOMER BY ID
+GET {{baseUrl}}/v1/internal/customer/{{customerId}}
+Authorization: Bearer {{token}}
+
+### 4. UPDATE CUSTOMER
+PUT {{baseUrl}}/v1/internal/customer/{{customerId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Customer Test 01 Updated",
+  "phone": "082345678901",
+  "address": "Jl. Updated No. 456",
+  "customer_notes": "Updated customer info"
+}
+
+### 5. DELETE CUSTOMER (Soft Delete)
+DELETE {{baseUrl}}/v1/internal/customer/{{customerId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### PROSPECT MANAGEMENT
+### ========================================
+
+### 6. LIST ALL PROSPECTS
+# @name listProspects
+GET {{baseUrl}}/v1/internal/customer/prospects/list
+Authorization: Bearer {{token}}
+
+### Expected: Customers dengan status "prospect" (dari public registration)
+
+### 7. APPROVE PROSPECT
+# First, need a prospect ID (from public registration or list)
+@prospectId = {{listProspects.response.body.data.customers.0.id}}
+
+POST {{baseUrl}}/v1/internal/customer/prospects/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customer_id": "{{prospectId}}",
+  "billing_day": 5,
+  "auto_suspension": true,
+  "start_date": "2026-02-01T00:00:00Z",
+  "technician_note": "Approved and ready for activation"
+}
+
+### This will:
+### - Generate final service credentials
+### - Create CustomerService
+### - Provision to MikroTik
+### - Update status to "active"
+
+### 8. REJECT PROSPECT
+DELETE {{baseUrl}}/v1/internal/customer/prospects/{{prospectId}}/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Data tidak lengkap"
+}
+
+### ========================================
+### CUSTOMER MONITORING
+### ========================================
+
+### 9. GET CUSTOMER TRAFFIC (WebSocket Stream)
+GET {{baseUrl}}/v1/internal/customer/{{customerId}}/traffic/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### 10. PING CUSTOMER
+GET {{baseUrl}}/v1/internal/customer/{{customerId}}/ping
+Authorization: Bearer {{token}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "host": "10.10.10.100",
+#     "alive": true,
+#     "rtt_avg": "5ms",
+#     "packet_loss": 0
+#   }
+# }
+
+### 11. STREAM CUSTOMER PING (WebSocket)
+GET {{baseUrl}}/v1/internal/customer/{{customerId}}/ping/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create customer with duplicate username (Should Fail)
+POST {{baseUrl}}/v1/internal/customer
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "customer01",
+  "name": "Duplicate Customer",
+  "phone": "083333333333",
+  "password": "pass",
+  "profile_id": "{{profileId}}",
+  "service_type": "pppoe"
+}
+
+### Create customer with invalid profile_id (Should Fail)
+POST {{baseUrl}}/v1/internal/customer
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "customer99",
+  "name": "Invalid Profile Customer",
+  "phone": "084444444444",
+  "password": "pass",
+  "profile_id": "{{$guid}}",
+  "service_type": "pppoe"
+}
+
+### Approve non-prospect customer (Should Fail)
+POST {{baseUrl}}/v1/internal/customer/prospects/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customer_id": "{{customerId}}",
+  "billing_day": 1
+}
+
+### Reject already approved customer (Should Fail)
+DELETE {{baseUrl}}/v1/internal/customer/prospects/{{customerId}}/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Test rejection"
+}

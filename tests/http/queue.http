@@ -1,0 +1,82 @@
+### ========================================
+### QUEUE MANAGEMENT API TESTS
+### Requires: Authentication + Tenant Context
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### ========================================
+### 1. CREATE QUEUE
+### ========================================
+# @name createQueue
+POST {{baseUrl}}/v1/internal/queue
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "queue-customer-1",
+  "target": "10.10.10.100/32",
+  "max_limit": "10M/10M",
+  "burst_limit": "15M/15M",
+  "burst_threshold": "8M/8M",
+  "burst_time": "8s/8s"
+}
+
+@queueId = {{createQueue.response.body.data.id}}
+
+### ========================================
+### 2. GET QUEUE BY ID
+### ========================================
+GET {{baseUrl}}/v1/internal/queue/{{queueId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### 3. LIST ALL QUEUES
+### ========================================
+GET {{baseUrl}}/v1/internal/queue/list
+Authorization: Bearer {{token}}
+
+### ========================================
+### 4. UPDATE QUEUE
+### ========================================
+PUT {{baseUrl}}/v1/internal/queue/{{queueId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "queue-customer-1-updated",
+  "max_limit": "20M/20M",
+  "burst_limit": "30M/30M"
+}
+
+### ========================================
+### 5. DELETE QUEUE
+### ========================================
+DELETE {{baseUrl}}/v1/internal/queue/{{queueId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create queue with invalid target format
+POST {{baseUrl}}/v1/internal/queue
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "invalid-queue",
+  "target": "invalid-ip",
+  "max_limit": "10M/10M"
+}

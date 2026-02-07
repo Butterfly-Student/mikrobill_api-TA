@@ -6,6 +6,7 @@ package mock_outbound_port
 
 import (
 	model "MikrOps/internal/model"
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -36,90 +37,105 @@ func (m *MockTenantDatabasePort) EXPECT() *MockTenantDatabasePortMockRecorder {
 }
 
 // CreateTenant mocks base method.
-func (m *MockTenantDatabasePort) CreateTenant(input model.TenantInput) (*model.Tenant, error) {
+func (m *MockTenantDatabasePort) CreateTenant(ctx context.Context, input model.CreateTenantRequest) (*model.Tenant, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTenant", input)
+	ret := m.ctrl.Call(m, "CreateTenant", ctx, input)
 	ret0, _ := ret[0].(*model.Tenant)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateTenant indicates an expected call of CreateTenant.
-func (mr *MockTenantDatabasePortMockRecorder) CreateTenant(input interface{}) *gomock.Call {
+func (mr *MockTenantDatabasePortMockRecorder) CreateTenant(ctx, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTenant", reflect.TypeOf((*MockTenantDatabasePort)(nil).CreateTenant), input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTenant", reflect.TypeOf((*MockTenantDatabasePort)(nil).CreateTenant), ctx, input)
 }
 
 // Delete mocks base method.
-func (m *MockTenantDatabasePort) Delete(id uuid.UUID) error {
+func (m *MockTenantDatabasePort) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", id)
-	ret1, _ := ret[0].(error)
-	return ret1
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockTenantDatabasePortMockRecorder) Delete(id interface{}) *gomock.Call {
+func (mr *MockTenantDatabasePortMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTenantDatabasePort)(nil).Delete), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTenantDatabasePort)(nil).Delete), ctx, id)
 }
 
 // GetByID mocks base method.
-func (m *MockTenantDatabasePort) GetByID(id uuid.UUID) (*model.Tenant, error) {
+func (m *MockTenantDatabasePort) GetByID(ctx context.Context, id uuid.UUID) (*model.Tenant, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByID", id)
+	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*model.Tenant)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByID indicates an expected call of GetByID.
-func (mr *MockTenantDatabasePortMockRecorder) GetByID(id interface{}) *gomock.Call {
+func (mr *MockTenantDatabasePortMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockTenantDatabasePort)(nil).GetByID), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockTenantDatabasePort)(nil).GetByID), ctx, id)
+}
+
+// GetBySlug mocks base method.
+func (m *MockTenantDatabasePort) GetBySlug(ctx context.Context, slug string) (*model.Tenant, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBySlug", ctx, slug)
+	ret0, _ := ret[0].(*model.Tenant)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBySlug indicates an expected call of GetBySlug.
+func (mr *MockTenantDatabasePortMockRecorder) GetBySlug(ctx, slug interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBySlug", reflect.TypeOf((*MockTenantDatabasePort)(nil).GetBySlug), ctx, slug)
 }
 
 // GetStats mocks base method.
-func (m *MockTenantDatabasePort) GetStats(tenantID uuid.UUID) (*model.TenantStats, error) {
+func (m *MockTenantDatabasePort) GetStats(ctx context.Context, tenantID uuid.UUID) (*model.TenantStatsResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStats", tenantID)
-	ret0, _ := ret[0].(*model.TenantStats)
+	ret := m.ctrl.Call(m, "GetStats", ctx, tenantID)
+	ret0, _ := ret[0].(*model.TenantStatsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStats indicates an expected call of GetStats.
-func (mr *MockTenantDatabasePortMockRecorder) GetStats(tenantID interface{}) *gomock.Call {
+func (mr *MockTenantDatabasePortMockRecorder) GetStats(ctx, tenantID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockTenantDatabasePort)(nil).GetStats), tenantID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockTenantDatabasePort)(nil).GetStats), ctx, tenantID)
 }
 
 // List mocks base method.
-func (m *MockTenantDatabasePort) List(filter model.TenantFilter) ([]model.Tenant, error) {
+func (m *MockTenantDatabasePort) List(ctx context.Context, filter model.TenantFilter) ([]model.Tenant, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", filter)
+	ret := m.ctrl.Call(m, "List", ctx, filter)
 	ret0, _ := ret[0].([]model.Tenant)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockTenantDatabasePortMockRecorder) List(filter interface{}) *gomock.Call {
+func (mr *MockTenantDatabasePortMockRecorder) List(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockTenantDatabasePort)(nil).List), filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockTenantDatabasePort)(nil).List), ctx, filter)
 }
 
 // Update mocks base method.
-func (m *MockTenantDatabasePort) Update(id uuid.UUID, input model.TenantInput) error {
+func (m *MockTenantDatabasePort) Update(ctx context.Context, id uuid.UUID, input model.UpdateTenantRequest) (*model.Tenant, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", id, input)
-	ret1, _ := ret[0].(error)
-	return ret1
+	ret := m.ctrl.Call(m, "Update", ctx, id, input)
+	ret0, _ := ret[0].(*model.Tenant)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockTenantDatabasePortMockRecorder) Update(id, input interface{}) *gomock.Call {
+func (mr *MockTenantDatabasePortMockRecorder) Update(ctx, id, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockTenantDatabasePort)(nil).Update), id, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockTenantDatabasePort)(nil).Update), ctx, id, input)
 }
-

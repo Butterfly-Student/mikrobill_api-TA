@@ -137,4 +137,3 @@ func (mr *MockMikrotikClientFactoryMockRecorder) NewClient(mikrotik interface{})
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewClient", reflect.TypeOf((*MockMikrotikClientFactory)(nil).NewClient), mikrotik)
 }
-

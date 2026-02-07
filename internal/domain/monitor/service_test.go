@@ -30,24 +30,21 @@ func TestMonitor(t *testing.T) {
 	mockDB.EXPECT().Mikrotik().Return(mockMikDB).AnyTimes()
 
 	domain := NewMonitorDomain(mockDB, mockFactory, mockCache)
-	tenantID := uuid.New()
-	ctx := context.WithValue(context.Background(), "tenant_id", tenantID)
+	ctx := context.Background()
 
 	Convey("Test Monitor Service", t, func() {
 		Convey("PingCustomer", func() {
 			custID := uuid.New()
 			ip := "192.168.1.1"
-			customer := &model.CustomerWithService{
-				Customer: model.Customer{
-					ID:          custID,
-					ServiceType: "pppoe",
-					AssignedIP:  &ip,
-				},
+			customer := &model.Customer{
+				ID:          custID.String(),
+				ServiceType: "pppoe",
+				AssignedIP:  &ip,
 			}
 
 			Convey("Success", func() {
-				mockCustDB.EXPECT().GetByID(tenantID, custID).Return(customer, nil)
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(&model.Mikrotik{}, nil)
+				mockCustDB.EXPECT().GetByID(gomock.Any(), custID).Return(customer, nil)
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(&model.Mikrotik{}, nil)
 				mockFactory.EXPECT().NewClient(gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().RunArgs("/ping", gomock.Any()).Return(&routeros.Reply{
 					Done: &proto.Sentence{Map: map[string]string{
@@ -66,21 +63,17 @@ func TestMonitor(t *testing.T) {
 		Convey("StreamTraffic - Setup", func() {
 			custID := uuid.New()
 			iface := "pppoe-out1"
-			customer := &model.CustomerWithService{
-				Customer: model.Customer{
-					ID:        custID,
-					Name:      "Test",
-					Interface: &iface,
-				},
+			customer := &model.Customer{
+				ID:        custID.String(),
+				Name:      "Test",
+				Interface: &iface,
 			}
 
 			Convey("Success - Starting new monitor", func() {
-				// Prevent loop from running by mocking GetActiveMikrotik to return error or nil
-				// or just stop it immediately.
-				mockCustDB.EXPECT().GetByID(tenantID, custID).Return(customer, nil)
+				mockCustDB.EXPECT().GetByID(gomock.Any(), custID).Return(customer, nil)
 
 				// Monitor loop calls
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(nil, nil).AnyTimes()
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(nil, nil).AnyTimes()
 
 				res, err := domain.StreamTraffic(ctx, custID.String())
 				So(err, ShouldBeNil)
@@ -103,4 +96,3 @@ func StopMonitoring(customerID string) {
 		delete(activeMonitors, customerID)
 	}
 }
-

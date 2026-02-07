@@ -3,6 +3,7 @@ package profile
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
@@ -12,8 +13,16 @@ import (
 	outbound_port "MikrOps/internal/port/outbound"
 )
 
-// TODO: Make this configurable via environment variable or settings
-const PPPOnUpScript = `:local apiUrl "http://192.168.100.2:8080/v1/callbacks/pppoe/up"
+func getCallbackBaseURL() string {
+	if url := os.Getenv("CALLBACK_BASE_URL"); url != "" {
+		return url
+	}
+	return "http://192.168.100.2:8080"
+}
+
+func pppOnUpScript() string {
+	baseURL := getCallbackBaseURL()
+	return `:local apiUrl "` + baseURL + `/v1/callbacks/pppoe/up"
 
 :local user $user
 :local callerId $"caller-id"
@@ -34,8 +43,11 @@ const PPPOnUpScript = `:local apiUrl "http://192.168.100.2:8080/v1/callbacks/ppp
     http-header-field="Content-Type: application/json" \
     http-data=$jsonData \
     keep-result=no`
+}
 
-const PPPOnDownScript = `:local apiUrl "http://192.168.100.2:8080/v1/callbacks/pppoe/down"
+func pppOnDownScript() string {
+	baseURL := getCallbackBaseURL()
+	return `:local apiUrl "` + baseURL + `/v1/callbacks/pppoe/down"
 
 :local user $user
 :local callerId $"caller-id"
@@ -56,6 +68,7 @@ const PPPOnDownScript = `:local apiUrl "http://192.168.100.2:8080/v1/callbacks/p
     http-header-field="Content-Type: application/json" \
     http-data=$jsonData \
     keep-result=no`
+}
 
 type profileDomain struct {
 	databasePort          outbound_port.DatabasePort
@@ -118,8 +131,8 @@ func (d *profileDomain) CreateProfile(ctx context.Context, input model.CreatePro
 		// 4. Prepare MikroTik API parameters
 		args := make(map[string]string)
 		args["name"] = input.Name
-		args["on-up"] = PPPOnUpScript
-		args["on-down"] = PPPOnDownScript
+		args["on-up"] = pppOnUpScript()
+		args["on-down"] = pppOnDownScript()
 
 		if input.LocalAddress != nil {
 			args["local-address"] = *input.LocalAddress
@@ -208,7 +221,7 @@ func (d *profileDomain) ListProfiles(ctx context.Context) ([]model.MikrotikProfi
 		return nil, stacktrace.Propagate(err, "failed to get active mikrotik")
 	}
 	if activeMikrotik == nil {
-		return nil, fmt.Errorf("no active mikrotik found")
+		return []model.MikrotikProfile{}, nil
 	}
 
 	mikrotikID, err := uuid.Parse(activeMikrotik.ID)
@@ -250,48 +263,40 @@ func (d *profileDomain) UpdateProfile(ctx context.Context, id string, input mode
 		}
 
 		// 2. Update MikroTik if has object ID
-		if existing.Metadata != nil {
+		if existing.MikrotikObjectID != nil && *existing.MikrotikObjectID != "" {
 			client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
 			if err != nil {
 				return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
 			}
 			defer client.Close()
 
-			// Get mikrotik object ID from metadata or separate field
-			// For now assume we have it stored somewhere accessible
-			// This would need to be adjusted based on actual schema
-			mikrotikObjectID := "" // TODO: Get from metadata or add field to model
+			args := make(map[string]string)
+			args[".id"] = *existing.MikrotikObjectID
+			args["name"] = input.Name
+			args["on-up"] = pppOnUpScript()
+			args["on-down"] = pppOnDownScript()
 
-			if mikrotikObjectID != "" {
-				// Prepare update parameters
-				args := make(map[string]string)
-				args[".id"] = mikrotikObjectID
-				args["name"] = input.Name
-				args["on-up"] = PPPOnUpScript
-				args["on-down"] = PPPOnDownScript
+			if input.LocalAddress != nil {
+				args["local-address"] = *input.LocalAddress
+			}
+			if input.RemoteAddress != nil {
+				args["remote-address"] = *input.RemoteAddress
+			}
 
-				if input.LocalAddress != nil {
-					args["local-address"] = *input.LocalAddress
-				}
-				if input.RemoteAddress != nil {
-					args["remote-address"] = *input.RemoteAddress
-				}
+			if input.RateLimit != nil {
+				args["rate-limit"] = *input.RateLimit
+			}
 
-				if input.RateLimit != nil {
-					args["rate-limit"] = *input.RateLimit
-				}
+			if input.SessionTimeout != nil {
+				args["session-timeout"] = fmt.Sprintf("%d", *input.SessionTimeout)
+			}
+			if input.IdleTimeout != nil {
+				args["idle-timeout"] = fmt.Sprintf("%d", *input.IdleTimeout)
+			}
 
-				if input.SessionTimeout != nil {
-					args["session-timeout"] = fmt.Sprintf("%d", *input.SessionTimeout)
-				}
-				if input.IdleTimeout != nil {
-					args["idle-timeout"] = fmt.Sprintf("%d", *input.IdleTimeout)
-				}
-
-				_, err = client.RunArgs("/ppp/profile/set", args)
-				if err != nil {
-					return nil, stacktrace.Propagate(err, "failed to update profile in mikrotik")
-				}
+			_, err = client.RunArgs("/ppp/profile/set", args)
+			if err != nil {
+				return nil, stacktrace.Propagate(err, "failed to update profile in mikrotik")
 			}
 		}
 
@@ -331,22 +336,18 @@ func (d *profileDomain) DeleteProfile(ctx context.Context, id string) error {
 
 	_, err = d.databasePort.DoInTransaction(ctx, func(txDB outbound_port.DatabasePort) (interface{}, error) {
 		// 1. Delete from MikroTik first if has object ID
-		if existing.Metadata != nil {
+		if existing.MikrotikObjectID != nil && *existing.MikrotikObjectID != "" {
 			client, err := d.mikrotikClientFactory.NewClient(activeMikrotik)
 			if err != nil {
 				return nil, stacktrace.Propagate(err, "failed to create mikrotik client")
 			}
 			defer client.Close()
 
-			mikrotikObjectID := "" // TODO: Get from metadata
-
-			if mikrotikObjectID != "" {
-				_, err = client.RunArgs("/ppp/profile/remove", map[string]string{
-					".id": mikrotikObjectID,
-				})
-				if err != nil {
-					return nil, stacktrace.Propagate(err, "failed to delete profile from mikrotik")
-				}
+			_, err = client.RunArgs("/ppp/profile/remove", map[string]string{
+				".id": *existing.MikrotikObjectID,
+			})
+			if err != nil {
+				return nil, stacktrace.Propagate(err, "failed to delete profile from mikrotik")
 			}
 		}
 

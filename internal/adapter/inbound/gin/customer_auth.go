@@ -3,6 +3,7 @@ package gin_inbound_adapter
 import (
 	"net/http"
 
+	"MikrOps/internal/domain"
 	"MikrOps/internal/domain/customer_auth"
 	"MikrOps/internal/model"
 	contextutil "MikrOps/utils/context"
@@ -14,11 +15,13 @@ import (
 
 type CustomerAuthHandler struct {
 	customerAuthDomain customer_auth.CustomerAuthDomain
+	domainRegistry     domain.Domain
 }
 
-func NewCustomerAuthHandler(customerAuthDomain customer_auth.CustomerAuthDomain) *CustomerAuthHandler {
+func NewCustomerAuthHandler(customerAuthDomain customer_auth.CustomerAuthDomain, domainRegistry domain.Domain) *CustomerAuthHandler {
 	return &CustomerAuthHandler{
 		customerAuthDomain: customerAuthDomain,
+		domainRegistry:     domainRegistry,
 	}
 }
 
@@ -34,14 +37,39 @@ func (h *CustomerAuthHandler) CustomerLogin(c *gin.Context) {
 		return
 	}
 
-	// Get tenant ID from context (should be set by public tenant middleware or slug)
+	// Get tenant ID from context or resolve from tenant_slug in request
 	tenantID, err := contextutil.GetTenantID(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Missing tenant context",
-			"message": "Tenant identification required",
-		})
-		return
+		// Try to resolve tenant from tenant_slug in request body or X-Tenant-Slug header
+		tenantSlug := req.TenantSlug
+		if tenantSlug == "" {
+			tenantSlug = c.GetHeader("X-Tenant-Slug")
+		}
+		if tenantSlug == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Missing tenant context",
+				"message": "Tenant identification required. Provide tenant_slug in request body or X-Tenant-Slug header",
+			})
+			return
+		}
+
+		tenant, err := h.domainRegistry.Tenant().GetBySlug(c.Request.Context(), tenantSlug)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Invalid tenant",
+				"message": "Tenant not found for slug: " + tenantSlug,
+			})
+			return
+		}
+
+		tenantID, err = uuid.Parse(tenant.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Invalid tenant ID",
+				"message": err.Error(),
+			})
+			return
+		}
 	}
 
 	// Attempt login

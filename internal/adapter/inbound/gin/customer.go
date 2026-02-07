@@ -33,7 +33,7 @@ func (a *customerAdapter) CreateCustomer(ctx any) error {
 		return stacktrace.Propagate(err, "failed to bind request")
 	}
 
-	customer, err := a.domainRegistry.Customer().CreateCustomer(c, input)
+	customer, err := a.domainRegistry.Customer().CreateCustomer(c.Request.Context(), input)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to create customer")
 		return stacktrace.Propagate(err, "failed to create customer")
@@ -48,7 +48,7 @@ func (a *customerAdapter) GetCustomer(ctx any) error {
 	c := ctx.(*gin.Context)
 	id := c.Param("id")
 
-	customer, err := a.domainRegistry.Customer().GetCustomer(c, id)
+	customer, err := a.domainRegistry.Customer().GetCustomer(c.Request.Context(), id)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to get customer")
 		return stacktrace.Propagate(err, "failed to get customer")
@@ -62,7 +62,7 @@ func (a *customerAdapter) GetCustomer(ctx any) error {
 func (a *customerAdapter) ListCustomers(ctx any) error {
 	c := ctx.(*gin.Context)
 
-	customers, err := a.domainRegistry.Customer().ListCustomers(c)
+	customers, err := a.domainRegistry.Customer().ListCustomers(c.Request.Context())
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to list customers")
 		return stacktrace.Propagate(err, "failed to list customers")
@@ -88,7 +88,7 @@ func (a *customerAdapter) UpdateCustomer(ctx any) error {
 		return stacktrace.Propagate(err, "failed to bind request")
 	}
 
-	customer, err := a.domainRegistry.Customer().UpdateCustomer(c, id, input)
+	customer, err := a.domainRegistry.Customer().UpdateCustomer(c.Request.Context(), id, input)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to update customer")
 		return stacktrace.Propagate(err, "failed to update customer")
@@ -103,7 +103,7 @@ func (a *customerAdapter) DeleteCustomer(ctx any) error {
 	c := ctx.(*gin.Context)
 	id := c.Param("id")
 
-	err := a.domainRegistry.Customer().DeleteCustomer(c, id)
+	err := a.domainRegistry.Customer().DeleteCustomer(c.Request.Context(), id)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to delete customer")
 		return stacktrace.Propagate(err, "failed to delete customer")

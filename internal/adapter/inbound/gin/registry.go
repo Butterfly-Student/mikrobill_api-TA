@@ -102,7 +102,7 @@ func (s *adapter) PPPRealtime() inbound_port.PPPRealtimePort {
 }
 
 func (s *adapter) CustomerAuth() interface{} {
-	return NewCustomerAuthHandler(s.domain.CustomerAuth())
+	return NewCustomerAuthHandler(s.domain.CustomerAuth(), s.domain)
 }
 
 func (s *adapter) CustomerPortal() interface{} {

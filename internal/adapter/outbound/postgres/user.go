@@ -6,6 +6,7 @@ import (
 	"MikrOps/internal/model"
 	outbound_port "MikrOps/internal/port/outbound"
 
+	contextutil "MikrOps/utils/context"
 	"github.com/google/uuid"
 	"github.com/palantir/stacktrace"
 	"gorm.io/gorm"
@@ -21,6 +22,10 @@ func NewUserAdapter(db *gorm.DB) outbound_port.UserDatabasePort {
 
 // CreateUser creates a new user in the database
 func (a *userAdapter) CreateUser(ctx context.Context, user *model.User) error {
+	if user.TenantID == nil {
+		return stacktrace.NewError("user must have a tenant_id")
+	}
+
 	if err := a.db.WithContext(ctx).Create(user).Error; err != nil {
 		return stacktrace.Propagate(err, "failed to create user")
 	}
@@ -30,11 +35,22 @@ func (a *userAdapter) CreateUser(ctx context.Context, user *model.User) error {
 // GetUserByID retrieves a user by their ID
 func (a *userAdapter) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	var user model.User
-	err := a.db.WithContext(ctx).
+	query := a.db.WithContext(ctx).
 		Preload("Tenant").
-		Preload("Role").
-		Where("id = ?", id.String()).
-		First(&user).Error
+		Preload("Role")
+
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return nil, stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	err = query.Where("id = ?", id.String()).First(&user).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
@@ -55,6 +71,15 @@ func (a *userAdapter) ListUsers(ctx context.Context, tenantID *uuid.UUID, limit,
 	// Filter by tenant if specified
 	if tenantID != nil {
 		query = query.Where("tenant_id = ?", tenantID.String())
+	} else {
+		// If no tenant ID in parameters, get from context
+		ctxTenantID, err := contextutil.GetTenantID(ctx)
+		if err == nil {
+			isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+			if !isSuperAdmin {
+				query = query.Where("tenant_id = ?", ctxTenantID.String())
+			}
+		}
 	}
 
 	// Get total count
@@ -77,6 +102,19 @@ func (a *userAdapter) ListUsers(ctx context.Context, tenantID *uuid.UUID, limit,
 
 // UpdateUser updates an existing user
 func (a *userAdapter) UpdateUser(ctx context.Context, user *model.User) error {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		if user.TenantID == nil || *user.TenantID != tenantID.String() {
+			return stacktrace.NewError("cannot update user from different tenant")
+		}
+	}
+
 	if err := a.db.WithContext(ctx).Save(user).Error; err != nil {
 		return stacktrace.Propagate(err, "failed to update user")
 	}
@@ -85,9 +123,20 @@ func (a *userAdapter) UpdateUser(ctx context.Context, user *model.User) error {
 
 // DeleteUser soft deletes a user by ID
 func (a *userAdapter) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	if err := a.db.WithContext(ctx).
-		Where("id = ?", id.String()).
-		Delete(&model.User{}).Error; err != nil {
+	query := a.db.WithContext(ctx)
+
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
+	if err := query.Where("id = ?", id.String()).Delete(&model.User{}).Error; err != nil {
 		return stacktrace.Propagate(err, "failed to delete user")
 	}
 	return nil
@@ -95,11 +144,21 @@ func (a *userAdapter) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 // AssignUserRole assigns a role to a user
 func (a *userAdapter) AssignUserRole(ctx context.Context, userID, roleID uuid.UUID) error {
+	query := a.db.WithContext(ctx).Model(&model.User{})
+
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil && err != contextutil.ErrTenantIDNotFound {
+		return stacktrace.Propagate(err, "failed to get tenant id from context")
+	}
+
+	isSuperAdmin := contextutil.IsSuperAdmin(ctx)
+
+	if !isSuperAdmin {
+		query = query.Where("tenant_id = ?", tenantID.String())
+	}
+
 	roleIDStr := roleID.String()
-	if err := a.db.WithContext(ctx).
-		Model(&model.User{}).
-		Where("id = ?", userID.String()).
-		Update("role_id", roleIDStr).Error; err != nil {
+	if err := query.Where("id = ?", userID.String()).Update("role_id", roleIDStr).Error; err != nil {
 		return stacktrace.Propagate(err, "failed to assign role")
 	}
 	return nil

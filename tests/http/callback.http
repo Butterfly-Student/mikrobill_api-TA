@@ -1,0 +1,120 @@
+### ========================================
+### CALLBACK API TESTS
+### PPPoE Connection Callbacks
+### No Authentication Required (Called by MikroTik)
+### ========================================
+@baseUrl = http://localhost:8000
+
+### ========================================
+### 1. PPPOE CONNECTION UP CALLBACK
+### ========================================
+POST {{baseUrl}}/v1/callbacks/pppoe/up
+Content-Type: application/json
+
+{
+  "name": "customer01",
+  "caller_id": "00:11:22:33:44:55",
+  "interface": "pppoe-customer01",
+  "local_address": "10.10.10.1",
+  "remote_address": "10.10.10.100",
+  "service": "pppoe"
+}
+
+### This will:
+### - Find customer by service_username
+### - Update assigned_ip dan last_online
+### - Set status = "active" jika inactive
+### - Publish event ke Redis untuk real-time updates
+
+### ========================================
+### 2. PPPOE CONNECTION DOWN CALLBACK
+### ========================================
+POST {{baseUrl}}/v1/callbacks/pppoe/down
+Content-Type: application/json
+
+{
+  "name": "customer01",
+  "caller_id": "00:11:22:33:44:55",
+  "interface": "pppoe-customer01",
+  "local_address": "10.10.10.1",
+  "remote_address": "10.10.10.100",
+  "service": "pppoe"
+}
+
+### This will:
+### - Find customer by service_username
+### - Update last_ip
+### - Clear assigned_ip
+### - Publish event ke Redis
+
+### ========================================
+### TEST SCENARIOS
+### ========================================
+
+### Scenario: Customer connects
+POST {{baseUrl}}/v1/callbacks/pppoe/up
+Content-Type: application/json
+
+{
+  "name": "testuser01",
+  "caller_id": "AA:BB:CC:DD:EE:FF",
+  "interface": "pppoe-testuser01",
+  "local_address": "10.10.10.1",
+  "remote_address": "10.10.10.150",
+  "service": "pppoe"
+}
+
+### Scenario: Customer disconnects
+POST {{baseUrl}}/v1/callbacks/pppoe/down
+Content-Type: application/json
+
+{
+  "name": "testuser01",
+  "caller_id": "AA:BB:CC:DD:EE:FF",
+  "interface": "pppoe-testuser01",
+  "local_address": "10.10.10.1",
+  "remote_address": "10.10.10.150",
+  "service": "pppoe"
+}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Callback for non-existent customer (Should Log Warning)
+POST {{baseUrl}}/v1/callbacks/pppoe/up
+Content-Type: application/json
+
+{
+  "name": "nonexistent",
+  "caller_id": "FF:FF:FF:FF:FF:FF",
+  "interface": "pppoe-nonexistent",
+  "local_address": "10.10.10.1",
+  "remote_address": "10.10.10.200",
+  "service": "pppoe"
+}
+
+### Callback with missing fields (Should Fail)
+POST {{baseUrl}}/v1/callbacks/pppoe/up
+Content-Type: application/json
+
+{
+  "name": "incomplete"
+}
+
+### ========================================
+### MIKROTIK SCRIPT CONFIGURATION
+### ========================================
+
+### Add ini ke PPP Profile di MikroTik:
+### on-up:
+# :local baseUrl "http://your-api-server:8000/v1/callbacks/pppoe"
+# /tool fetch url="$baseUrl/up" mode=http http-method=post \
+#   http-data="{\"name\":\"$user\",\"caller_id\":\"$caller-id\",\"interface\":\"$interface\",\"local_address\":\"$local-address\",\"remote_address\":\"$remote-address\",\"service\":\"pppoe\"}" \
+#   http-header-field="Content-Type: application/json"
+
+### on-down:
+# :local baseUrl "http://your-api-server:8000/v1/callbacks/pppoe"
+# /tool fetch url="$baseUrl/down" mode=http http-method=post \
+#   http-data="{\"name\":\"$user\",\"caller_id\":\"$caller-id\",\"interface\":\"$interface\",\"local_address\":\"$local-address\",\"remote_address\":\"$remote-address\",\"service\":\"pppoe\"}" \
+#   http-header-field="Content-Type: application/json"

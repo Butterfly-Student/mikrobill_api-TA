@@ -163,6 +163,31 @@ func (a *pppCacheAdapter) SetTrafficData(ctx context.Context, key string, data *
 	return nil
 }
 
+// ============= Client Cache Methods =============
+
+func (a *pppCacheAdapter) GetClient(ctx context.Context, bearerKey string) (model.Client, bool) {
+	var client model.Client
+	result, err := redis.Get(ctx, bearerKey)
+	if err != nil {
+		return model.Client{}, false
+	}
+
+	err = json.Unmarshal([]byte(result), &client)
+	if err != nil {
+		return model.Client{}, false
+	}
+
+	return client, true
+}
+
+func (a *pppCacheAdapter) SetClient(ctx context.Context, bearerKey string, client model.Client) error {
+	bytes, err := json.Marshal(client)
+	if err != nil {
+		return err
+	}
+	return redis.Set(ctx, bearerKey, string(bytes))
+}
+
 // ============= Utility Functions =============
 
 // GenerateHash creates SHA256 hash dari data untuk change detection

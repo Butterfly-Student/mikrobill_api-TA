@@ -33,7 +33,7 @@ func (a *profileAdapter) CreateProfile(ctx any) error {
 		return stacktrace.Propagate(err, "failed to bind request")
 	}
 
-	profile, err := a.domainRegistry.Profile().CreateProfile(c, input)
+	profile, err := a.domainRegistry.Profile().CreateProfile(c.Request.Context(), input)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to create profile")
 		return stacktrace.Propagate(err, "failed to create profile")
@@ -48,7 +48,7 @@ func (a *profileAdapter) GetProfile(ctx any) error {
 	c := ctx.(*gin.Context)
 	id := c.Param("id")
 
-	profile, err := a.domainRegistry.Profile().GetProfile(c, id)
+	profile, err := a.domainRegistry.Profile().GetProfile(c.Request.Context(), id)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to get profile")
 		return stacktrace.Propagate(err, "failed to get profile")
@@ -62,7 +62,7 @@ func (a *profileAdapter) GetProfile(ctx any) error {
 func (a *profileAdapter) ListProfiles(ctx any) error {
 	c := ctx.(*gin.Context)
 
-	profiles, err := a.domainRegistry.Profile().ListProfiles(c)
+	profiles, err := a.domainRegistry.Profile().ListProfiles(c.Request.Context())
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to list profiles")
 		return stacktrace.Propagate(err, "failed to list profiles")
@@ -88,7 +88,7 @@ func (a *profileAdapter) UpdateProfile(ctx any) error {
 		return stacktrace.Propagate(err, "failed to bind request")
 	}
 
-	profile, err := a.domainRegistry.Profile().UpdateProfile(c, id, input)
+	profile, err := a.domainRegistry.Profile().UpdateProfile(c.Request.Context(), id, input)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to update profile")
 		return stacktrace.Propagate(err, "failed to update profile")
@@ -103,7 +103,7 @@ func (a *profileAdapter) DeleteProfile(ctx any) error {
 	c := ctx.(*gin.Context)
 	id := c.Param("id")
 
-	err := a.domainRegistry.Profile().DeleteProfile(c, id)
+	err := a.domainRegistry.Profile().DeleteProfile(c.Request.Context(), id)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "Failed to delete profile")
 		return stacktrace.Propagate(err, "failed to delete profile")
@@ -113,4 +113,3 @@ func (a *profileAdapter) DeleteProfile(ctx any) error {
 
 	return nil
 }
-

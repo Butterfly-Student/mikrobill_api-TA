@@ -19,4 +19,3 @@ type MikrotikClientPort interface {
 type MikrotikClientFactory interface {
 	NewClient(mikrotik *model.Mikrotik) (MikrotikClientPort, error)
 }
-

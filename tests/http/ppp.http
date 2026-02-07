@@ -1,0 +1,193 @@
+### ========================================
+### PPP MANAGEMENT API TESTS
+### Consolidates: PPP Secrets, Profiles, Active, Inactive
+### Requires: Authentication + Tenant Context + Active Mikrotik
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### ========================================
+### PPP PROFILE MANAGEMENT
+### ========================================
+
+### 1. CREATE PPP PROFILE
+# @name createProfile
+POST {{baseUrl}}/v1/internal/ppp/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "10Mbps-Profile",
+  "local_address": "10.10.10.1",
+  "remote_address": "pool-pppoe",
+  "rate_limit": "10M/10M",
+  "only_one": "yes",
+  "comment": "10Mbps PPPoE Profile"
+}
+
+@profileId = {{createProfile.response.body.data.id}}
+
+### 2. GET PPP PROFILE
+GET {{baseUrl}}/v1/internal/ppp/profile/{{profileId}}
+Authorization: Bearer {{token}}
+
+### 3. LIST PPP PROFILES
+GET {{baseUrl}}/v1/internal/ppp/profile/list
+Authorization: Bearer {{token}}
+
+### 4. UPDATE PPP PROFILE
+PUT {{baseUrl}}/v1/internal/ppp/profile/{{profileId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rate_limit": "20M/20M",
+  "comment": "Updated to 20Mbps"
+}
+
+### 5. DELETE PPP PROFILE
+DELETE {{baseUrl}}/v1/internal/ppp/profile/{{profileId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### PPP SECRET MANAGEMENT
+### ========================================
+
+### 6. CREATE PPP SECRET
+# @name createSecret
+POST {{baseUrl}}/v1/internal/ppp/secret
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "testuser01",
+  "password": "testpass123",
+  "profile": "10Mbps-Profile",
+  "service": "pppoe",
+  "remote_address": "10.10.10.100",
+  "comment": "Test PPPoE User"
+}
+
+@secretId = {{createSecret.response.body.data.id}}
+
+### 7. GET PPP SECRET
+GET {{baseUrl}}/v1/internal/ppp/secret/{{secretId}}
+Authorization: Bearer {{token}}
+
+### 8. LIST PPP SECRETS
+GET {{baseUrl}}/v1/internal/ppp/secret/list
+Authorization: Bearer {{token}}
+
+### 9. UPDATE PPP SECRET
+PUT {{baseUrl}}/v1/internal/ppp/secret/{{secretId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "password": "newpass456",
+  "profile": "20Mbps-Profile",
+  "comment": "Password changed"
+}
+
+### 10. DELETE PPP SECRET
+DELETE {{baseUrl}}/v1/internal/ppp/secret/{{secretId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### PPP ACTIVE CONNECTIONS
+### ========================================
+
+### 11. LIST ACTIVE PPP CONNECTIONS
+GET {{baseUrl}}/v1/internal/ppp/active/list
+Authorization: Bearer {{token}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "id": "*1",
+#       "name": "testuser01",
+#       "address": "10.10.10.100",
+#       "uptime": "1h30m",
+#       "caller_id": "00:11:22:33:44:55",
+#       "service": "pppoe"
+#     }
+#   ]
+# }
+
+### 12. GET ACTIVE PPP CONNECTION BY ID
+GET {{baseUrl}}/v1/internal/ppp/active/*1
+Authorization: Bearer {{token}}
+
+### 13. STREAM ACTIVE PPP (WebSocket)
+GET {{baseUrl}}/v1/internal/ppp/active/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### Note: This will upgrade to WebSocket connection
+### Real-time updates untuk active connections
+
+### ========================================
+### PPP INACTIVE CONNECTIONS
+### ========================================
+
+### 14. LIST INACTIVE PPP CONNECTIONS
+GET {{baseUrl}}/v1/internal/ppp/inactive/list
+Authorization: Bearer {{token}}
+
+### Expected: List of secrets yang tidak sedang connected
+
+### 15. STREAM INACTIVE PPP (WebSocket)
+GET {{baseUrl}}/v1/internal/ppp/inactive/stream
+Authorization: Bearer {{token}}
+Upgrade: websocket
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create profile with invalid rate limit format
+POST {{baseUrl}}/v1/internal/ppp/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Invalid-Profile",
+  "rate_limit": "invalid"
+}
+
+### Create secret for non-existent profile (Should Fail)
+POST {{baseUrl}}/v1/internal/ppp/secret
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "failuser",
+  "password": "pass",
+  "profile": "NonExistentProfile",
+  "service": "pppoe"
+}
+
+### Create duplicate secret name (Should Fail)
+POST {{baseUrl}}/v1/internal/ppp/secret
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "testuser01",
+  "password": "pass",
+  "profile": "10Mbps-Profile",
+  "service": "pppoe"
+}

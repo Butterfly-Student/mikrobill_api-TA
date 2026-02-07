@@ -53,7 +53,19 @@ func (h *middlewareAdapter) InternalAuth(a any) error {
 	}
 
 	// 1. Try static internal key first (Legacy/M2M)
-	if token == os.Getenv("INTERNAL_KEY") {
+	internalKey := os.Getenv("INTERNAL_KEY")
+	if internalKey == "" {
+		logger.GetLogger().Warn("INTERNAL_KEY environment variable not set, internal authentication disabled")
+		SendAbort(c, http.StatusUnauthorized, "Internal authentication not configured")
+		return nil
+	}
+	if len(internalKey) < 32 {
+		logger.GetLogger().Warn("INTERNAL_KEY too weak, must be at least 32 characters")
+		SendAbort(c, http.StatusInternalServerError, "Internal key too weak")
+		return nil
+	}
+
+	if token == internalKey {
 		// Set a "system" user mock for internal access
 		systemUser := &model.User{
 			Username:     "system",
@@ -168,7 +180,31 @@ func (h *middlewareAdapter) ZapLogger() gin.HandlerFunc {
 // CORS Middleware
 func (h *middlewareAdapter) CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		// Get allowed origins from environment
+		allowedOriginsEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
+		origin := c.Request.Header.Get("Origin")
+
+		// Default to allow all in development if not configured
+		if allowedOriginsEnv == "" {
+			logger.GetLogger().Warn("CORS_ALLOWED_ORIGINS not set, defaulting to allow all origins (not recommended for production)")
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		} else {
+			// Check if origin is allowed
+			allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+			allowed := false
+			for _, allowedOrigin := range allowedOrigins {
+				allowedOrigin = strings.TrimSpace(allowedOrigin)
+				if allowedOrigin == "*" || allowedOrigin == origin {
+					allowed = true
+					break
+				}
+			}
+
+			if allowed {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+		}
+
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-API-Key, X-Request-ID")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")

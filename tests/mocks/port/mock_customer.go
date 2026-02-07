@@ -6,6 +6,7 @@ package mock_outbound_port
 
 import (
 	model "MikrOps/internal/model"
+	context "context"
 	reflect "reflect"
 	time "time"
 
@@ -37,148 +38,292 @@ func (m *MockCustomerDatabasePort) EXPECT() *MockCustomerDatabasePortMockRecorde
 }
 
 // CreateCustomer mocks base method.
-func (m *MockCustomerDatabasePort) CreateCustomer(input model.CustomerInput, tenantID, mikrotikID uuid.UUID, mikrotikObjectID string) (*model.Customer, error) {
+func (m *MockCustomerDatabasePort) CreateCustomer(ctx context.Context, input model.CreateCustomerRequest, mikrotikID uuid.UUID, mikrotikObjectID string) (*model.Customer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateCustomer", input, tenantID, mikrotikID, mikrotikObjectID)
+	ret := m.ctrl.Call(m, "CreateCustomer", ctx, input, mikrotikID, mikrotikObjectID)
 	ret0, _ := ret[0].(*model.Customer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateCustomer indicates an expected call of CreateCustomer.
-func (mr *MockCustomerDatabasePortMockRecorder) CreateCustomer(input, tenantID, mikrotikID, mikrotikObjectID interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) CreateCustomer(ctx, input, mikrotikID, mikrotikObjectID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomer", reflect.TypeOf((*MockCustomerDatabasePort)(nil).CreateCustomer), input, tenantID, mikrotikID, mikrotikObjectID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomer", reflect.TypeOf((*MockCustomerDatabasePort)(nil).CreateCustomer), ctx, input, mikrotikID, mikrotikObjectID)
 }
 
 // CreateCustomerService mocks base method.
-func (m *MockCustomerDatabasePort) CreateCustomerService(tenantID, customerID, profileID uuid.UUID, price, taxRate float64, startDate time.Time) (*model.CustomerService, error) {
+func (m *MockCustomerDatabasePort) CreateCustomerService(ctx context.Context, customerID, profileID uuid.UUID, price, taxRate float64, startDate time.Time) (*model.CustomerService, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateCustomerService", tenantID, customerID, profileID, price, taxRate, startDate)
+	ret := m.ctrl.Call(m, "CreateCustomerService", ctx, customerID, profileID, price, taxRate, startDate)
 	ret0, _ := ret[0].(*model.CustomerService)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateCustomerService indicates an expected call of CreateCustomerService.
-func (mr *MockCustomerDatabasePortMockRecorder) CreateCustomerService(tenantID, customerID, profileID, price, taxRate, startDate interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) CreateCustomerService(ctx, customerID, profileID, price, taxRate, startDate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomerService", reflect.TypeOf((*MockCustomerDatabasePort)(nil).CreateCustomerService), tenantID, customerID, profileID, price, taxRate, startDate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomerService", reflect.TypeOf((*MockCustomerDatabasePort)(nil).CreateCustomerService), ctx, customerID, profileID, price, taxRate, startDate)
+}
+
+// CreateProspect mocks base method.
+func (m *MockCustomerDatabasePort) CreateProspect(ctx context.Context, input model.PublicRegistrationRequest, tenantID, mikrotikID uuid.UUID) (*model.Customer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateProspect", ctx, input, tenantID, mikrotikID)
+	ret0, _ := ret[0].(*model.Customer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateProspect indicates an expected call of CreateProspect.
+func (mr *MockCustomerDatabasePortMockRecorder) CreateProspect(ctx, input, tenantID, mikrotikID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProspect", reflect.TypeOf((*MockCustomerDatabasePort)(nil).CreateProspect), ctx, input, tenantID, mikrotikID)
 }
 
 // Delete mocks base method.
-func (m *MockCustomerDatabasePort) Delete(tenantID, id uuid.UUID) error {
+func (m *MockCustomerDatabasePort) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", tenantID, id)
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockCustomerDatabasePortMockRecorder) Delete(tenantID, id interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockCustomerDatabasePort)(nil).Delete), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockCustomerDatabasePort)(nil).Delete), ctx, id)
 }
 
 // GetByID mocks base method.
-func (m *MockCustomerDatabasePort) GetByID(tenantID, id uuid.UUID) (*model.CustomerWithService, error) {
+func (m *MockCustomerDatabasePort) GetByID(ctx context.Context, id uuid.UUID) (*model.Customer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByID", tenantID, id)
-	ret0, _ := ret[0].(*model.CustomerWithService)
+	ret := m.ctrl.Call(m, "GetByID", ctx, id)
+	ret0, _ := ret[0].(*model.Customer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByID indicates an expected call of GetByID.
-func (mr *MockCustomerDatabasePortMockRecorder) GetByID(tenantID, id interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByID), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByID), ctx, id)
 }
 
 // GetByPPPoEUsername mocks base method.
-func (m *MockCustomerDatabasePort) GetByPPPoEUsername(tenantID uuid.UUID, username string) (*model.Customer, error) {
+func (m *MockCustomerDatabasePort) GetByPPPoEUsername(ctx context.Context, username string) (*model.Customer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByPPPoEUsername", tenantID, username)
+	ret := m.ctrl.Call(m, "GetByPPPoEUsername", ctx, username)
 	ret0, _ := ret[0].(*model.Customer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByPPPoEUsername indicates an expected call of GetByPPPoEUsername.
-func (mr *MockCustomerDatabasePortMockRecorder) GetByPPPoEUsername(tenantID, username interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) GetByPPPoEUsername(ctx, username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPPPoEUsername", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByPPPoEUsername), tenantID, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPPPoEUsername", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByPPPoEUsername), ctx, username)
+}
+
+// GetByPortalEmail mocks base method.
+func (m *MockCustomerDatabasePort) GetByPortalEmail(ctx context.Context, tenantID uuid.UUID, email string) (*model.Customer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByPortalEmail", ctx, tenantID, email)
+	ret0, _ := ret[0].(*model.Customer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByPortalEmail indicates an expected call of GetByPortalEmail.
+func (mr *MockCustomerDatabasePortMockRecorder) GetByPortalEmail(ctx, tenantID, email interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByPortalEmail", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByPortalEmail), ctx, tenantID, email)
+}
+
+// GetByServiceUsername mocks base method.
+func (m *MockCustomerDatabasePort) GetByServiceUsername(ctx context.Context, tenantID uuid.UUID, username string) (*model.Customer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByServiceUsername", ctx, tenantID, username)
+	ret0, _ := ret[0].(*model.Customer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByServiceUsername indicates an expected call of GetByServiceUsername.
+func (mr *MockCustomerDatabasePortMockRecorder) GetByServiceUsername(ctx, tenantID, username interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByServiceUsername", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByServiceUsername), ctx, tenantID, username)
 }
 
 // GetByUsername mocks base method.
-func (m *MockCustomerDatabasePort) GetByUsername(tenantID, mikrotikID uuid.UUID, username string) (*model.Customer, error) {
+func (m *MockCustomerDatabasePort) GetByUsername(ctx context.Context, mikrotikID uuid.UUID, username string) (*model.Customer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByUsername", tenantID, mikrotikID, username)
+	ret := m.ctrl.Call(m, "GetByUsername", ctx, mikrotikID, username)
 	ret0, _ := ret[0].(*model.Customer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByUsername indicates an expected call of GetByUsername.
-func (mr *MockCustomerDatabasePortMockRecorder) GetByUsername(tenantID, mikrotikID, username interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) GetByUsername(ctx, mikrotikID, username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUsername", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByUsername), tenantID, mikrotikID, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUsername", reflect.TypeOf((*MockCustomerDatabasePort)(nil).GetByUsername), ctx, mikrotikID, username)
 }
 
 // List mocks base method.
-func (m *MockCustomerDatabasePort) List(tenantID, mikrotikID uuid.UUID) ([]model.CustomerWithService, error) {
+func (m *MockCustomerDatabasePort) List(ctx context.Context, mikrotikID uuid.UUID) ([]model.Customer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", tenantID, mikrotikID)
-	ret0, _ := ret[0].([]model.CustomerWithService)
+	ret := m.ctrl.Call(m, "List", ctx, mikrotikID)
+	ret0, _ := ret[0].([]model.Customer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockCustomerDatabasePortMockRecorder) List(tenantID, mikrotikID interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) List(ctx, mikrotikID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockCustomerDatabasePort)(nil).List), tenantID, mikrotikID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockCustomerDatabasePort)(nil).List), ctx, mikrotikID)
+}
+
+// ListExpired mocks base method.
+func (m *MockCustomerDatabasePort) ListExpired(ctx context.Context, currentStatus model.CustomerStatus) ([]model.Customer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListExpired", ctx, currentStatus)
+	ret0, _ := ret[0].([]model.Customer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListExpired indicates an expected call of ListExpired.
+func (mr *MockCustomerDatabasePortMockRecorder) ListExpired(ctx, currentStatus interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListExpired", reflect.TypeOf((*MockCustomerDatabasePort)(nil).ListExpired), ctx, currentStatus)
+}
+
+// ListProspects mocks base method.
+func (m *MockCustomerDatabasePort) ListProspects(ctx context.Context, mikrotikID uuid.UUID) ([]model.Customer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListProspects", ctx, mikrotikID)
+	ret0, _ := ret[0].([]model.Customer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListProspects indicates an expected call of ListProspects.
+func (mr *MockCustomerDatabasePortMockRecorder) ListProspects(ctx, mikrotikID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProspects", reflect.TypeOf((*MockCustomerDatabasePort)(nil).ListProspects), ctx, mikrotikID)
 }
 
 // Update mocks base method.
-func (m *MockCustomerDatabasePort) Update(tenantID, id uuid.UUID, input model.CustomerInput, price, taxRate float64) error {
+func (m *MockCustomerDatabasePort) Update(ctx context.Context, id uuid.UUID, input model.CreateCustomerRequest, price, taxRate float64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", tenantID, id, input, price, taxRate)
+	ret := m.ctrl.Call(m, "Update", ctx, id, input, price, taxRate)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockCustomerDatabasePortMockRecorder) Update(tenantID, id, input, price, taxRate interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) Update(ctx, id, input, price, taxRate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCustomerDatabasePort)(nil).Update), tenantID, id, input, price, taxRate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCustomerDatabasePort)(nil).Update), ctx, id, input, price, taxRate)
 }
 
 // UpdateMikrotikObjectID mocks base method.
-func (m *MockCustomerDatabasePort) UpdateMikrotikObjectID(tenantID, customerID uuid.UUID, objectID string) error {
+func (m *MockCustomerDatabasePort) UpdateMikrotikObjectID(ctx context.Context, customerID uuid.UUID, objectID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMikrotikObjectID", tenantID, customerID, objectID)
+	ret := m.ctrl.Call(m, "UpdateMikrotikObjectID", ctx, customerID, objectID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMikrotikObjectID indicates an expected call of UpdateMikrotikObjectID.
-func (mr *MockCustomerDatabasePortMockRecorder) UpdateMikrotikObjectID(tenantID, customerID, objectID interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) UpdateMikrotikObjectID(ctx, customerID, objectID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMikrotikObjectID", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateMikrotikObjectID), tenantID, customerID, objectID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMikrotikObjectID", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateMikrotikObjectID), ctx, customerID, objectID)
+}
+
+// UpdatePortalPassword mocks base method.
+func (m *MockCustomerDatabasePort) UpdatePortalPassword(ctx context.Context, customerID uuid.UUID, passwordHash string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePortalPassword", ctx, customerID, passwordHash)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePortalPassword indicates an expected call of UpdatePortalPassword.
+func (mr *MockCustomerDatabasePortMockRecorder) UpdatePortalPassword(ctx, customerID, passwordHash interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePortalPassword", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdatePortalPassword), ctx, customerID, passwordHash)
+}
+
+// UpdateProspectToActive mocks base method.
+func (m *MockCustomerDatabasePort) UpdateProspectToActive(ctx context.Context, customerID uuid.UUID, mikrotikObjectID string, billingDay *int, autoSuspension *bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateProspectToActive", ctx, customerID, mikrotikObjectID, billingDay, autoSuspension)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateProspectToActive indicates an expected call of UpdateProspectToActive.
+func (mr *MockCustomerDatabasePortMockRecorder) UpdateProspectToActive(ctx, customerID, mikrotikObjectID, billingDay, autoSuspension interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProspectToActive", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateProspectToActive), ctx, customerID, mikrotikObjectID, billingDay, autoSuspension)
+}
+
+// UpdateProvisioningStatus mocks base method.
+func (m *MockCustomerDatabasePort) UpdateProvisioningStatus(ctx context.Context, customerID uuid.UUID, status, errorMsg string, provisionedAt *time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateProvisioningStatus", ctx, customerID, status, errorMsg, provisionedAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateProvisioningStatus indicates an expected call of UpdateProvisioningStatus.
+func (mr *MockCustomerDatabasePortMockRecorder) UpdateProvisioningStatus(ctx, customerID, status, errorMsg, provisionedAt interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProvisioningStatus", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateProvisioningStatus), ctx, customerID, status, errorMsg, provisionedAt)
+}
+
+// UpdateServiceCredentials mocks base method.
+func (m *MockCustomerDatabasePort) UpdateServiceCredentials(ctx context.Context, customerID uuid.UUID, username, encryptedPassword string, visible bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServiceCredentials", ctx, customerID, username, encryptedPassword, visible)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateServiceCredentials indicates an expected call of UpdateServiceCredentials.
+func (mr *MockCustomerDatabasePortMockRecorder) UpdateServiceCredentials(ctx, customerID, username, encryptedPassword, visible interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceCredentials", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateServiceCredentials), ctx, customerID, username, encryptedPassword, visible)
+}
+
+// UpdateServiceStartDate mocks base method.
+func (m *MockCustomerDatabasePort) UpdateServiceStartDate(ctx context.Context, customerID uuid.UUID, startDate time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServiceStartDate", ctx, customerID, startDate)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateServiceStartDate indicates an expected call of UpdateServiceStartDate.
+func (mr *MockCustomerDatabasePortMockRecorder) UpdateServiceStartDate(ctx, customerID, startDate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceStartDate", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateServiceStartDate), ctx, customerID, startDate)
 }
 
 // UpdateStatus mocks base method.
-func (m *MockCustomerDatabasePort) UpdateStatus(tenantID, id uuid.UUID, status model.CustomerStatus, ip, mac, interfaceName *string) error {
+func (m *MockCustomerDatabasePort) UpdateStatus(ctx context.Context, id uuid.UUID, status model.CustomerStatus, ip, mac, interfaceName *string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateStatus", tenantID, id, status, ip, mac, interfaceName)
+	ret := m.ctrl.Call(m, "UpdateStatus", ctx, id, status, ip, mac, interfaceName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateStatus indicates an expected call of UpdateStatus.
-func (mr *MockCustomerDatabasePortMockRecorder) UpdateStatus(tenantID, id, status, ip, mac, interfaceName interface{}) *gomock.Call {
+func (mr *MockCustomerDatabasePortMockRecorder) UpdateStatus(ctx, id, status, ip, mac, interfaceName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateStatus), tenantID, id, status, ip, mac, interfaceName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockCustomerDatabasePort)(nil).UpdateStatus), ctx, id, status, ip, mac, interfaceName)
 }
-

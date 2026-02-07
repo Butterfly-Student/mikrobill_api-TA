@@ -58,25 +58,30 @@ func InitRoute(
 
 	// Auth group
 	auth := v1.Group("/auth")
-	auth.POST("/login", func(c *gin.Context) {
-		port.Auth().Login(c)
-	})
-	auth.POST("/register", func(c *gin.Context) {
-		port.Auth().Register(c)
-	})
-	auth.POST("/logout", func(c *gin.Context) {
-		port.Auth().Logout(c)
-	})
-	auth.POST("/refresh", func(c *gin.Context) {
-		port.Auth().RefreshToken(c)
-	})
-	auth.GET("/profile", func(c *gin.Context) {
-		// Require authentication for profile
-		if err := middlewareAdapter.InternalAuth(c); err != nil {
-			return
-		}
-		port.Auth().GetProfile(c)
-	})
+	{
+		auth.POST("/login", func(c *gin.Context) {
+			port.Auth().Login(c)
+		})
+		auth.POST("/register", func(c *gin.Context) {
+			port.Auth().Register(c)
+		})
+		auth.POST("/refresh", func(c *gin.Context) {
+			port.Auth().RefreshToken(c)
+		})
+		// Protected auth endpoints
+		auth.POST("/logout", func(c *gin.Context) {
+			if err := middlewareAdapter.InternalAuth(c); err != nil {
+				return
+			}
+			port.Auth().Logout(c)
+		})
+		auth.GET("/profile", func(c *gin.Context) {
+			if err := middlewareAdapter.InternalAuth(c); err != nil {
+				return
+			}
+			port.Auth().GetProfile(c)
+		})
+	}
 
 	// Internal group (Admin/Management)
 	internal := v1.Group("/internal")

@@ -133,7 +133,7 @@ func (a *customerAdapter) GetByUsername(ctx context.Context, mikrotikID uuid.UUI
 
 	var customer model.Customer
 	err = a.db.WithContext(ctx).
-		Where("mikrotik_id = ? AND username = ? AND tenant_id = ?", mikrotikID.String(), username, tenantID.String()).
+		Where("mikrotik_id = ? AND service_username = ? AND tenant_id = ?", mikrotikID.String(), username, tenantID.String()).
 		First(&customer).Error
 
 	if err == gorm.ErrRecordNotFound {
@@ -244,14 +244,17 @@ func (a *customerAdapter) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (a *customerAdapter) GetByPPPoEUsername(ctx context.Context, username string) (*model.Customer, error) {
+	var customer model.Customer
+
 	tenantID, err := contextutil.GetTenantID(ctx)
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+		// SECURITY: Require tenant context for all operations
+		// Callbacks should include tenant_id in URL or parameters
+		return nil, stacktrace.Propagate(err, "tenant context required for username lookup")
 	}
 
-	var customer model.Customer
 	err = a.db.WithContext(ctx).
-		Where("username = ? AND tenant_id = ?", username, tenantID.String()).
+		Where("service_username = ? AND tenant_id = ?", username, tenantID.String()).
 		First(&customer).Error
 
 	if err == gorm.ErrRecordNotFound {
@@ -554,4 +557,23 @@ func (a *customerAdapter) UpdateProvisioningStatus(ctx context.Context, customer
 	}
 
 	return nil
+}
+
+func (a *customerAdapter) ListExpired(ctx context.Context, currentStatus model.CustomerStatus) ([]model.Customer, error) {
+	tenantID, err := contextutil.GetTenantID(ctx)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to get tenant ID from context")
+	}
+
+	var customers []model.Customer
+	result := a.db.WithContext(ctx).
+		Where("tenant_id = ? AND status = ? AND auto_suspension = true", tenantID.String(), string(currentStatus)).
+		Joins("JOIN customer_services cs ON cs.customer_id = customers.id AND cs.status = 'active' AND cs.end_date IS NOT NULL AND cs.end_date < NOW()").
+		Find(&customers)
+
+	if result.Error != nil {
+		return nil, stacktrace.Propagate(result.Error, "failed to list expired customers")
+	}
+
+	return customers, nil
 }

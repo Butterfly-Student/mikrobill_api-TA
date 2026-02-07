@@ -139,7 +139,7 @@ func ResetDatabase(ctx context.Context, db *gorm.DB) error {
 		return fmt.Errorf("failed to create profile_type enum: %w", err)
 	}
 
-	if err := db.Exec("CREATE TYPE customer_status AS ENUM ('active', 'inactive', 'suspended', 'pending')").Error; err != nil {
+	if err := db.Exec("CREATE TYPE customer_status AS ENUM ('active', 'inactive', 'suspended', 'pending', 'prospect')").Error; err != nil {
 		return fmt.Errorf("failed to create customer_status enum: %w", err)
 	}
 

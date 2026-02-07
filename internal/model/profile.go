@@ -37,7 +37,10 @@ type MikrotikProfile struct {
 	// Billing parameters
 	Price    float64 `gorm:"type:numeric(15,2);default:0.00" json:"price"`
 	TaxRate  float64 `gorm:"type:numeric(5,2);default:0.00" json:"tax_rate"`
-	
+
+	// MikroTik reference
+	MikrotikObjectID *string `gorm:"type:varchar(50)" json:"mikrotik_object_id,omitempty"`
+
 	// Metadata & Audit
 	Metadata  datatypes.JSON `gorm:"type:jsonb;default:'{}'" json:"metadata"`
 	CreatedAt time.Time      `json:"created_at"`

@@ -1,0 +1,146 @@
+### ========================================
+### PROFILE (BILLING) MANAGEMENT API TESTS
+### Billing Profiles (bukan PPP Profiles)
+### Requires: Authentication + Tenant Context + Active Mikrotik
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### ========================================
+### 1. CREATE PPPOE PROFILE
+### ========================================
+# @name createPPPoEProfile
+POST {{baseUrl}}/v1/internal/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "10Mbps PPPoE Package",
+  "type": "pppoe",
+  "rate_limit": "10M/10M",
+  "session_timeout": 86400,
+  "idle_timeout": 3600,
+  "price": 150000.00,
+  "tax_rate": 11.00,
+  "local_address": "10.10.10.1",
+  "remote_address": "pool-pppoe",
+  "address_pool": "pool-pppoe",
+  "mtu": 1480,
+  "mru": 1480
+}
+
+@pppoeProfileId = {{createPPPoEProfile.response.body.data.id}}
+
+### ========================================
+### 2. CREATE HOTSPOT PROFILE
+### ========================================
+# @name createHotspotProfile
+POST {{baseUrl}}/v1/internal/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "5Mbps Hotspot Package",
+  "type": "hotspot",
+  "rate_limit": "5M/5M",
+  "session_timeout": 43200,
+  "price": 100000.00,
+  "tax_rate": 11.00,
+  "shared_users": 1,
+  "mac_auth": false,
+  "address_pool": "pool-hotspot"
+}
+
+@hotspotProfileId = {{createHotspotProfile.response.body.data.id}}
+
+### ========================================
+### 3. CREATE STATIC IP PROFILE
+### ========================================
+# @name createStaticIPProfile
+POST {{baseUrl}}/v1/internal/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Corporate Static IP",
+  "type": "static_ip",
+  "price": 500000.00,
+  "tax_rate": 11.00,
+  "gateway": "192.168.1.1",
+  "vlan_id": 100
+}
+
+@staticIPProfileId = {{createStaticIPProfile.response.body.data.id}}
+
+### ========================================
+### 4. LIST ALL PROFILES
+### ========================================
+# @name listProfiles
+GET {{baseUrl}}/v1/internal/profile/list
+Authorization: Bearer {{token}}
+
+### ========================================
+### 5. GET PROFILE BY ID (PPPoE)
+### ========================================
+GET {{baseUrl}}/v1/internal/profile/{{pppoeProfileId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### 6. UPDATE PROFILE
+### ========================================
+PUT {{baseUrl}}/v1/internal/profile/{{pppoeProfileId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "20Mbps PPPoE Package",
+  "rate_limit": "20M/20M",
+  "price": 250000.00
+}
+
+### ========================================
+### 7. DELETE PROFILE
+### ========================================
+DELETE {{baseUrl}}/v1/internal/profile/{{staticIPProfileId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create profile with invalid type (Should Fail)
+POST {{baseUrl}}/v1/internal/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Invalid Profile",
+  "type": "invalid_type",
+  "price": 100000
+}
+
+### Create profile with negative price (Should Fail)
+POST {{baseUrl}}/v1/internal/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Negative Price",
+  "type": "pppoe",
+  "price": -100000
+}
+
+### Delete profile that has active customers (Should Fail)
+DELETE {{baseUrl}}/v1/internal/profile/{{pppoeProfileId}}
+Authorization: Bearer {{token}}

@@ -14,6 +14,8 @@ import (
 	command_inbound_adapter "MikrOps/internal/adapter/inbound/command"
 	gin_inbound_adapter "MikrOps/internal/adapter/inbound/gin"
 	rabbitmq_inbound_adapter "MikrOps/internal/adapter/inbound/rabbitmq"
+	crypto_adapter "MikrOps/internal/adapter/outbound/crypto"
+	jwt_adapter "MikrOps/internal/adapter/outbound/jwt"
 	mikrotik_outbound_adapter "MikrOps/internal/adapter/outbound/mikrotik"
 	postgres_outbound_adapter "MikrOps/internal/adapter/outbound/postgres"
 	rabbitmq_outbound_adapter "MikrOps/internal/adapter/outbound/rabbitmq"
@@ -60,12 +62,18 @@ func NewApp() *App {
 	// Initialize encryption service for service credentials
 	encryptionSvc := initEncryptionService(ctx)
 
+	// Initialize JWT and password hasher ports
+	jwtPort := jwt_adapter.NewJWTAdapter(os.Getenv("JWT_SECRET"))
+	passwordHasherPort := crypto_adapter.NewPasswordHasherAdapter()
+
 	domain := domain.NewDomain(
 		databaseOutbound(ctx),
 		messageOutbound(ctx),
 		cacheOutbound(ctx),
 		mikrotik_outbound_adapter.NewMikrotikClientFactory(),
 		encryptionSvc,
+		jwtPort,
+		passwordHasherPort,
 	)
 
 	return &App{

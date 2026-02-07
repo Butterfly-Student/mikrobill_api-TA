@@ -11,6 +11,7 @@ import (
 	"MikrOps/internal/model"
 	inbound_port "MikrOps/internal/port/inbound"
 	outbound_port "MikrOps/internal/port/outbound"
+	contextutil "MikrOps/utils/context"
 )
 
 type customerDomain struct {
@@ -357,6 +358,16 @@ func (d *customerDomain) HandlePPPoEUp(ctx context.Context, input model.PPPoEEve
 		return stacktrace.Propagate(err, "failed to find customer for pppoe up callback")
 	}
 
+	// Set tenant context from customer if not already set
+	_, tenantErr := contextutil.GetTenantID(ctx)
+	if tenantErr != nil {
+		tenantID, err := uuid.Parse(customer.TenantID)
+		if err != nil {
+			return stacktrace.Propagate(err, "invalid customer tenant id")
+		}
+		ctx = contextutil.SetTenantID(ctx, tenantID)
+	}
+
 	// Update status
 	customerID, err := uuid.Parse(customer.ID)
 	if err != nil {
@@ -373,13 +384,12 @@ func (d *customerDomain) HandlePPPoEUp(ctx context.Context, input model.PPPoEEve
 		return stacktrace.Propagate(err, "failed to update customer status")
 	}
 
-	// Publish event
+	// Publish event (non-fatal - real-time notification only)
 	eventData := fmt.Sprintf(`{"type":"pppoe_event","status":"connected","customer_id":"%s","name":"%s","ip":"%s"}`,
 		customer.ID, customer.Name, remoteAddress)
 
-	err = d.cachePort.PubSub().Publish("mikrotik:events", eventData)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to publish redis event")
+	if pubErr := d.cachePort.PubSub().Publish("mikrotik:events", eventData); pubErr != nil {
+		fmt.Printf("[WARN] failed to publish pppoe up event: %v\n", pubErr)
 	}
 
 	return nil
@@ -390,6 +400,16 @@ func (d *customerDomain) HandlePPPoEDown(ctx context.Context, input model.PPPoEE
 	customer, err := d.databasePort.Customer().GetByPPPoEUsername(ctx, input.Name)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to find customer for pppoe down callback")
+	}
+
+	// Set tenant context from customer if not already set
+	_, tenantErr := contextutil.GetTenantID(ctx)
+	if tenantErr != nil {
+		tenantID, err := uuid.Parse(customer.TenantID)
+		if err != nil {
+			return stacktrace.Propagate(err, "invalid customer tenant id")
+		}
+		ctx = contextutil.SetTenantID(ctx, tenantID)
 	}
 
 	// Update status to inactive

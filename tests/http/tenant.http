@@ -1,0 +1,152 @@
+### ========================================
+### TENANT MANAGEMENT API TESTS
+### Requires: SuperAdmin role
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login as SuperAdmin
+# @name loginSuperAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "superadmin@mikrobill.com",
+  "password": "password123"
+}
+
+@token = {{loginSuperAdmin.response.body.data.access_token}}
+
+### ========================================
+### 1. CREATE TENANT
+### ========================================
+# @name createTenant
+POST {{baseUrl}}/v1/internal/tenant
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "PT Test ISP",
+  "slug": "testisp",
+  "subdomain": "testisp",
+  "company_name": "PT Test ISP Indonesia",
+  "phone": "021-12345678",
+  "address": "Jakarta Selatan, Indonesia",
+  "timezone": "Asia/Jakarta",
+  "max_mikrotiks": 5,
+  "max_network_users": 100,
+  "max_staff_users": 10,
+  "features": {
+    "api_access": true,
+    "reports": true,
+    "backup": true,
+    "public_registration": true
+  }
+}
+
+@tenantId = {{createTenant.response.body.data.id}}
+
+### ========================================
+### 2. LIST ALL TENANTS
+### ========================================
+# @name listTenants
+GET {{baseUrl}}/v1/internal/tenant/list
+Authorization: Bearer {{token}}
+
+### With filters
+GET {{baseUrl}}/v1/internal/tenant/list?status=active&limit=10&offset=0
+Authorization: Bearer {{token}}
+
+### ========================================
+### 3. GET TENANT BY ID
+### ========================================
+GET {{baseUrl}}/v1/internal/tenant/{{tenantId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### 4. UPDATE TENANT
+### ========================================
+PUT {{baseUrl}}/v1/internal/tenant/{{tenantId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "PT Test ISP Updated",
+  "company_name": "PT Test ISP Indonesia Updated",
+  "phone": "021-87654321",
+  "is_active": true,
+  "status": "active",
+  "max_network_users": 200
+}
+
+### ========================================
+### 5. GET TENANT STATS
+### ========================================
+GET {{baseUrl}}/v1/internal/tenant/{{tenantId}}/stats
+Authorization: Bearer {{token}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "tenant_id": "uuid",
+#     "mikrotiks_count": 2,
+#     "network_users_count": 50,
+#     "staff_users_count": 5,
+#     "mikrotiks_usage_percent": 40.0,
+#     "network_users_usage_percent": 50.0,
+#     "staff_users_usage_percent": 50.0
+#   }
+# }
+
+### ========================================
+### 6. DELETE TENANT (Soft Delete)
+### ========================================
+DELETE {{baseUrl}}/v1/internal/tenant/{{tenantId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create tenant with duplicate slug (Should Fail)
+POST {{baseUrl}}/v1/internal/tenant
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Duplicate Tenant",
+  "slug": "testisp",
+  "subdomain": "duplicate"
+}
+
+### Create tenant without auth (Should Fail)
+POST {{baseUrl}}/v1/internal/tenant
+Content-Type: application/json
+
+{
+  "name": "No Auth Tenant",
+  "slug": "noauth"
+}
+
+### Access tenant as non-superadmin (Should Fail)
+# First login as regular admin
+# @name loginAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@adminToken = {{loginAdmin.response.body.data.access_token}}
+
+### Try to create tenant with admin token (Should Fail - requires superadmin)
+POST {{baseUrl}}/v1/internal/tenant
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Admin Created Tenant",
+  "slug": "admintenant"
+}

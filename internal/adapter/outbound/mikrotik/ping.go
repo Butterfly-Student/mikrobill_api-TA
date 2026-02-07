@@ -1,8 +1,8 @@
 package mikrotik_outbound_adapter
 
 import (
-	"context"
 	"MikrOps/internal/model"
+	"context"
 )
 
 func (c *Client) StreamPing(
@@ -26,7 +26,7 @@ func (c *Client) StreamPing(
 
 	reply, err := c.ListenArgsContext(ctx, args)
 	if err != nil {
-		if isConnectionError(err) {
+		if IsConnectionError(err) {
 			if recErr := c.Reconnect(); recErr == nil {
 				reply, err = c.ListenArgsContext(ctx, args)
 			}
@@ -84,4 +84,3 @@ func mapToPingResponse(m map[string]string) model.PingResponse {
 		IsSummary:  isSummary,
 	}
 }
-

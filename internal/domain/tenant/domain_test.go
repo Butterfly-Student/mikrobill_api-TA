@@ -1,6 +1,7 @@
 package tenant_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -28,16 +29,21 @@ func TestTenant(t *testing.T) {
 		logger := zap.NewNop()
 		tenantDomain := tenant.NewTenantDomain(mockDatabasePort, logger)
 
+		ctx := context.Background()
 		tenantID := uuid.New()
 		userID := uuid.New()
 		now := time.Now()
 
-		input := model.TenantInput{
+		input := model.CreateTenantRequest{
 			Name: "Test Tenant",
 		}
 
-		tenant := &model.Tenant{
-			ID:           tenantID,
+		updateInput := model.UpdateTenantRequest{
+			Name: strPtr("Test Tenant Updated"),
+		}
+
+		tenantObj := &model.Tenant{
+			ID:           tenantID.String(),
 			Name:         "Test Tenant",
 			IsActive:     true,
 			Status:       "active",
@@ -48,39 +54,39 @@ func TestTenant(t *testing.T) {
 
 		Convey("CreateTenant", func() {
 			Convey("Database error", func() {
-				mockTenantDatabasePort.EXPECT().CreateTenant(gomock.Any()).Return(nil, errors.New("db error")).Times(1)
+				mockTenantDatabasePort.EXPECT().CreateTenant(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error")).Times(1)
 
-				result, err := tenantDomain.CreateTenant(input, userID)
+				result, err := tenantDomain.CreateTenant(ctx, input, userID)
 				So(err, ShouldNotBeNil)
 				So(result, ShouldBeNil)
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().CreateTenant(gomock.Any()).Return(tenant, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().CreateTenant(gomock.Any(), gomock.Any()).Return(tenantObj, nil).Times(1)
 
-				result, err := tenantDomain.CreateTenant(input, userID)
+				result, err := tenantDomain.CreateTenant(ctx, input, userID)
 				So(err, ShouldBeNil)
 				So(result, ShouldNotBeNil)
-				So(result.ID, ShouldEqual, tenantID)
+				So(result.ID, ShouldEqual, tenantID.String())
 			})
 		})
 
 		Convey("GetTenant", func() {
 			Convey("Tenant not found", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(nil, errors.New("not found")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(nil, errors.New("not found")).Times(1)
 
-				result, err := tenantDomain.GetTenant(tenantID)
+				result, err := tenantDomain.GetTenant(ctx, tenantID)
 				So(err, ShouldNotBeNil)
 				So(result, ShouldBeNil)
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
 
-				result, err := tenantDomain.GetTenant(tenantID)
+				result, err := tenantDomain.GetTenant(ctx, tenantID)
 				So(err, ShouldBeNil)
 				So(result, ShouldNotBeNil)
-				So(result.ID, ShouldEqual, tenantID)
+				So(result.ID, ShouldEqual, tenantID.String())
 			})
 		})
 
@@ -88,95 +94,95 @@ func TestTenant(t *testing.T) {
 			filter := model.TenantFilter{}
 
 			Convey("Database error", func() {
-				mockTenantDatabasePort.EXPECT().List(filter).Return(nil, errors.New("db error")).Times(1)
+				mockTenantDatabasePort.EXPECT().List(gomock.Any(), filter).Return(nil, errors.New("db error")).Times(1)
 
-				results, err := tenantDomain.ListTenants(filter)
+				results, err := tenantDomain.ListTenants(ctx, filter)
 				So(err, ShouldNotBeNil)
 				So(results, ShouldBeNil)
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().List(filter).Return([]model.Tenant{*tenant}, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().List(gomock.Any(), filter).Return([]model.Tenant{*tenantObj}, nil).Times(1)
 
-				results, err := tenantDomain.ListTenants(filter)
+				results, err := tenantDomain.ListTenants(ctx, filter)
 				So(err, ShouldBeNil)
 				So(results, ShouldHaveLength, 1)
-				So(results[0].ID, ShouldEqual, tenantID)
+				So(results[0].ID, ShouldEqual, tenantID.String())
 			})
 		})
 
 		Convey("UpdateTenant", func() {
 			Convey("Tenant not found", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(nil, errors.New("not found")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(nil, errors.New("not found")).Times(1)
 
-				result, err := tenantDomain.UpdateTenant(tenantID, input, userID)
+				result, err := tenantDomain.UpdateTenant(ctx, tenantID, updateInput, userID)
 				So(err, ShouldNotBeNil)
 				So(result, ShouldBeNil)
 			})
 
 			Convey("Database error on update", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().Update(tenantID, input).Return(errors.New("db error")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().Update(gomock.Any(), tenantID, updateInput).Return(nil, errors.New("db error")).Times(1)
 
-				result, err := tenantDomain.UpdateTenant(tenantID, input, userID)
+				result, err := tenantDomain.UpdateTenant(ctx, tenantID, updateInput, userID)
 				So(err, ShouldNotBeNil)
 				So(result, ShouldBeNil)
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(2)
-				mockTenantDatabasePort.EXPECT().Update(tenantID, input).Return(nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().Update(gomock.Any(), tenantID, updateInput).Return(tenantObj, nil).Times(1)
 
-				result, err := tenantDomain.UpdateTenant(tenantID, input, userID)
+				result, err := tenantDomain.UpdateTenant(ctx, tenantID, updateInput, userID)
 				So(err, ShouldBeNil)
 				So(result, ShouldNotBeNil)
-				So(result.ID, ShouldEqual, tenantID)
+				So(result.ID, ShouldEqual, tenantID.String())
 			})
 		})
 
 		Convey("DeleteTenant", func() {
 			Convey("Tenant not found", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(nil, errors.New("not found")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(nil, errors.New("not found")).Times(1)
 
-				err := tenantDomain.DeleteTenant(tenantID, userID)
+				err := tenantDomain.DeleteTenant(ctx, tenantID, userID)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Database error on delete", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().Delete(tenantID).Return(errors.New("db error")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().Delete(gomock.Any(), tenantID).Return(errors.New("db error")).Times(1)
 
-				err := tenantDomain.DeleteTenant(tenantID, userID)
+				err := tenantDomain.DeleteTenant(ctx, tenantID, userID)
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().Delete(tenantID).Return(nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().Delete(gomock.Any(), tenantID).Return(nil).Times(1)
 
-				err := tenantDomain.DeleteTenant(tenantID, userID)
+				err := tenantDomain.DeleteTenant(ctx, tenantID, userID)
 				So(err, ShouldBeNil)
 			})
 		})
 
 		Convey("GetTenantStats", func() {
-			stats := &model.TenantStats{
+			stats := &model.TenantStatsResponse{
 				TenantID:       tenantID,
 				MikrotiksCount: 5,
 			}
 
 			Convey("Database error", func() {
-				mockTenantDatabasePort.EXPECT().GetStats(tenantID).Return(nil, errors.New("db error")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetStats(gomock.Any(), tenantID).Return(nil, errors.New("db error")).Times(1)
 
-				result, err := tenantDomain.GetTenantStats(tenantID)
+				result, err := tenantDomain.GetTenantStats(ctx, tenantID)
 				So(err, ShouldNotBeNil)
 				So(result, ShouldBeNil)
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().GetStats(tenantID).Return(stats, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetStats(gomock.Any(), tenantID).Return(stats, nil).Times(1)
 
-				result, err := tenantDomain.GetTenantStats(tenantID)
+				result, err := tenantDomain.GetTenantStats(ctx, tenantID)
 				So(err, ShouldBeNil)
 				So(result, ShouldNotBeNil)
 				So(result.MikrotiksCount, ShouldEqual, 5)
@@ -184,54 +190,54 @@ func TestTenant(t *testing.T) {
 		})
 
 		Convey("CheckResourceLimit", func() {
-			stats := &model.TenantStats{
+			stats := &model.TenantStatsResponse{
 				TenantID:       tenantID,
 				MikrotiksCount: 5,
 				MaxMikrotiks:   10,
 			}
 
 			Convey("Tenant not found", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(nil, errors.New("not found")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(nil, errors.New("not found")).Times(1)
 
-				err := tenantDomain.CheckResourceLimit(tenantID, "mikrotik")
+				err := tenantDomain.CheckResourceLimit(ctx, tenantID, "mikrotik")
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Stats error", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().GetStats(tenantID).Return(nil, errors.New("error")).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetStats(gomock.Any(), tenantID).Return(nil, errors.New("error")).Times(1)
 
-				err := tenantDomain.CheckResourceLimit(tenantID, "mikrotik")
+				err := tenantDomain.CheckResourceLimit(ctx, tenantID, "mikrotik")
 				So(err, ShouldNotBeNil)
 			})
 
 			Convey("Limit exceeded", func() {
-				fullStats := &model.TenantStats{
+				fullStats := &model.TenantStatsResponse{
 					TenantID:       tenantID,
 					MikrotiksCount: 10,
 					MaxMikrotiks:   10,
 				}
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().GetStats(tenantID).Return(fullStats, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetStats(gomock.Any(), tenantID).Return(fullStats, nil).Times(1)
 
-				err := tenantDomain.CheckResourceLimit(tenantID, "mikrotik")
+				err := tenantDomain.CheckResourceLimit(ctx, tenantID, "mikrotik")
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, "limit reached")
 			})
 
 			Convey("Success", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().GetStats(tenantID).Return(stats, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetStats(gomock.Any(), tenantID).Return(stats, nil).Times(1)
 
-				err := tenantDomain.CheckResourceLimit(tenantID, "mikrotik")
+				err := tenantDomain.CheckResourceLimit(ctx, tenantID, "mikrotik")
 				So(err, ShouldBeNil)
 			})
 
 			Convey("Unknown resource", func() {
-				mockTenantDatabasePort.EXPECT().GetByID(tenantID).Return(tenant, nil).Times(1)
-				mockTenantDatabasePort.EXPECT().GetStats(tenantID).Return(stats, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetByID(gomock.Any(), tenantID).Return(tenantObj, nil).Times(1)
+				mockTenantDatabasePort.EXPECT().GetStats(gomock.Any(), tenantID).Return(stats, nil).Times(1)
 
-				err := tenantDomain.CheckResourceLimit(tenantID, "unknown")
+				err := tenantDomain.CheckResourceLimit(ctx, tenantID, "unknown")
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, "unknown resource type")
 			})
@@ -239,3 +245,6 @@ func TestTenant(t *testing.T) {
 	})
 }
 
+func strPtr(s string) *string {
+	return &s
+}

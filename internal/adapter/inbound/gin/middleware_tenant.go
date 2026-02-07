@@ -156,4 +156,3 @@ func (h *middlewareAdapter) validateTenantAccess(userID, tenantID uuid.UUID) (bo
 func (h *middlewareAdapter) getPrimaryTenantForUser(userID uuid.UUID) (uuid.UUID, error) {
 	return h.domain.Database().TenantUser().GetPrimaryTenant(contextutil.SetUser(context.Background(), &model.User{ID: userID.String(), IsSuperadmin: true}), userID)
 }
-

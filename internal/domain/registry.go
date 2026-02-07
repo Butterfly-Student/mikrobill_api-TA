@@ -51,6 +51,8 @@ type domain struct {
 	cachePort             outbound_port.CachePort
 	mikrotikClientFactory outbound_port.MikrotikClientFactory
 	encryptionService     *encryption.Service
+	jwtPort               outbound_port.JWTPort
+	passwordHasherPort    outbound_port.PasswordHasherPort
 }
 
 func NewDomain(
@@ -59,6 +61,8 @@ func NewDomain(
 	cachePort outbound_port.CachePort,
 	mikrotikClientFactory outbound_port.MikrotikClientFactory,
 	encryptionService *encryption.Service,
+	jwtPort outbound_port.JWTPort,
+	passwordHasherPort outbound_port.PasswordHasherPort,
 ) Domain {
 	return &domain{
 		databasePort:          databasePort,
@@ -66,6 +70,8 @@ func NewDomain(
 		cachePort:             cachePort,
 		mikrotikClientFactory: mikrotikClientFactory,
 		encryptionService:     encryptionService,
+		jwtPort:               jwtPort,
+		passwordHasherPort:    passwordHasherPort,
 	}
 }
 

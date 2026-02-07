@@ -1,7 +1,10 @@
+### ========================================
+### AUTH API TESTS
+### ========================================
 @baseUrl = http://localhost:8000
 
 ### ========================================
-### SUPERADMIN LOGIN
+### 1. SUPERADMIN LOGIN
 ### ========================================
 # @name loginSuperAdmin
 POST {{baseUrl}}/v1/auth/login
@@ -12,20 +15,33 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### ========================================
-### Get token for subsequent requests
-### ========================================
+### Extract tokens for subsequent requests
 @accessToken = {{loginSuperAdmin.response.body.data.access_token}}
 @refreshToken = {{loginSuperAdmin.response.body.data.refresh_token}}
 
 ### ========================================
-### Get Profile (Use access token from login)
+### 2. REGISTER NEW USER
+### ========================================
+# @name registerUser
+POST {{baseUrl}}/v1/auth/register
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "password123",
+  "fullname": "New User Test",
+  "phone": "081234567890"
+}
+
+### ========================================
+### 3. GET PROFILE (Authenticated)
 ### ========================================
 GET {{baseUrl}}/v1/auth/profile
 Authorization: Bearer {{accessToken}}
 
 ### ========================================
-### Refresh Access Token
+### 4. REFRESH ACCESS TOKEN
 ### ========================================
 # @name refreshToken
 POST {{baseUrl}}/v1/auth/refresh
@@ -35,8 +51,12 @@ Content-Type: application/json
   "refresh_token": "{{refreshToken}}"
 }
 
+### Extract new tokens
+@newAccessToken = {{refreshToken.response.body.data.access_token}}
+@newRefreshToken = {{refreshToken.response.body.data.refresh_token}}
+
 ### ========================================
-### Logout
+### 5. LOGOUT
 ### ========================================
 POST {{baseUrl}}/v1/auth/logout
 Content-Type: application/json
@@ -47,8 +67,10 @@ Authorization: Bearer {{accessToken}}
 }
 
 ### ========================================
-### TEKNOLOGI NUSANTARA - ADMIN
+### TENANT ADMIN LOGINS
 ### ========================================
+
+### TEKNOLOGI NUSANTARA - ADMIN
 # @name loginTeknusantaraAdmin
 POST {{baseUrl}}/v1/auth/login
 Content-Type: application/json
@@ -58,9 +80,9 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### ========================================
+@teknusantaraToken = {{loginTeknusantaraAdmin.response.body.data.access_token}}
+
 ### TEKNOLOGI NUSANTARA - TECHNICIAN
-### ========================================
 # @name loginTeknusantaraTech
 POST {{baseUrl}}/v1/auth/login
 Content-Type: application/json
@@ -70,9 +92,9 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### ========================================
+@techToken = {{loginTeknusantaraTech.response.body.data.access_token}}
+
 ### MAJU BERSAMA - ADMIN
-### ========================================
 # @name loginMajubersamaAdmin
 POST {{baseUrl}}/v1/auth/login
 Content-Type: application/json
@@ -82,9 +104,7 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### ========================================
 ### DIGITAL INDONESIA - ADMIN
-### ========================================
 # @name loginDigiindoAdmin
 POST {{baseUrl}}/v1/auth/login
 Content-Type: application/json

@@ -1,0 +1,135 @@
+### ========================================
+### USER MANAGEMENT API TESTS
+### Requires: SuperAdmin or Admin role
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login as SuperAdmin first
+# @name loginSuperAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "superadmin@mikrobill.com",
+  "password": "password123"
+}
+
+@token = {{loginSuperAdmin.response.body.data.access_token}}
+
+### ========================================
+### 1. CREATE USER
+### ========================================
+# @name createUser
+POST {{baseUrl}}/v1/internal/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "newstaff",
+  "email": "newstaff@teknusantara.com",
+  "password": "password123",
+  "fullname": "New Staff Member",
+  "phone": "081234567890",
+  "user_role": "technician"
+}
+
+@userId = {{createUser.response.body.data.id}}
+
+### ========================================
+### 2. LIST ALL USERS
+### ========================================
+# @name listUsers
+GET {{baseUrl}}/v1/internal/users/list
+Authorization: Bearer {{token}}
+
+### ========================================
+### 3. GET USER BY ID
+### ========================================
+GET {{baseUrl}}/v1/internal/users/{{userId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### 4. UPDATE USER
+### ========================================
+PUT {{baseUrl}}/v1/internal/users/{{userId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullname": "Updated Staff Name",
+  "phone": "082345678901",
+  "user_role": "admin"
+}
+
+### ========================================
+### 5. ASSIGN ROLE TO USER
+### ========================================
+POST {{baseUrl}}/v1/internal/users/{{userId}}/assign-role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role_id": "{{$guid}}"
+}
+
+### ========================================
+### 6. ASSIGN USER TO TENANT
+### ========================================
+# First, get tenant ID from tenant list
+# @name getTenants
+GET {{baseUrl}}/v1/internal/tenant/list
+Authorization: Bearer {{token}}
+
+@tenantId = {{getTenants.response.body.data.0.id}}
+
+### Assign user to tenant
+POST {{baseUrl}}/v1/internal/users/{{userId}}/assign-tenant
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tenant_id": "{{tenantId}}",
+  "is_primary": true
+}
+
+### ========================================
+### 7. DELETE USER (Soft Delete)
+### ========================================
+DELETE {{baseUrl}}/v1/internal/users/{{userId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create user with duplicate username (Should Fail)
+POST {{baseUrl}}/v1/internal/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "newstaff",
+  "email": "another@example.com",
+  "password": "password123",
+  "fullname": "Duplicate User"
+}
+
+### Create user without authentication (Should Fail)
+POST {{baseUrl}}/v1/internal/users
+Content-Type: application/json
+
+{
+  "username": "noauth",
+  "email": "noauth@example.com",
+  "password": "password123",
+  "fullname": "No Auth User"
+}
+
+### Update non-existent user (Should Fail)
+PUT {{baseUrl}}/v1/internal/users/{{$guid}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullname": "Non Existent"
+}

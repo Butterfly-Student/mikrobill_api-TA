@@ -33,7 +33,7 @@ func TestPPP(t *testing.T) {
 		Convey("Secrets", func() {
 			Convey("MikrotikCreateSecret", func() {
 				input := model.PPPSecretInput{Name: "user1", Password: "pass", Service: "pppoe"}
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(&model.Mikrotik{}, nil)
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(&model.Mikrotik{}, nil)
 				mockFactory.EXPECT().NewClient(gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().RunArgs("/ppp/secret/add", gomock.Any()).Return(&routeros.Reply{}, nil)
 				mockClient.EXPECT().Close().Return(nil)
@@ -44,7 +44,7 @@ func TestPPP(t *testing.T) {
 			})
 
 			Convey("MikrotikGetSecret", func() {
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(&model.Mikrotik{}, nil)
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(&model.Mikrotik{}, nil)
 				mockFactory.EXPECT().NewClient(gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().RunArgs("/ppp/secret/print", gomock.Any()).Return(&routeros.Reply{
 					Re: []*proto.Sentence{{Map: map[string]string{"name": "user1", "profile": "default"}}},
@@ -60,7 +60,7 @@ func TestPPP(t *testing.T) {
 		Convey("Profiles", func() {
 			Convey("MikrotikCreateProfile", func() {
 				input := model.PPPProfileInput{Name: "prof1"}
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(&model.Mikrotik{}, nil)
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(&model.Mikrotik{}, nil)
 				mockFactory.EXPECT().NewClient(gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().RunArgs("/ppp/profile/add", gomock.Any()).Return(&routeros.Reply{}, nil)
 				mockClient.EXPECT().Close().Return(nil)
@@ -71,7 +71,7 @@ func TestPPP(t *testing.T) {
 			})
 
 			Convey("MikrotikListProfiles", func() {
-				mockMikDB.EXPECT().GetActiveMikrotik(tenantID).Return(&model.Mikrotik{}, nil)
+				mockMikDB.EXPECT().GetActiveMikrotik(gomock.Any()).Return(&model.Mikrotik{}, nil)
 				mockFactory.EXPECT().NewClient(gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().Run("/ppp/profile/print").Return(&routeros.Reply{
 					Re: []*proto.Sentence{{Map: map[string]string{"name": "prof1", "rate-limit": "1M/1M"}}},

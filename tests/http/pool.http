@@ -1,0 +1,76 @@
+### ========================================
+### POOL MANAGEMENT API TESTS
+### Requires: Authentication + Tenant Context
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### ========================================
+### 1. CREATE IP POOL
+### ========================================
+# @name createPool
+POST {{baseUrl}}/v1/internal/pool
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "pool-pppoe",
+  "ranges": "10.10.10.2-10.10.10.254"
+}
+
+@poolId = {{createPool.response.body.data.id}}
+
+### ========================================
+### 2. GET POOL BY ID
+### ========================================
+GET {{baseUrl}}/v1/internal/pool/{{poolId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### 3. LIST ALL POOLS
+### ========================================
+GET {{baseUrl}}/v1/internal/pool/list
+Authorization: Bearer {{token}}
+
+### ========================================
+### 4. UPDATE POOL
+### ========================================
+PUT {{baseUrl}}/v1/internal/pool/{{poolId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "pool-pppoe-main",
+  "ranges": "10.10.10.2-10.10.11.254"
+}
+
+### ========================================
+### 5. DELETE POOL
+### ========================================
+DELETE {{baseUrl}}/v1/internal/pool/{{poolId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create pool with invalid range format
+POST {{baseUrl}}/v1/internal/pool
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "invalid-pool",
+  "ranges": "invalid-range"
+}

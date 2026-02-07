@@ -268,7 +268,10 @@ func (s *authDomain) generateAccessToken(user *model.User) (string, error) {
 
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default_secret_please_change"
+		return "", stacktrace.NewError("JWT_SECRET environment variable is required for security")
+	}
+	if len(secret) < 32 {
+		return "", stacktrace.NewError("JWT_SECRET must be at least 32 characters for security")
 	}
 
 	return token.SignedString([]byte(secret))
@@ -335,7 +338,10 @@ func (s *authDomain) generateTokenPair(ctx context.Context, user *model.User) (a
 func (s *authDomain) ValidateToken(ctx context.Context, tokenString string) (*model.User, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default_secret_please_change"
+		return nil, stacktrace.NewError("JWT_SECRET environment variable is required for security")
+	}
+	if len(secret) < 32 {
+		return nil, stacktrace.NewError("JWT_SECRET must be at least 32 characters for security")
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

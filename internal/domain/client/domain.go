@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/palantir/stacktrace"
-	"github.com/redis/go-redis/v9"
 
 	"MikrOps/internal/model"
 	outbound_port "MikrOps/internal/port/outbound"
@@ -108,35 +107,31 @@ func (s *clientDomain) IsExists(ctx context.Context, bearerKey string) (bool, er
 		return false, stacktrace.NewError("bearerKey is empty")
 	}
 
-	var exists bool
 	cacheClientPort := s.cachePort.Client()
-	_, err := cacheClientPort.Get(ctx, bearerKey)
-	if err != nil {
-		if err == redis.Nil {
-			databaseClientPort := s.databasePort.Client()
-			exists, err = databaseClientPort.IsExists(ctx, bearerKey)
-			if err != nil {
-				return false, stacktrace.Propagate(err, "check if client exists error")
-			}
-
-			client, err := databaseClientPort.FindByFilter(ctx, model.ClientFilter{BearerKeys: []string{bearerKey}}, false)
-			if err != nil {
-				return false, stacktrace.Propagate(err, "find client by filter error")
-			}
-
-			if len(client) > 0 {
-				err = cacheClientPort.Set(ctx, client[0])
-				if err != nil {
-					return false, stacktrace.Propagate(err, "set client to cache error")
-				}
-			}
-		} else {
-			return false, stacktrace.Propagate(err, "get client from cache error")
-		}
-	} else {
-		exists = true
+	_, found := cacheClientPort.GetClient(ctx, bearerKey)
+	if found {
+		return true, nil
 	}
 
-	return exists, nil
-}
+	databaseClientPort := s.databasePort.Client()
+	clientCheck, dbErr := databaseClientPort.IsExists(ctx, bearerKey)
+	if dbErr != nil {
+		return false, stacktrace.Propagate(dbErr, "check if client exists error")
+	}
 
+	if clientCheck {
+		clients, queryErr := databaseClientPort.FindByFilter(ctx, model.ClientFilter{BearerKeys: []string{bearerKey}}, false)
+		if queryErr != nil {
+			return true, stacktrace.Propagate(queryErr, "find client by filter error")
+		}
+
+		if len(clients) > 0 {
+			cacheErr := cacheClientPort.SetClient(ctx, bearerKey, clients[0])
+			if cacheErr != nil {
+				return true, stacktrace.Propagate(cacheErr, "set client to cache error")
+			}
+		}
+	}
+
+	return false, nil
+}

@@ -114,7 +114,7 @@ func (a *authAdapter) Logout(i any) {
 	if !exists {
 		c.JSON(http.StatusUnauthorized, model.Response{
 			Success: false,
-			Error:   "User not authenticated",
+			Error:   "User not authenticated - user_id not found in context",
 		})
 		return
 	}

@@ -71,4 +71,7 @@ type CustomerDatabasePort interface {
 
 	// UpdateProvisioningStatus updates provisioning workflow status
 	UpdateProvisioningStatus(ctx context.Context, customerID uuid.UUID, status, errorMsg string, provisionedAt *time.Time) error
+
+	// ListExpired retrieves customers whose service has expired
+	ListExpired(ctx context.Context, currentStatus model.CustomerStatus) ([]model.Customer, error)
 }

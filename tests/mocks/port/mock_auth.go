@@ -6,6 +6,7 @@ package mock_outbound_port
 
 import (
 	model "MikrOps/internal/model"
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -36,61 +37,105 @@ func (m *MockAuthDatabasePort) EXPECT() *MockAuthDatabasePortMockRecorder {
 }
 
 // FindRoleByID mocks base method.
-func (m *MockAuthDatabasePort) FindRoleByID(id uuid.UUID) (*model.Role, error) {
+func (m *MockAuthDatabasePort) FindRoleByID(ctx context.Context, id uuid.UUID) (*model.Role, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindRoleByID", id)
+	ret := m.ctrl.Call(m, "FindRoleByID", ctx, id)
 	ret0, _ := ret[0].(*model.Role)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindRoleByID indicates an expected call of FindRoleByID.
-func (mr *MockAuthDatabasePortMockRecorder) FindRoleByID(id interface{}) *gomock.Call {
+func (mr *MockAuthDatabasePortMockRecorder) FindRoleByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRoleByID", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindRoleByID), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRoleByID", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindRoleByID), ctx, id)
 }
 
 // FindRoleByName mocks base method.
-func (m *MockAuthDatabasePort) FindRoleByName(name string) (*model.Role, error) {
+func (m *MockAuthDatabasePort) FindRoleByName(ctx context.Context, name string) (*model.Role, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindRoleByName", name)
+	ret := m.ctrl.Call(m, "FindRoleByName", ctx, name)
 	ret0, _ := ret[0].(*model.Role)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindRoleByName indicates an expected call of FindRoleByName.
-func (mr *MockAuthDatabasePortMockRecorder) FindRoleByName(name interface{}) *gomock.Call {
+func (mr *MockAuthDatabasePortMockRecorder) FindRoleByName(ctx, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRoleByName", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindRoleByName), name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindRoleByName", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindRoleByName), ctx, name)
 }
 
-// FindUserByFilter mocks base method.
-func (m *MockAuthDatabasePort) FindUserByFilter(filter model.UserFilter, lock bool) ([]model.User, error) {
+// FindUserByEmail mocks base method.
+func (m *MockAuthDatabasePort) FindUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindUserByFilter", filter, lock)
-	ret0, _ := ret[0].([]model.User)
+	ret := m.ctrl.Call(m, "FindUserByEmail", ctx, email)
+	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindUserByFilter indicates an expected call of FindUserByFilter.
-func (mr *MockAuthDatabasePortMockRecorder) FindUserByFilter(filter, lock interface{}) *gomock.Call {
+// FindUserByEmail indicates an expected call of FindUserByEmail.
+func (mr *MockAuthDatabasePortMockRecorder) FindUserByEmail(ctx, email interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByFilter", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindUserByFilter), filter, lock)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByEmail", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindUserByEmail), ctx, email)
+}
+
+// FindUserByEmailOrUsername mocks base method.
+func (m *MockAuthDatabasePort) FindUserByEmailOrUsername(ctx context.Context, identifier string) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindUserByEmailOrUsername", ctx, identifier)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindUserByEmailOrUsername indicates an expected call of FindUserByEmailOrUsername.
+func (mr *MockAuthDatabasePortMockRecorder) FindUserByEmailOrUsername(ctx, identifier interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByEmailOrUsername", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindUserByEmailOrUsername), ctx, identifier)
+}
+
+// FindUserByID mocks base method.
+func (m *MockAuthDatabasePort) FindUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindUserByID", ctx, id)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindUserByID indicates an expected call of FindUserByID.
+func (mr *MockAuthDatabasePortMockRecorder) FindUserByID(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByID", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindUserByID), ctx, id)
+}
+
+// FindUserByUsername mocks base method.
+func (m *MockAuthDatabasePort) FindUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindUserByUsername", ctx, username)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindUserByUsername indicates an expected call of FindUserByUsername.
+func (mr *MockAuthDatabasePortMockRecorder) FindUserByUsername(ctx, username interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByUsername", reflect.TypeOf((*MockAuthDatabasePort)(nil).FindUserByUsername), ctx, username)
 }
 
 // SaveUser mocks base method.
-func (m *MockAuthDatabasePort) SaveUser(user model.User) error {
+func (m *MockAuthDatabasePort) SaveUser(ctx context.Context, user model.User) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveUser", user)
+	ret := m.ctrl.Call(m, "SaveUser", ctx, user)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveUser indicates an expected call of SaveUser.
-func (mr *MockAuthDatabasePortMockRecorder) SaveUser(user interface{}) *gomock.Call {
+func (mr *MockAuthDatabasePortMockRecorder) SaveUser(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveUser", reflect.TypeOf((*MockAuthDatabasePort)(nil).SaveUser), user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveUser", reflect.TypeOf((*MockAuthDatabasePort)(nil).SaveUser), ctx, user)
 }
-

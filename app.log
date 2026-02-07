@@ -1,0 +1,186 @@
+{"action":"app_start","client_id":"system","func":"internal.initEncryptionService","level":"info","msg":"Encryption service initialized successfully","payload":null,"result":null,"time":"2026-02-06T22:18:09+07:00","trace":["app.go:206","app.go:61"],"transaction_id":"2b8fee9c-7b17-4951-b9ae-1c707fd68476"}
+2026/02/06 22:18:17 Starting data seeding with GORM...
+2026/02/06 22:18:17 Enum user_role already has new values, skipping fix.
+2026/02/06 22:18:17 Tenant teknusantara already exists with slug: teknusantara, skipping...
+2026/02/06 22:18:17 Tenant majubersama already exists with slug: ispbandung, skipping...
+2026/02/06 22:18:17 Tenant digiindo already exists with slug: digiindo, skipping...
+2026/02/06 22:18:17 Superadmin already exists, skipping...
+2026/02/06 22:18:17 Processing tenant: teknusantara
+2026/02/06 22:18:17 User admin@teknusantara.com already exists, updating password...
+2026/02/06 22:18:17 Mikrotik MikroTik Teknisi already exists
+
+2026/02/06 22:18:17 [31;1mC:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/seeder/seeder.go:425 [35;1mrecord not found
+[0m[33m[1.526ms] [34;1m[rows:0][0m SELECT * FROM "tenants" WHERE subdomain = 'aengpanas' ORDER BY "tenants"."id" LIMIT 1
+2026/02/06 22:18:17 Tenant aengpanas not found, skipping...
+2026/02/06 22:18:17 Processing tenant: majubersama
+2026/02/06 22:18:17 User majubersama_admin already exists, updating password...
+2026/02/06 22:18:17 User majubersama_tech already exists, updating password...
+2026/02/06 22:18:17 User majubersama_viewer already exists, updating password...
+2026/02/06 22:18:17 Mikrotik MikroTik Bandung already exists
+2026/02/06 22:18:17 Mikrotik MikroTik Cimahi already exists
+2026/02/06 22:18:17 Mikrotik MikroTik Sumedang already exists
+2026/02/06 22:18:17 Processing tenant: digiindo
+2026/02/06 22:18:17 User digiindo_admin already exists, updating password...
+2026/02/06 22:18:17 User digiindo_tech already exists, updating password...
+2026/02/06 22:18:17 User digiindo_viewer already exists, updating password...
+2026/02/06 22:18:17 Mikrotik MikroTik Surabaya already exists
+2026/02/06 22:18:17 Mikrotik MikroTik Malang already exists
+2026/02/06 22:18:17 Mikrotik MikroTik Gresik already exists
+2026/02/06 22:18:17 Seeding billing profiles and sample customers...
+2026/02/06 22:18:17 Creating profiles for tenant: teknusantara
+2026/02/06 22:18:17 Profile 10Mbps PPPoE already exists
+2026/02/06 22:18:17 Profile 20Mbps PPPoE already exists
+2026/02/06 22:18:17 Profile 5Mbps Hotspot already exists
+2026/02/06 22:18:17 Profile Corporate Static IP already exists
+2026/02/06 22:18:17 Creating sample customers for tenant: teknusantara
+2026/02/06 22:18:17 Customer seeding skipped - use public registration API instead
+2026/02/06 22:18:17 Customer John Doe already exists
+2026/02/06 22:18:17 Customer service already exists for John Doe
+2026/02/06 22:18:17 Customer Jane Smith already exists
+2026/02/06 22:18:17 Customer service already exists for Jane Smith
+2026/02/06 22:18:17 Customer Bob Wilson already exists
+2026/02/06 22:18:17 Customer service already exists for Bob Wilson
+2026/02/06 22:18:17 Creating profiles for tenant: majubersama
+2026/02/06 22:18:17 Profile Paket Home 10Mbps already exists
+2026/02/06 22:18:17 Profile Paket Home 20Mbps already exists
+2026/02/06 22:18:17 Profile Paket Hotspot 5Mbps already exists
+2026/02/06 22:18:17 Creating sample customers for tenant: majubersama
+2026/02/06 22:18:17 Customer seeding skipped - use public registration API instead
+2026/02/06 22:18:17 Customer Ahmad Fauzi already exists
+2026/02/06 22:18:17 Customer service already exists for Ahmad Fauzi
+2026/02/06 22:18:17 Customer Siti Nurhaliza already exists
+2026/02/06 22:18:17 Customer service already exists for Siti Nurhaliza
+2026/02/06 22:18:17 Creating profiles for tenant: digiindo
+2026/02/06 22:18:17 Profile Business 50Mbps already exists
+2026/02/06 22:18:17 Profile Enterprise 100Mbps already exists
+2026/02/06 22:18:17 Profile Dedicated Static IP already exists
+2026/02/06 22:18:17 Creating sample customers for tenant: digiindo
+2026/02/06 22:18:17 Customer seeding skipped - use public registration API instead
+2026/02/06 22:18:17 Customer PT Sukses Jaya already exists
+2026/02/06 22:18:17 Customer service already exists for PT Sukses Jaya
+2026/02/06 22:18:17 Finished seeding profiles and customers.
+2026/02/06 22:18:17 Seeding completed successfully.
+2026-02-06T22:18:17.365+0700	INFO	logger/zap.go:90	database initialized successfully
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /v1/public/tenant/:slug   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func1 (7 handlers)
+[GIN-debug] POST   /v1/public/register/:tenant_slug --> MikrOps/internal/adapter/inbound/gin.InitRoute.func2 (8 handlers)
+[GIN-debug] POST   /v1/auth/login            --> MikrOps/internal/adapter/inbound/gin.InitRoute.func3 (7 handlers)
+[GIN-debug] POST   /v1/auth/register         --> MikrOps/internal/adapter/inbound/gin.InitRoute.func4 (7 handlers)
+[GIN-debug] POST   /v1/auth/refresh          --> MikrOps/internal/adapter/inbound/gin.InitRoute.func5 (7 handlers)
+[GIN-debug] POST   /v1/auth/logout           --> MikrOps/internal/adapter/inbound/gin.InitRoute.func6 (7 handlers)
+[GIN-debug] GET    /v1/auth/profile          --> MikrOps/internal/adapter/inbound/gin.InitRoute.func7 (7 handlers)
+[GIN-debug] POST   /v1/internal/tenant       --> MikrOps/internal/adapter/inbound/gin.InitRoute.func9 (9 handlers)
+[GIN-debug] GET    /v1/internal/tenant/list  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func10 (9 handlers)
+[GIN-debug] GET    /v1/internal/tenant/:id   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func11 (9 handlers)
+[GIN-debug] PUT    /v1/internal/tenant/:id   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func12 (9 handlers)
+[GIN-debug] DELETE /v1/internal/tenant/:id   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func13 (9 handlers)
+[GIN-debug] GET    /v1/internal/tenant/:id/stats --> MikrOps/internal/adapter/inbound/gin.InitRoute.func14 (9 handlers)
+[GIN-debug] POST   /v1/internal/users        --> MikrOps/internal/adapter/inbound/gin.InitRoute.func15 (8 handlers)
+[GIN-debug] GET    /v1/internal/users/list   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func16 (8 handlers)
+[GIN-debug] GET    /v1/internal/users/:id    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func17 (8 handlers)
+[GIN-debug] PUT    /v1/internal/users/:id    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func18 (8 handlers)
+[GIN-debug] DELETE /v1/internal/users/:id    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func19 (8 handlers)
+[GIN-debug] POST   /v1/internal/users/:id/assign-role --> MikrOps/internal/adapter/inbound/gin.InitRoute.func20 (8 handlers)
+[GIN-debug] POST   /v1/internal/users/:id/assign-tenant --> MikrOps/internal/adapter/inbound/gin.InitRoute.func21 (8 handlers)
+[GIN-debug] POST   /v1/internal/client-upsert --> MikrOps/internal/adapter/inbound/gin.InitRoute.func22 (10 handlers)
+[GIN-debug] POST   /v1/internal/client-find  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func23 (10 handlers)
+[GIN-debug] DELETE /v1/internal/client-delete --> MikrOps/internal/adapter/inbound/gin.InitRoute.func24 (10 handlers)
+[GIN-debug] POST   /v1/internal/mikrotik     --> MikrOps/internal/adapter/inbound/gin.InitRoute.func25 (10 handlers)
+[GIN-debug] POST   /v1/internal/mikrotik/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func26 (10 handlers)
+[GIN-debug] GET    /v1/internal/mikrotik/active --> MikrOps/internal/adapter/inbound/gin.InitRoute.func27 (10 handlers)
+[GIN-debug] GET    /v1/internal/mikrotik/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func28 (10 handlers)
+[GIN-debug] PUT    /v1/internal/mikrotik/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func29 (10 handlers)
+[GIN-debug] DELETE /v1/internal/mikrotik/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func30 (10 handlers)
+[GIN-debug] PATCH  /v1/internal/mikrotik/:id/status --> MikrOps/internal/adapter/inbound/gin.InitRoute.func31 (10 handlers)
+[GIN-debug] PATCH  /v1/internal/mikrotik/:id/activate --> MikrOps/internal/adapter/inbound/gin.InitRoute.func32 (10 handlers)
+[GIN-debug] POST   /v1/internal/ppp/secret   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func33 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/secret/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func34 (10 handlers)
+[GIN-debug] PUT    /v1/internal/ppp/secret/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func35 (10 handlers)
+[GIN-debug] DELETE /v1/internal/ppp/secret/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func36 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/secret/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func37 (10 handlers)
+[GIN-debug] POST   /v1/internal/ppp/profile  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func38 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/profile/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func39 (10 handlers)
+[GIN-debug] PUT    /v1/internal/ppp/profile/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func40 (10 handlers)
+[GIN-debug] DELETE /v1/internal/ppp/profile/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func41 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/profile/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func42 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/active/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func43 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/active/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func44 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/active/stream --> MikrOps/internal/adapter/inbound/gin.InitRoute.func45 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/inactive/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func46 (10 handlers)
+[GIN-debug] GET    /v1/internal/ppp/inactive/stream --> MikrOps/internal/adapter/inbound/gin.InitRoute.func47 (10 handlers)
+[GIN-debug] POST   /v1/internal/pool         --> MikrOps/internal/adapter/inbound/gin.InitRoute.func48 (10 handlers)
+[GIN-debug] GET    /v1/internal/pool/:id     --> MikrOps/internal/adapter/inbound/gin.InitRoute.func49 (10 handlers)
+[GIN-debug] PUT    /v1/internal/pool/:id     --> MikrOps/internal/adapter/inbound/gin.InitRoute.func50 (10 handlers)
+[GIN-debug] DELETE /v1/internal/pool/:id     --> MikrOps/internal/adapter/inbound/gin.InitRoute.func51 (10 handlers)
+[GIN-debug] GET    /v1/internal/pool/list    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func52 (10 handlers)
+[GIN-debug] POST   /v1/internal/queue        --> MikrOps/internal/adapter/inbound/gin.InitRoute.func53 (10 handlers)
+[GIN-debug] GET    /v1/internal/queue/:id    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func54 (10 handlers)
+[GIN-debug] PUT    /v1/internal/queue/:id    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func55 (10 handlers)
+[GIN-debug] DELETE /v1/internal/queue/:id    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func56 (10 handlers)
+[GIN-debug] GET    /v1/internal/queue/list   --> MikrOps/internal/adapter/inbound/gin.InitRoute.func57 (10 handlers)
+[GIN-debug] POST   /v1/internal/profile      --> MikrOps/internal/adapter/inbound/gin.InitRoute.func58 (10 handlers)
+[GIN-debug] GET    /v1/internal/profile/:id  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func59 (10 handlers)
+[GIN-debug] GET    /v1/internal/profile/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func60 (10 handlers)
+[GIN-debug] PUT    /v1/internal/profile/:id  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func61 (10 handlers)
+[GIN-debug] DELETE /v1/internal/profile/:id  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func62 (10 handlers)
+[GIN-debug] POST   /v1/internal/customer     --> MikrOps/internal/adapter/inbound/gin.InitRoute.func63 (10 handlers)
+[GIN-debug] GET    /v1/internal/customer/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func64 (10 handlers)
+[GIN-debug] GET    /v1/internal/customer/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func65 (10 handlers)
+[GIN-debug] PUT    /v1/internal/customer/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func66 (10 handlers)
+[GIN-debug] DELETE /v1/internal/customer/:id --> MikrOps/internal/adapter/inbound/gin.InitRoute.func67 (10 handlers)
+[GIN-debug] GET    /v1/internal/customer/prospects/list --> MikrOps/internal/adapter/inbound/gin.InitRoute.func68 (10 handlers)
+[GIN-debug] POST   /v1/internal/customer/prospects/approve --> MikrOps/internal/adapter/inbound/gin.InitRoute.func69 (10 handlers)
+[GIN-debug] DELETE /v1/internal/customer/prospects/:id/reject --> MikrOps/internal/adapter/inbound/gin.InitRoute.func70 (10 handlers)
+[GIN-debug] GET    /v1/internal/customer/:id/traffic/stream --> MikrOps/internal/adapter/inbound/gin.InitRoute.func71 (10 handlers)
+[GIN-debug] GET    /v1/internal/customer/:id/ping --> MikrOps/internal/adapter/inbound/gin.InitRoute.func72 (10 handlers)
+[GIN-debug] GET    /v1/internal/customer/:id/ping/stream --> MikrOps/internal/adapter/inbound/gin.InitRoute.func73 (10 handlers)
+[GIN-debug] GET    /v1/internal/monitor/traffic/:interface --> MikrOps/internal/adapter/inbound/gin.InitRoute.func74 (10 handlers)
+[GIN-debug] GET    /v1/internal/logs/stream  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func75 (10 handlers)
+[GIN-debug] GET    /v1/internal/monitor/direct/traffic/:interface/stream --> MikrOps/internal/adapter/inbound/gin.InitRoute.func76 (10 handlers)
+[GIN-debug] POST   /v1/internal/monitor/direct/ping --> MikrOps/internal/adapter/inbound/gin.InitRoute.func77 (10 handlers)
+[GIN-debug] GET    /v1/internal/monitor/direct/ping/:ip/stream --> MikrOps/internal/adapter/inbound/gin.InitRoute.func78 (10 handlers)
+[GIN-debug] POST   /v1/callbacks/pppoe/up    --> MikrOps/internal/adapter/inbound/gin.InitRoute.func79 (7 handlers)
+[GIN-debug] POST   /v1/callbacks/pppoe/down  --> MikrOps/internal/adapter/inbound/gin.InitRoute.func80 (7 handlers)
+[GIN-debug] POST   /v1/customer/auth/login   --> MikrOps/internal/adapter/inbound/gin.(*CustomerAuthHandler).CustomerLogin-fm (8 handlers)
+[GIN-debug] POST   /v1/customer/auth/refresh --> MikrOps/internal/adapter/inbound/gin.(*CustomerAuthHandler).RefreshToken-fm (7 handlers)
+[GIN-debug] POST   /v1/customer/auth/logout  --> MikrOps/internal/adapter/inbound/gin.(*CustomerAuthHandler).CustomerLogout-fm (8 handlers)
+[GIN-debug] GET    /v1/customer/auth/profile --> MikrOps/internal/adapter/inbound/gin.(*CustomerAuthHandler).GetProfile-fm (8 handlers)
+[GIN-debug] GET    /v1/customer/portal/profile --> MikrOps/internal/adapter/inbound/gin.(*CustomerPortalHandler).GetProfile-fm (10 handlers)
+[GIN-debug] PUT    /v1/customer/portal/profile --> MikrOps/internal/adapter/inbound/gin.(*CustomerPortalHandler).UpdateProfile-fm (10 handlers)
+[GIN-debug] GET    /v1/customer/portal/traffic --> MikrOps/internal/adapter/inbound/gin.(*CustomerPortalHandler).GetTraffic-fm (10 handlers)
+[GIN-debug] GET    /v1/customer/portal/traffic/stream --> MikrOps/internal/adapter/inbound/gin.(*CustomerPortalHandler).StreamTraffic-fm (10 handlers)
+[GIN-debug] POST   /v1/customer/portal/session/reset --> MikrOps/internal/adapter/inbound/gin.(*CustomerPortalHandler).ResetSession-fm (10 handlers)
+[GIN-debug] GET    /v1/customer/portal/usage --> MikrOps/internal/adapter/inbound/gin.(*CustomerPortalHandler).GetUsageHistory-fm (10 handlers)
+[GIN-debug] GET    /v1/client/ping           --> MikrOps/internal/adapter/inbound/gin.InitRoute.func82 (8 handlers)
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8000
+2026-02-06T22:18:34.458+0700	INFO	gin/middleware.go:163	Request handled	{"status": 200, "method": "POST", "path": "/v1/auth/login", "latency": "317.9507ms", "ip": "::1", "request_id": "66b45971-9290-45ca-8053-75980d1a2767"}
+2026-02-06T22:18:34.581+0700	DEBUG	gin/middleware_tenant.go:80	Tenant context resolved	{"user_id": "9a971eda-4ba6-4871-99f5-929c53aafd04", "tenant_id": "fb1f329d-4593-4337-889d-9f4d872e0777", "is_superadmin": false}
+
+2026/02/06 22:18:34 [31;1mC:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/adapter/outbound/postgres/customer.go:137 [35;1mrecord not found
+[0m[33m[3.100ms] [34;1m[rows:0][0m SELECT * FROM "customers" WHERE (mikrotik_id = '13b3be30-4c05-4809-9a07-5512a3be3c3d' AND service_username = 'testcust' AND tenant_id = 'fb1f329d-4593-4337-889d-9f4d872e0777') AND "customers"."deleted_at" IS NULL ORDER BY "customers"."id" LIMIT 1
+2026-02-06T22:18:39.601+0700	ERROR	gin/middleware.go:161	Server error	{"status": 500, "method": "POST", "path": "/v1/internal/customer", "latency": "5.0445107s", "ip": "::1", "request_id": "c88199b4-84d0-4194-acad-1f11170b62dd"}
+MikrOps/internal/adapter/inbound/gin.(*middlewareAdapter).ZapLogger.func1
+	C:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/adapter/inbound/gin/middleware.go:161
+github.com/gin-gonic/gin.(*Context).Next
+	C:/Users/masji/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+MikrOps/internal/adapter/inbound/gin.(*middlewareAdapter).RequestID.func1
+	C:/Users/masji/web/MikroBill-TA/mikrotik_billing_api/internal/adapter/inbound/gin/middleware.go:136
+github.com/gin-gonic/gin.(*Context).Next
+	C:/Users/masji/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.CustomRecoveryWithWriter.func1
+	C:/Users/masji/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/recovery.go:102
+github.com/gin-gonic/gin.(*Context).Next
+	C:/Users/masji/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest
+	C:/Users/masji/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:633
+github.com/gin-gonic/gin.(*Engine).ServeHTTP
+	C:/Users/masji/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/gin.go:589
+net/http.serverHandler.ServeHTTP
+	C:/Program Files/Go/src/net/http/server.go:3340
+net/http.(*conn).serve
+	C:/Program Files/Go/src/net/http/server.go:2109

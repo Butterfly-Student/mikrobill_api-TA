@@ -48,3 +48,16 @@ func (mr *MockMessagePortMockRecorder) Client() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Client", reflect.TypeOf((*MockMessagePort)(nil).Client))
 }
 
+// Provisioning mocks base method.
+func (m *MockMessagePort) Provisioning() outbound_port.ProvisioningMessagePort {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Provisioning")
+	ret0, _ := ret[0].(outbound_port.ProvisioningMessagePort)
+	return ret0
+}
+
+// Provisioning indicates an expected call of Provisioning.
+func (mr *MockMessagePortMockRecorder) Provisioning() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Provisioning", reflect.TypeOf((*MockMessagePort)(nil).Provisioning))
+}

@@ -1,0 +1,195 @@
+### ========================================
+### CUSTOMER PORTAL API TESTS
+### Customer-facing portal endpoints
+### Requires: Customer Authentication
+### ========================================
+@baseUrl = http://localhost:8000
+
+### ========================================
+### CUSTOMER AUTHENTICATION
+### ========================================
+
+### 1. CUSTOMER LOGIN
+# @name customerLogin
+POST {{baseUrl}}/v1/customer/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer1@example.com",
+  "password": "password123"
+}
+
+@customerToken = {{customerLogin.response.body.data.access_token}}
+@customerRefreshToken = {{customerLogin.response.body.data.refresh_token}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "access_token": "jwt_token",
+#     "refresh_token": "refresh_token",
+#     "token_type": "Bearer",
+#     "expires_in": 900
+#   }
+# }
+
+### 2. GET CUSTOMER AUTH PROFILE
+GET {{baseUrl}}/v1/customer/auth/profile
+Authorization: Bearer {{customerToken}}
+
+### 3. REFRESH CUSTOMER TOKEN
+# @name customerRefresh
+POST {{baseUrl}}/v1/customer/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{customerRefreshToken}}"
+}
+
+@newCustomerToken = {{customerRefresh.response.body.data.access_token}}
+
+### 4. CUSTOMER LOGOUT
+POST {{baseUrl}}/v1/customer/auth/logout
+Authorization: Bearer {{customerToken}}
+
+### ========================================
+### CUSTOMER PORTAL ENDPOINTS
+### (All require CustomerAuth middleware)
+### ========================================
+
+### 5. GET CUSTOMER PORTAL PROFILE
+GET {{baseUrl}}/v1/customer/portal/profile
+Authorization: Bearer {{customerToken}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "id": "uuid",
+#     "name": "Customer Name",
+#     "email": "customer@example.com",
+#     "phone": "081234567890",
+#     "service_type": "pppoe",
+#     "service_username": "customer01",
+#     "service_password": null,  // Hidden untuk PPPoE
+#     "service_password_visible": false,
+#     "status": "active"
+#   }
+# }
+
+### 6. UPDATE CUSTOMER PORTAL PROFILE
+PUT {{baseUrl}}/v1/customer/portal/profile
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Customer Name",
+  "phone": "082345678901",
+  "address": "New Address 123",
+  "portal_password": "newpassword123"
+}
+
+### Note: Tidak bisa update service credentials (username/password untuk PPPoE)
+
+### 7. GET CUSTOMER TRAFFIC
+GET {{baseUrl}}/v1/customer/portal/traffic
+Authorization: Bearer {{customerToken}}
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "service_username": "customer01",
+#     "upload_bytes": 1048576000,
+#     "download_bytes": 5242880000,
+#     "total_bytes": 6291456000,
+#     "session_duration_seconds": 3600,
+#     "last_update": "2026-01-29T12:00:00Z"
+#   }
+# }
+
+### 8. STREAM CUSTOMER TRAFFIC (WebSocket)
+GET {{baseUrl}}/v1/customer/portal/traffic/stream
+Authorization: Bearer {{customerToken}}
+Upgrade: websocket
+
+### Real-time traffic updates every 2 seconds
+
+### 9. RESET CUSTOMER SESSION
+POST {{baseUrl}}/v1/customer/portal/session/reset
+Authorization: Bearer {{customerToken}}
+
+### This will:
+### - Disconnect PPP/Hotspot session di MikroTik
+### - Force customer to re-authenticate
+
+### 10. GET USAGE HISTORY
+GET {{baseUrl}}/v1/customer/portal/usage
+Authorization: Bearer {{customerToken}}
+
+### Query params: ?start_date=2026-01-01&end_date=2026-01-31
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "date": "2026-01-29",
+#       "upload_bytes": 104857600,
+#       "download_bytes": 524288000,
+#       "total_bytes": 629145600
+#     }
+#   ]
+# }
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Login with invalid credentials (Should Fail)
+POST {{baseUrl}}/v1/customer/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer1@example.com",
+  "password": "wrongpassword"
+}
+
+### Access portal without authentication (Should Fail)
+GET {{baseUrl}}/v1/customer/portal/profile
+
+### Access portal with internal auth token (Should Fail)
+# @name internalLogin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@internalToken = {{internalLogin.response.body.data.access_token}}
+
+GET {{baseUrl}}/v1/customer/portal/profile
+Authorization: Bearer {{internalToken}}
+
+### Update with invalid data (Should Fail)
+PUT {{baseUrl}}/v1/customer/portal/profile
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "phone": "invalid-phone-format"
+}
+
+### ========================================
+### SECURITY NOTES
+### ========================================
+
+### Portal menggunakan:
+### - CustomerAuth middleware (beda dari InternalAuth)
+### - CustomerPortalRateLimit (100 req/min per customer)
+### - OriginValidation (CORS validation)
+### - Separate JWT tokens untuk customer vs internal users
+### - Customer tidak bisa akses internal endpoints
+### - Internal users tidak bisa akses customer portal

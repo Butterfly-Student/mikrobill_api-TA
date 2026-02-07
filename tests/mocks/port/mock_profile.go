@@ -6,6 +6,7 @@ package mock_outbound_port
 
 import (
 	model "MikrOps/internal/model"
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -36,118 +37,117 @@ func (m *MockProfileDatabasePort) EXPECT() *MockProfileDatabasePortMockRecorder 
 }
 
 // CreateProfile mocks base method.
-func (m *MockProfileDatabasePort) CreateProfile(tenantID uuid.UUID, input model.ProfileInput, mikrotikID uuid.UUID) (*model.Profile, error) {
+func (m *MockProfileDatabasePort) CreateProfile(ctx context.Context, input model.CreateProfileRequest, mikrotikID uuid.UUID) (*model.MikrotikProfile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateProfile", tenantID, input, mikrotikID)
-	ret0, _ := ret[0].(*model.Profile)
+	ret := m.ctrl.Call(m, "CreateProfile", ctx, input, mikrotikID)
+	ret0, _ := ret[0].(*model.MikrotikProfile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateProfile indicates an expected call of CreateProfile.
-func (mr *MockProfileDatabasePortMockRecorder) CreateProfile(tenantID, input, mikrotikID interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) CreateProfile(ctx, input, mikrotikID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProfile", reflect.TypeOf((*MockProfileDatabasePort)(nil).CreateProfile), tenantID, input, mikrotikID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProfile", reflect.TypeOf((*MockProfileDatabasePort)(nil).CreateProfile), ctx, input, mikrotikID)
 }
 
 // CreateProfilePPPoE mocks base method.
-func (m *MockProfileDatabasePort) CreateProfilePPPoE(tenantID, profileID uuid.UUID, input model.ProfileInput) error {
+func (m *MockProfileDatabasePort) CreateProfilePPPoE(ctx context.Context, profileID uuid.UUID, input model.CreateProfileRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateProfilePPPoE", tenantID, profileID, input)
+	ret := m.ctrl.Call(m, "CreateProfilePPPoE", ctx, profileID, input)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateProfilePPPoE indicates an expected call of CreateProfilePPPoE.
-func (mr *MockProfileDatabasePortMockRecorder) CreateProfilePPPoE(tenantID, profileID, input interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) CreateProfilePPPoE(ctx, profileID, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProfilePPPoE", reflect.TypeOf((*MockProfileDatabasePort)(nil).CreateProfilePPPoE), tenantID, profileID, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProfilePPPoE", reflect.TypeOf((*MockProfileDatabasePort)(nil).CreateProfilePPPoE), ctx, profileID, input)
 }
 
 // Delete mocks base method.
-func (m *MockProfileDatabasePort) Delete(tenantID, id uuid.UUID) error {
+func (m *MockProfileDatabasePort) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", tenantID, id)
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockProfileDatabasePortMockRecorder) Delete(tenantID, id interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockProfileDatabasePort)(nil).Delete), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockProfileDatabasePort)(nil).Delete), ctx, id)
 }
 
 // GetByID mocks base method.
-func (m *MockProfileDatabasePort) GetByID(tenantID, id uuid.UUID) (*model.ProfileWithPPPoE, error) {
+func (m *MockProfileDatabasePort) GetByID(ctx context.Context, id uuid.UUID) (*model.MikrotikProfile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByID", tenantID, id)
-	ret0, _ := ret[0].(*model.ProfileWithPPPoE)
+	ret := m.ctrl.Call(m, "GetByID", ctx, id)
+	ret0, _ := ret[0].(*model.MikrotikProfile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByID indicates an expected call of GetByID.
-func (mr *MockProfileDatabasePortMockRecorder) GetByID(tenantID, id interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockProfileDatabasePort)(nil).GetByID), tenantID, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockProfileDatabasePort)(nil).GetByID), ctx, id)
 }
 
 // GetByMikrotikID mocks base method.
-func (m *MockProfileDatabasePort) GetByMikrotikID(tenantID, mikrotikID, profileID uuid.UUID) (*model.ProfileWithPPPoE, error) {
+func (m *MockProfileDatabasePort) GetByMikrotikID(ctx context.Context, mikrotikID, profileID uuid.UUID) (*model.MikrotikProfile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByMikrotikID", tenantID, mikrotikID, profileID)
-	ret0, _ := ret[0].(*model.ProfileWithPPPoE)
+	ret := m.ctrl.Call(m, "GetByMikrotikID", ctx, mikrotikID, profileID)
+	ret0, _ := ret[0].(*model.MikrotikProfile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByMikrotikID indicates an expected call of GetByMikrotikID.
-func (mr *MockProfileDatabasePortMockRecorder) GetByMikrotikID(tenantID, mikrotikID, profileID interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) GetByMikrotikID(ctx, mikrotikID, profileID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByMikrotikID", reflect.TypeOf((*MockProfileDatabasePort)(nil).GetByMikrotikID), tenantID, mikrotikID, profileID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByMikrotikID", reflect.TypeOf((*MockProfileDatabasePort)(nil).GetByMikrotikID), ctx, mikrotikID, profileID)
 }
 
 // List mocks base method.
-func (m *MockProfileDatabasePort) List(tenantID, mikrotikID uuid.UUID) ([]model.ProfileWithPPPoE, error) {
+func (m *MockProfileDatabasePort) List(ctx context.Context, mikrotikID uuid.UUID) ([]model.MikrotikProfile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", tenantID, mikrotikID)
-	ret0, _ := ret[0].([]model.ProfileWithPPPoE)
+	ret := m.ctrl.Call(m, "List", ctx, mikrotikID)
+	ret0, _ := ret[0].([]model.MikrotikProfile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockProfileDatabasePortMockRecorder) List(tenantID, mikrotikID interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) List(ctx, mikrotikID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockProfileDatabasePort)(nil).List), tenantID, mikrotikID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockProfileDatabasePort)(nil).List), ctx, mikrotikID)
 }
 
 // Update mocks base method.
-func (m *MockProfileDatabasePort) Update(tenantID, id uuid.UUID, input model.ProfileInput) error {
+func (m *MockProfileDatabasePort) Update(ctx context.Context, id uuid.UUID, input model.CreateProfileRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", tenantID, id, input)
+	ret := m.ctrl.Call(m, "Update", ctx, id, input)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockProfileDatabasePortMockRecorder) Update(tenantID, id, input interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) Update(ctx, id, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockProfileDatabasePort)(nil).Update), tenantID, id, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockProfileDatabasePort)(nil).Update), ctx, id, input)
 }
 
 // UpdateMikrotikObjectID mocks base method.
-func (m *MockProfileDatabasePort) UpdateMikrotikObjectID(tenantID, profileID uuid.UUID, objectID string) error {
+func (m *MockProfileDatabasePort) UpdateMikrotikObjectID(ctx context.Context, profileID uuid.UUID, objectID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMikrotikObjectID", tenantID, profileID, objectID)
+	ret := m.ctrl.Call(m, "UpdateMikrotikObjectID", ctx, profileID, objectID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMikrotikObjectID indicates an expected call of UpdateMikrotikObjectID.
-func (mr *MockProfileDatabasePortMockRecorder) UpdateMikrotikObjectID(tenantID, profileID, objectID interface{}) *gomock.Call {
+func (mr *MockProfileDatabasePortMockRecorder) UpdateMikrotikObjectID(ctx, profileID, objectID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMikrotikObjectID", reflect.TypeOf((*MockProfileDatabasePort)(nil).UpdateMikrotikObjectID), tenantID, profileID, objectID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMikrotikObjectID", reflect.TypeOf((*MockProfileDatabasePort)(nil).UpdateMikrotikObjectID), ctx, profileID, objectID)
 }
-

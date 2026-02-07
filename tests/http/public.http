@@ -1,0 +1,148 @@
+### ========================================
+### PUBLIC API TESTS (No Authentication Required)
+### ========================================
+@baseUrl = http://localhost:8000
+
+### ========================================
+### PREREQUISITE: Get Valid Profile ID
+### ========================================
+### Note: Public registration needs valid profile_id
+### Login as admin to get profile list first
+
+# @name loginAdmin
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@adminToken = {{loginAdmin.response.body.data.access_token}}
+
+### Get profiles to get valid profile_id
+# @name getProfiles
+GET {{baseUrl}}/v1/internal/profile/list
+Authorization: Bearer {{adminToken}}
+
+@profileId = {{getProfiles.response.body.data.profiles.0.id}}
+
+### ========================================
+### 1. GET TENANT INFO BY SLUG
+### ========================================
+# @name getTenantInfo
+GET {{baseUrl}}/v1/public/tenant/teknusantara
+
+### Expected Response:
+# {
+#   "success": true,
+#   "data": {
+#     "name": "PT Teknologi Nusantara",
+#     "slug": "teknusantara",
+#     "company_name": "PT Teknologi Nusantara",
+#     "is_active": true,
+#     "status": "active",
+#     "allows_signup": true
+#   }
+# }
+
+### ========================================
+### 2. GET TENANT INFO - Non-Existent Slug (Should Fail)
+### ========================================
+GET {{baseUrl}}/v1/public/tenant/nonexistent
+
+### ========================================
+### 3. PUBLIC REGISTRATION - PPPoE Service
+### ========================================
+# @name publicRegisterPPPoE
+POST {{baseUrl}}/v1/public/register/teknusantara
+Content-Type: application/json
+
+{
+  "portal_email": "customer1@example.com",
+  "portal_password": "password123",
+  "name": "John Doe",
+  "phone": "081234567890",
+  "email": "john.doe@example.com",
+  "address": "Jl. Merdeka No. 123, Jakarta",
+  "profile_id": "{{profileId}}",
+  "service_type": "pppoe"
+}
+
+### Note: Ini akan create customer dengan status "prospect"
+### Admin perlu approve via /v1/internal/customer/prospects/approve
+
+### ========================================
+### 4. PUBLIC REGISTRATION - Hotspot Service
+### ========================================
+# @name publicRegisterHotspot
+POST {{baseUrl}}/v1/public/register/teknusantara
+Content-Type: application/json
+
+{
+  "portal_email": "customer2@example.com",
+  "portal_password": "password123",
+  "name": "Jane Smith",
+  "phone": "082345678901",
+  "email": "jane.smith@example.com",
+  "address": "Jl. Sudirman No. 456, Bandung",
+  "profile_id": "{{profileId}}",
+  "service_type": "hotspot",
+  "preferred_service_username": "janesmith"
+}
+
+### ========================================
+### 5. PUBLIC REGISTRATION - Invalid Tenant (Should Fail)
+### ========================================
+POST {{baseUrl}}/v1/public/register/nonexistent
+Content-Type: application/json
+
+{
+  "portal_email": "test@example.com",
+  "portal_password": "password123",
+  "name": "Test User",
+  "phone": "081111111111",
+  "profile_id": "{{$guid}}",
+  "service_type": "pppoe"
+}
+
+### ========================================
+### 6. PUBLIC REGISTRATION - Missing Required Fields (Should Fail)
+### ========================================
+POST {{baseUrl}}/v1/public/register/teknusantara
+Content-Type: application/json
+
+{
+  "portal_email": "incomplete@example.com",
+  "name": "Incomplete User"
+}
+
+### ========================================
+### 7. PUBLIC REGISTRATION - Duplicate Email (Should Fail)
+### ========================================
+POST {{baseUrl}}/v1/public/register/teknusantara
+Content-Type: application/json
+
+{
+  "portal_email": "customer1@example.com",
+  "portal_password": "password123",
+  "name": "Another John",
+  "phone": "083333333333",
+  "profile_id": "{{$guid}}",
+  "service_type": "pppoe"
+}
+
+### ========================================
+### 8. PUBLIC REGISTRATION - Invalid Email Format (Should Fail)
+### ========================================
+POST {{baseUrl}}/v1/public/register/teknusantara
+Content-Type: application/json
+
+{
+  "portal_email": "invalid-email",
+  "portal_password": "password123",
+  "name": "Invalid Email User",
+  "phone": "084444444444",
+  "profile_id": "{{$guid}}",
+  "service_type": "pppoe"
+}

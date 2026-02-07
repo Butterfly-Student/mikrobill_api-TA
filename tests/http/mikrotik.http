@@ -1,0 +1,141 @@
+### ========================================
+### MIKROTIK MANAGEMENT API TESTS
+### Requires: Authentication + Tenant Context
+### ========================================
+@baseUrl = http://localhost:8000
+
+### Login as tenant admin
+# @name login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@teknusantara.com",
+  "password": "password123"
+}
+
+@token = {{login.response.body.data.access_token}}
+
+### ========================================
+### 1. CREATE MIKROTIK
+### ========================================
+# @name createMikrotik
+POST {{baseUrl}}/v1/internal/mikrotik
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "MikroTik Office 1",
+  "host": "192.168.1.1",
+  "port": 8728,
+  "api_username": "admin",
+  "api_password": "admin123",
+  "keepalive": true,
+  "timeout": 5000,
+  "location": "Jakarta Office",
+  "description": "Main router for office network"
+}
+
+@mikrotikId = {{createMikrotik.response.body.data.id}}
+
+### ========================================
+### 2. LIST MIKROTIKS
+### ========================================
+# @name listMikrotiks
+POST {{baseUrl}}/v1/internal/mikrotik/list
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### ========================================
+### 3. GET ACTIVE MIKROTIK
+### ========================================
+GET {{baseUrl}}/v1/internal/mikrotik/active
+Authorization: Bearer {{token}}
+
+### ========================================
+### 4. GET MIKROTIK BY ID
+### ========================================
+GET {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### 5. UPDATE MIKROTIK
+### ========================================
+PUT {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "MikroTik Office 1 Updated",
+  "location": "Jakarta HQ",
+  "description": "Updated main router",
+  "timeout": 3000
+}
+
+### ========================================
+### 6. UPDATE MIKROTIK STATUS
+### ========================================
+PATCH {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "online"
+}
+
+### ========================================
+### 7. SET MIKROTIK AS ACTIVE
+### ========================================
+PATCH {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}/activate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### Note: Hanya 1 mikrotik yang boleh active per tenant
+### Endpoint ini akan set is_active=false untuk mikrotik lain
+
+### ========================================
+### 8. DELETE MIKROTIK
+### ========================================
+DELETE {{baseUrl}}/v1/internal/mikrotik/{{mikrotikId}}
+Authorization: Bearer {{token}}
+
+### ========================================
+### ERROR CASES
+### ========================================
+
+### Create mikrotik with invalid IP (Should Fail)
+POST {{baseUrl}}/v1/internal/mikrotik
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Invalid Mikrotik",
+  "host": "invalid-ip",
+  "api_username": "admin",
+  "api_password": "admin"
+}
+
+### Create mikrotik exceeding tenant limit (Should Fail)
+POST {{baseUrl}}/v1/internal/mikrotik
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Exceeding Limit",
+  "host": "192.168.1.10",
+  "api_username": "admin",
+  "api_password": "admin"
+}
+
+### Update non-existent mikrotik (Should Fail)
+PUT {{baseUrl}}/v1/internal/mikrotik/{{$guid}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Non Existent"
+}

@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose ps:*)",
+      "Bash(go build:*)",
+      "Bash(curl:*)",
+      "Bash(python3 -m json.tool:*)",
+      "Bash(SA_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzAzOTcyODYsInJvbGUiOiJzdXBlcmFkbWluIiwic3ViIjoiZmU3ZmRmYmUtYTU1Ny00NDM5LTgwYjMtOWM4N2YxN2UxNTFlIiwidXNlcm5hbWUiOiJzdXBlcmFkbWluIn0.NsWHsTwLDGjlWQHy-PdNMHqST54BHHb_1W9sG2u0xhc\")",
+      "Bash(TA_TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzAzOTcyODYsInJvbGUiOiJhZG1pbiIsInN1YiI6IjlhOTcxZWRhLTRiYTYtNDg3MS05OWY1LTkyOWM1M2FhZmQwNCIsInVzZXJuYW1lIjoiYWRtaW5AdGVrbnVzYW50YXJhLmNvbSJ9.0xtNsRzgPU14PRr7udZJ85o5xQBUnhg_VedV-A07iPE\")",
+      "Bash(TENANT_ID=\"fb1f329d-4593-4337-889d-9f4d872e0777\")",
+      "Bash(__NEW_LINE_42c4c948ad53296b__ echo \"===== 8. LIST USERS \\(SuperAdmin\\) =====\")",
+      "Bash(__NEW_LINE_42c4c948ad53296b__ echo \"\")",
+      "Bash(MIKROTIK_ID=\"13b3be30-4c05-4809-9a07-5512a3be3c3d\")",
+      "Bash(__NEW_LINE_42fb63c9299f3181__ echo \"===== 12. LIST PROFILES \\(Tenant Admin\\) =====\")",
+      "Bash(__NEW_LINE_42fb63c9299f3181__ echo \"\")",
+      "Bash(__NEW_LINE_e6fad457c97ee120__ echo \"===== 16. PPP SECRET LIST =====\")",
+      "Bash(__NEW_LINE_e6fad457c97ee120__ echo \"\")",
+      "Bash(CUSTOMER_ID=\"0e115da4-5c5f-4142-848d-157f05a4e6fd\":*)",
+      "Bash(PROFILE_ID=\"eb891db4-5ac4-49bd-9692-c5733a54a30c\")",
+      "Bash(__NEW_LINE_9db88fc574389681__ echo \"===== 22. GET CUSTOMER BY ID =====\")",
+      "Bash(__NEW_LINE_9db88fc574389681__ echo \"\")",
+      "Bash(PGPASSWORD=r00t psql:*)",
+      "Bash(docker exec:*)",
+      "Bash(__NEW_LINE_e012032a84b5fdf0__ echo \"\")",
+      "Bash(taskkill:*)",
+      "Bash(dir:*)",
+      "Bash(xargs:*)",
+      "Bash(echo:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(go generate:*)"
+    ]
+  }
+}
